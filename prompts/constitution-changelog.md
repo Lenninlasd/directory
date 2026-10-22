@@ -1,3 +1,9 @@
+## [0.0.1] - 2026-10-22 12:42(UTC-05:00)
+
+**Changed:** Principle 1 (Stack Simplicity) now declares the serverless-native stack: Node.js + TypeScript + Express deployed on AWS Lambda behind API Gateway, with Amazon Aurora DSQL (PostgreSQL-compatible distributed SQL) replacing standalone PostgreSQL as the persistence layer. Principle 3 (Separation of Concerns) now explicitly forbids Lambda imports in business logic, and Principle 5 (Data Persistence) now requires migrations to be Aurora DSQL-compatible. Principles 2, 4, and 6 are unchanged. Rationale: align the constitution with the serverless evolution of the stack while keeping every rule verifiable in code review and the document within the 15-line limit.
+
+## [0.0.1] - 2026-10-21 16:42(UTC-05:00)
+
 Act as a Staff Software Engineer and Principal Architect for a hyper-local web application: a business directory for Alameda del Río (Barranquilla, Colombia). 
 
 We are adopting Spec-Driven Development (SDD) for this project. Before writing any technical specification or source code, we must establish our project's foundational guidelines by creating a `constitution.md` file.
@@ -25,5 +31,3 @@ Each principle must be direct, short, and testable against code reviews, coverin
 - Use clear Markdown heading and numbered list format.
 - Language of the `constitution.md` document must be English.
 - Focus on practical enforcement rather than general advice.
-
-Generate only the contents of `constitution.md`.
