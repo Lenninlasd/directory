@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-23
+- **Last updated:** 2026-10-23 (added AC-2.5 and section 8a)
 
 ## 1. Context and Objective
 
@@ -53,6 +53,7 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 - **AC-2.2.** While a business has a valid WhatsApp number, the system shall display a WhatsApp contact button on its card.
 - **AC-2.3.** If a business has an invalid WhatsApp number, then the system shall not display the WhatsApp contact button on its card and shall still display the rest of the card.
 - **AC-2.4.** The system shall not display any other business attribute on the card in this MVP.
+- **AC-2.5.** A WhatsApp number is valid when, after removing spaces, dashes, parentheses, and a leading `+`, it has 8 to 15 digits and does not start with `0`. Numbers are stored with the country code (for example `573001234567`).
 
 ### FR-3: Store type indicator (US-3)
 
@@ -112,6 +113,22 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 - Maps and directions.
 - Interface languages other than Spanish, and any translation or language-switching approach. It may be considered in a future spec.
 - Analytics and usage tracking.
+
+## 8a. Approved Dependencies
+
+Approved by the project owner on 2026-10-23, in addition to the fixed stack. Each is the minimum needed to build and test this feature.
+
+| Package | Where | Why |
+|---|---|---|
+| `express`, a Lambda adapter (for example `serverless-http`) | backend | Express on Lambda; the adapter converts API Gateway events |
+| `pg`, `@aws-sdk/rds-signer` | backend | PostgreSQL driver and IAM token generation |
+| `typescript`, `eslint` with `typescript-eslint`, `vitest` | root / both | Strict typing, the `lint` script, and one shared test runner |
+| `vite`, `@vitejs/plugin-react` | frontend | Build and dev server |
+| `tailwindcss`, `@tailwindcss/vite` | frontend | Styling |
+| `@tanstack/react-query` | frontend | Server state |
+| `jsdom`, `@testing-library/react` | frontend (dev) | Component and hook tests |
+
+Exact package names are confirmed against official documentation in the first task that uses them.
 
 ## 9. Completion Criteria
 

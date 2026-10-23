@@ -99,7 +99,7 @@ The service receives the repository function as an argument (plain function pass
 
 ### Business rules
 
-**WhatsApp number (AC-2.2, AC-2.3, EC-5).** Proposed rule, which the spec does not define (see Open Questions Q-1): strip spaces, dashes, parentheses, and a leading `+`; the result is valid when it is 8 to 15 digits and does not start with `0`. Return the digits, or `null`. The team stores numbers with country code (for example `573001234567`).
+**WhatsApp number (AC-2.2, AC-2.3, EC-5).** Rule defined in spec AC-2.5: strip spaces, dashes, parentheses, and a leading `+`; the result is valid when it is 8 to 15 digits and does not start with `0`. Return the digits, or `null`. The team stores numbers with country code (for example `573001234567`).
 
 **Ordering (AC-5.1, AC-5.2, EC-6).**
 
@@ -149,7 +149,7 @@ Notes:
 
 ## 7. Dependencies Requiring Approval
 
-The constitution says any dependency beyond the fixed stack needs an approved spec that justifies it, and spec 001 does not list any. These are the minimum needed to build and test the feature. They must be approved (in chat, or by adding a short section to the spec) before the tasks are written.
+The constitution says any dependency beyond the fixed stack needs an approved spec that justifies it. These are the minimum needed to build and test the feature. They are approved in spec 001, section 8a.
 
 | Package | Where | Why |
 |---|---|---|
@@ -207,7 +207,7 @@ Documented manual checks (cannot be automated without extra tooling):
 | # | Risk | Mitigation |
 |---|---|---|
 | R-1 | Cold start plus a new database connection and token on every invocation may exceed the 3 s target (NFR-1) | Measure in manual check 5. If it fails, propose a spec change to allow connection reuse rather than doing it silently. |
-| R-2 | The Aurora PostgreSQL connection approach (IAM auth vs. Secrets Manager, VPC access or RDS Proxy from Lambda) and the engine version are not decided. Package names and `gen_random_uuid()` availability are therefore unconfirmed. | Verify against the AWS documentation in the first backend and migration tasks, before writing code or SQL |
+| R-2 | Connection approach is decided: IAM database authentication with a short-lived token from `@aws-sdk/rds-signer`, no stored password. VPC access, RDS Proxy, and the engine version are left to spec 002. Package names and `gen_random_uuid()` availability are unconfirmed. | Verify against the AWS documentation in the first backend and migration tasks, before writing code or SQL |
 | R-3 | Lambda can exhaust Aurora connections under concurrent invocations, since each invocation opens its own connection | Low traffic expected for this read-only endpoint; revisit (for example RDS Proxy) in the infrastructure spec |
 | R-4 | Returning every row grows the response and query time as businesses are added | Acceptable for hundreds of rows. Pagination is the planned future spec. |
 | R-5 | Cross-origin requests from the frontend host to API Gateway need CORS | Configured with the infrastructure (separate spec); `VITE_API_BASE_URL` keeps the API origin out of the code |
@@ -215,9 +215,12 @@ Documented manual checks (cannot be automated without extra tooling):
 
 ## 11. Open Questions
 
-- **Q-1.** The spec says "valid WhatsApp number" but does not define it. The proposed rule is in section 4 (8 to 15 digits after stripping separators and `+`, not starting with `0`, stored with country code). Needs confirmation, and ideally a one-line addition to the spec.
-- **Q-2.** Dependencies in section 7 need approval.
-- **Q-3.** Hosting, deployment, and infrastructure (Lambda, API Gateway, Aurora PostgreSQL cluster, frontend hosting, CORS) need their own spec before the feature can be reached by real users.
+All resolved on 2026-10-23:
+
+- **Q-1.** Resolved: WhatsApp validation rule added to the spec as AC-2.5.
+- **Q-2.** Resolved: dependencies approved in spec section 8a.
+- **Q-3.** Resolved: spec `002-infrastructure` (Lambda, API Gateway, Aurora PostgreSQL cluster, frontend hosting, CORS, VPC/RDS Proxy) is written and approved before tasks for 001 start. Not yet created.
+- **R-2.** Resolved: IAM database authentication (see risk R-2).
 
 ## 12. Constitution Check
 
