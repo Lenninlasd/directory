@@ -1,6 +1,6 @@
 # Spec 002: Hosting, Deployment, and Infrastructure
 
-- **Status:** Draft
+- **Status:** Approved
 - **Created:** 2026-10-23
 - **Last updated:** 2026-10-23
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
@@ -36,7 +36,7 @@
 | I-2 | IaC with AWS SAM (`template.yaml`) | Serverless-first; SAM covers Lambda, API Gateway, and plain CloudFormation resources for the rest |
 | I-3 | Frontend hosting: private S3 bucket behind CloudFront | Static hosting, HTTPS, global caching |
 | I-4 | Lambda connects to Aurora through RDS Proxy | Avoids exhausting database connections under concurrent invocations (plan 001, R-3) |
-| I-5 | Database authentication from Lambda: IAM database authentication (plan 001, R-2) | No stored application password |
+| I-5 | The API Lambda authenticates to RDS Proxy with IAM database authentication (plan 001, R-2). RDS Proxy connects to Aurora with a managed secret in Secrets Manager (Aurora-managed master user secret, rotated by AWS). Whether the proxy can use IAM to Aurora instead is checked in the plan. | No password in the application, the repository, or environment variables |
 | I-6 | Primary region: `us-east-1` (see Open Questions Q-1 to confirm) | See section 4a |
 
 ### 4a. Region rationale
@@ -57,14 +57,14 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 - **AC-2.2.** The Lambda function shall run inside the VPC and reach the database only through RDS Proxy.
 - **AC-2.3.** The Lambda execution role shall have only the permissions it needs: write logs and connect to the database with IAM authentication as the application database user.
 - **AC-2.4.** The API shall allow cross-origin requests only from the frontend origin of the same environment (CORS), never from `*` in `prod`.
-- **AC-2.5.** Lambda logs shall go to CloudWatch Logs with a defined retention period (Q-5).
+- **AC-2.5.** Lambda logs shall go to CloudWatch Logs with a defined retention period of 30 days.
 
 ### FR-3: Database
 
 - **AC-3.1.** The system shall provision an Aurora PostgreSQL cluster per environment, in private subnets, with no public access.
 - **AC-3.2.** The database shall accept connections only from RDS Proxy and from the migration mechanism (FR-5).
 - **AC-3.3.** Storage shall be encrypted at rest and connections encrypted in transit.
-- **AC-3.4.** `prod` shall keep automated backups with a defined retention period (Q-5). `dev` may use a shorter one.
+- **AC-3.4.** `prod` shall keep automated backups with a defined retention period of 7 days. `dev` may use a shorter one.
 - **AC-3.5.** The engine version shall be a version supported by Aurora PostgreSQL, verified against the official AWS documentation before the template is written. The version chosen shall be recorded in the plan.
 
 ### FR-4: Frontend hosting
@@ -79,6 +79,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 
 - **AC-5.1.** The system shall provide a documented, repeatable way to run `backend/migrations/*.sql` against the database of each environment, using the in-repo script defined in plan 001 (D-7).
 - **AC-5.2.** The migration mechanism shall reach the private database without opening it to the internet (mechanism chosen in Q-4).
+- **AC-5.2a.** The migration mechanism is a migration Lambda in the VPC, deployed by the same template and invoked by the deploy command. It shall use a database user that can change the schema, separate from the read-only user of the API Lambda (AC-2.3).
 - **AC-5.3.** Migrations shall run before the new backend version receives traffic when a migration is part of the release.
 
 ### FR-6: Deployment process
@@ -136,10 +137,13 @@ No new npm packages are introduced by this spec. Tooling that is not a project d
 
 ## 11. Open Questions
 
-- **Q-1.** Confirm `us-east-1` as the region (section 4a), or choose `sa-east-1`.
-- **Q-2.** Aurora capacity model: Aurora Serverless v2 (scales with load, lower minimum cost) or provisioned instances? Recommended: Serverless v2 for both environments. Whether Serverless v2 can pause or scale to zero while RDS Proxy is in front must be verified in the AWS documentation.
-- **Q-3.** Is a custom domain really out of scope for the first release? Without one, users get a long `cloudfront.net` URL, which is awkward to share.
-- **Q-4.** How are migrations run against a private database: a one-off migration Lambda in the VPC invoked by the deploy, a temporary bastion or SSM session, or another way? Recommended: a migration Lambda invoked by the deploy command.
-- **Q-5.** Retention values: CloudWatch log retention (suggested 30 days) and `prod` backup retention (suggested 7 days).
-- **Q-6.** RDS Proxy needs a secret in AWS Secrets Manager with the database credentials to connect to the cluster, even when clients use IAM authentication. This means a managed secret exists, although the application never reads it. Confirm this is acceptable under "no stored application password" (I-5), or choose another approach.
-- **Q-7.** AWS account structure: one account with `dev` and `prod` side by side (distinguished by name and tags), or one account per environment? Recommended for the MVP: one account.
+Resolved on 2026-10-23:
+
+- **Q-1.** Region is `us-east-1` (I-6 confirmed). Latency from Barranquilla is still measured before `prod` is created.
+- **Q-2.** Aurora Serverless v2 in both environments. Whether it can pause or scale to zero while RDS Proxy is in front is verified in the AWS documentation during planning.
+- **Q-3.** No custom domain for the first release (stays out of scope, section 8).
+- **Q-5.** CloudWatch log retention is 30 days. `prod` backup retention is 7 days. `dev` uses the minimum.
+- **Q-7.** One AWS account holds both environments, separated by resource names and tags.
+
+- **Q-4.** Migrations run through a migration Lambda in the VPC invoked by the deploy command (AC-5.2a). The same mechanism may run the `dev` seed script once it is approved in a task list.
+- **Q-6.** A managed Secrets Manager secret used only by RDS Proxy is accepted (I-5). The plan checks whether end-to-end IAM authentication is supported for our engine version and region, and uses it if so.
