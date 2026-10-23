@@ -1,6 +1,6 @@
 # Plan 001: Business Directory Listing
 
-- **Status:** Draft
+- **Status:** Approved
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Created:** 2026-10-23
 
