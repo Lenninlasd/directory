@@ -16,7 +16,7 @@ Browser (React + TanStack Query)
     -> Lambda handler (Express app via adapter)   parse input, call service, respond
       -> businessService.listActiveBusinesses     validate WhatsApp number, sort, map to API shape
         -> businessRepository                     raw SQL, active rows only
-          -> Aurora DSQL (businesses table)
+          -> Aurora PostgreSQL (businesses table)
 ```
 
 Key decisions:
@@ -31,7 +31,7 @@ Table `businesses` (covers FR-1, FR-2, FR-3, FR-5):
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | `UUID` primary key | Random UUID default (function name to confirm, see Risks R-2) |
+| `id` | `UUID` primary key | Random UUID default (`gen_random_uuid()`; confirm against the chosen engine version, see Risks R-2) |
 | `name` | `TEXT NOT NULL` | |
 | `category` | `TEXT NOT NULL` | Free text. No categories table, since filters are out of scope. |
 | `location_summary` | `TEXT NOT NULL` | Short, display-only |
@@ -40,9 +40,9 @@ Table `businesses` (covers FR-1, FR-2, FR-3, FR-5):
 | `is_active` | `BOOLEAN NOT NULL DEFAULT TRUE` | Inactive rows are never returned |
 | `created_at` | `TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP` | Drives ordering |
 
-No foreign keys and no secondary index: the query reads all active rows, and the table has hundreds of rows, not millions. An index (`CREATE INDEX ASYNC`) is added together with pagination in a future spec.
+No foreign keys and no secondary index: the query reads all active rows, and the table has hundreds of rows, not millions. An index is added together with pagination in a future spec.
 
-Migration `backend/migrations/001_create_businesses.sql` holds a single `CREATE TABLE` statement. Verified against the Aurora DSQL documentation: a transaction can contain only one DDL statement, and DDL and DML need separate transactions.
+Migration `backend/migrations/001_create_businesses.sql` holds a single `CREATE TABLE` statement. Aurora PostgreSQL supports transactional DDL, so the migration script can run each file in one transaction.
 
 ## 3. API Contract (FR-1, FR-2, FR-5, FR-6)
 
@@ -88,7 +88,7 @@ Migration `backend/migrations/001_create_businesses.sql` holds a single `CREATE 
 | `src/domain/whatsappNumber.ts` | `normalizeWhatsappNumber(raw): string \| null` | none |
 | `src/services/businessService.ts` | `listActiveBusinesses(findRows)`: normalize numbers, sort, map to `Business[]` | domain only |
 | `src/repositories/businessRepository.ts` | `findActiveBusinessRows(client)`: parameterized raw SQL | `pg` types |
-| `src/db/connect.ts` | Generates the IAM token, opens one connection, returns a client | `pg`, DSQL signer |
+| `src/db/connect.ts` | Generates the IAM token (or reads credentials from the environment), opens one connection, returns a client | `pg`, RDS signer |
 | `src/app.ts` | `createApp(deps)`: Express app, `GET /businesses`, error middleware | `express` |
 | `src/handlers/lambda.ts` | Lambda entry: wires the real dependencies and adapts the Express app | adapter |
 | `src/local.ts` | Local dev server on a fixed port, same app | `express` |
@@ -139,7 +139,7 @@ Notes:
 | # | Decision | Alternatives discarded and why |
 |---|---|---|
 | D-1 | Return all active rows in one query; no pagination | Offset or cursor pagination: excluded by the spec, and adds cursor logic and an index |
-| D-2 | Sort in the service with a pure comparator | `ORDER BY name` in SQL: DSQL supports only the `C` collation, so "alphabetical" would be byte order (uppercase first, accents last). Sorting in the service also keeps the rule testable without a database. |
+| D-2 | Sort in the service with a pure comparator | `ORDER BY name` in SQL: the result depends on the database collation, so "alphabetical" may not follow Spanish rules (accents, case). Sorting in the service keeps the rule explicit and testable without a database. |
 | D-3 | Open one connection per invocation and close it at the end | Module-level pool: IAM tokens expire, and AGENTS.md forbids long-lived state between invocations. The extra connect time must fit in NFR-1 (see R-1). |
 | D-4 | Frontend builds the WhatsApp link; backend sends a normalized number or `null` | Backend returns a ready URL: it would put Spanish text and presentation concerns in the API |
 | D-5 | Spanish strings in one `strings.ts` | An i18n library: translation is out of scope, and a new dependency would need approval |
@@ -154,7 +154,7 @@ The constitution says any dependency beyond the fixed stack needs an approved sp
 | Package | Where | Why |
 |---|---|---|
 | `express`, a Lambda adapter (for example `serverless-http`) | backend | Constitution names Express on Lambda; the adapter converts API Gateway events |
-| `pg`, `@aws-sdk/dsql-signer` | backend | PostgreSQL driver and IAM token generation. Exact packages to confirm (see R-2). |
+| `pg`, `@aws-sdk/rds-signer` | backend | PostgreSQL driver and IAM token generation. Exact packages to confirm (see R-2). |
 | `typescript`, `eslint` with `typescript-eslint`, `vitest` | root / both | Strict typing, the `lint` script, and the test runner. A single runner is shared by both packages. |
 | `vite`, `@vitejs/plugin-react` | frontend | Build and dev server for React + TypeScript |
 | `tailwindcss`, `@tailwindcss/vite` | frontend | Allowed by AGENTS.md; v4 setup verified in the docs |
@@ -177,7 +177,7 @@ Tests are written before code, per task (AGENTS.md workflow).
 
 Documented manual checks (cannot be automated without extra tooling):
 
-1. **Inactive rows (AC-1.2, end to end):** insert one inactive and one active business in a dev DSQL cluster, open the directory, and confirm only the active one shows.
+1. **Inactive rows (AC-1.2, end to end):** insert one inactive and one active business in a dev Aurora PostgreSQL cluster, open the directory, and confirm only the active one shows.
 2. **WhatsApp (AC-4.1, AC-4.2):** tap the button on a phone with WhatsApp and on a desktop without it; the greeting is prefilled, and the page is still open in the original tab.
 3. **Layout (NFR-2, EC-4):** check at 320 px and on desktop with a very long name and location.
 4. **Accessibility (NFR-3):** keyboard-only pass, screen reader names for buttons, and contrast of the design tokens against WCAG AA.
@@ -206,9 +206,9 @@ Documented manual checks (cannot be automated without extra tooling):
 
 | # | Risk | Mitigation |
 |---|---|---|
-| R-1 | Cold start plus a new DSQL connection and token on every invocation may exceed the 3 s target (NFR-1) | Measure in manual check 5. If it fails, propose a spec change to allow connection reuse rather than doing it silently. |
-| R-2 | The official Node.js connection page for DSQL could not be read while writing this plan, and the docs pages read do not name the UUID function. Package names and `gen_random_uuid()` are therefore unconfirmed. | Verify both against the AWS documentation in the first backend and migration tasks, before writing code or SQL |
-| R-3 | DSQL uses optimistic concurrency, which can cause serialization errors on writes | Not relevant to this read-only endpoint; becomes relevant when write features appear |
+| R-1 | Cold start plus a new database connection and token on every invocation may exceed the 3 s target (NFR-1) | Measure in manual check 5. If it fails, propose a spec change to allow connection reuse rather than doing it silently. |
+| R-2 | The Aurora PostgreSQL connection approach (IAM auth vs. Secrets Manager, VPC access or RDS Proxy from Lambda) and the engine version are not decided. Package names and `gen_random_uuid()` availability are therefore unconfirmed. | Verify against the AWS documentation in the first backend and migration tasks, before writing code or SQL |
+| R-3 | Lambda can exhaust Aurora connections under concurrent invocations, since each invocation opens its own connection | Low traffic expected for this read-only endpoint; revisit (for example RDS Proxy) in the infrastructure spec |
 | R-4 | Returning every row grows the response and query time as businesses are added | Acceptable for hundreds of rows. Pagination is the planned future spec. |
 | R-5 | Cross-origin requests from the frontend host to API Gateway need CORS | Configured with the infrastructure (separate spec); `VITE_API_BASE_URL` keeps the API origin out of the code |
 | R-6 | JavaScript dates have millisecond precision while `TIMESTAMPTZ` has microseconds, so near-equal times may tie | The name and id tie-breaks keep the order deterministic |
@@ -217,13 +217,13 @@ Documented manual checks (cannot be automated without extra tooling):
 
 - **Q-1.** The spec says "valid WhatsApp number" but does not define it. The proposed rule is in section 4 (8 to 15 digits after stripping separators and `+`, not starting with `0`, stored with country code). Needs confirmation, and ideally a one-line addition to the spec.
 - **Q-2.** Dependencies in section 7 need approval.
-- **Q-3.** Hosting, deployment, and infrastructure (Lambda, API Gateway, DSQL cluster, frontend hosting, CORS) need their own spec before the feature can be reached by real users.
+- **Q-3.** Hosting, deployment, and infrastructure (Lambda, API Gateway, Aurora PostgreSQL cluster, frontend hosting, CORS) need their own spec before the feature can be reached by real users.
 
 ## 12. Constitution Check
 
-1. **Stack Simplicity:** Complies. Only the fixed stack is used (React + TypeScript, Express on Lambda behind API Gateway, Aurora DSQL, Tailwind, TanStack Query). The extra packages are listed in section 7 and wait for approval.
+1. **Stack Simplicity:** Complies. Only the fixed stack is used (React + TypeScript, Express on Lambda behind API Gateway, Aurora PostgreSQL, Tailwind, TanStack Query). The extra packages are listed in section 7 and wait for approval.
 2. **Spec-Code Alignment:** Complies. The spec is Approved, every part of the plan traces to an FR or NFR (section 9), and nothing outside spec 001 is planned. Items the spec does not cover are raised as open questions instead of assumed.
 3. **Separation of Concerns:** Complies. Domain and service modules have no Express, Lambda, or React imports. The handler only parses input, calls the service, and responds. React components only render, and data comes through `fetchBusinesses` and `useBusinesses`.
 4. **Testing Standard:** Complies. Business rules and the endpoint have automated tests, written first, and run in CI through `pnpm -r test` (section 8). Behavior that cannot be automated has documented manual checks.
-5. **Data Persistence:** Complies. One versioned SQL migration, one DDL statement per file, raw parameterized SQL, no ORM, and no manual schema edits (applied by `scripts/migrate.ts`). Checked against the DSQL documentation; the UUID function is flagged in R-2.
+5. **Data Persistence:** Complies. One versioned SQL migration, one DDL statement per file, raw parameterized SQL, no ORM, and no manual schema edits (applied by `scripts/migrate.ts`). To be checked against the Aurora PostgreSQL documentation; the UUID function and engine version are flagged in R-2.
 6. **Language Standard:** Complies. Code, comments, identifiers, API field names, the migration, and this plan are in English. Spanish appears only as UI text, defined in `frontend/src/strings.ts`.

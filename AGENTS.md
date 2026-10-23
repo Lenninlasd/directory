@@ -9,7 +9,7 @@ The binding rules live in `docs/constitution.md`. If this file and the constitut
 - MVP scope: a React + TypeScript frontend that reads and renders a list of businesses served by an API.
 - Frontend: React + TypeScript, Tailwind CSS for styling, TanStack Query (React Query) for data fetching.
 - Backend: Node.js + TypeScript + Express on AWS Lambda behind API Gateway.
-- Database: Amazon Aurora DSQL (PostgreSQL-compatible distributed SQL).
+- Database: Amazon Aurora PostgreSQL (PostgreSQL-compatible).
 - Package manager: pnpm (workspaces) for the whole repository.
 - Methodology: Spec-Driven Development (SDD). Specs are the source of truth, code is derived from them.
 
@@ -49,7 +49,7 @@ Every PR must link to its spec, and each commit should reference a task.
 - Keep business logic in framework-agnostic modules with no React, Express, or Lambda imports.
 - React components only render UI. Express/Lambda handlers only parse input, call a service, and return a response.
 - Data access uses raw SQL or a lightweight query builder, with parameterized queries only.
-- Aurora DSQL differs from standard PostgreSQL (for example, around foreign keys and index creation). Verify every migration against the official AWS Aurora DSQL documentation before writing it.
+- Aurora PostgreSQL is PostgreSQL-compatible, but the supported engine version and extensions depend on the Aurora release. Verify every migration against the official AWS Aurora PostgreSQL documentation before writing it.
 - Schema changes happen only through versioned SQL files in `backend/migrations/`. Never edit the schema manually.
 - Keep the Lambda small: no unnecessary dependencies, no long-lived state between invocations.
 

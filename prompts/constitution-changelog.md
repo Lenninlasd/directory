@@ -1,3 +1,7 @@
+## [0.0.3] - 2026-10-23
+
+**Changed:** Principle 1 (Stack Simplicity) now names Amazon Aurora PostgreSQL as the persistence layer, replacing Amazon Aurora DSQL, and Principle 5 (Data Persistence) now requires migrations to be Aurora PostgreSQL-compatible. Rationale: use standard PostgreSQL semantics (foreign keys, regular indexes, multi-statement transactions, configurable collations) instead of DSQL's restrictions. Principles 2, 3, 4, and 6 are unchanged.
+
 ## [0.0.2] - 2026-10-23 11:44(UTC-05:00)
 
 **Changed:** Principle 6 (Language Standard) now makes user interface text Spanish, while code, comments, identifiers, specs, commit messages, logs, and API field names stay in English. Translation or multi-language support is explicitly out of scope until an approved spec adds it. Rationale: the audience is Spanish-speaking residents of Alameda del Río, and the engineering artifacts stay in English for consistency. Principles 1 to 5 are unchanged.
