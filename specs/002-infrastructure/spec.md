@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-23
+- **Last updated:** 2026-10-23 (RDS Proxy removed, I-4 and I-5 revised)
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
@@ -25,7 +25,7 @@
 - Everything in the stack is fixed by `docs/constitution.md`: Lambda + API Gateway, Aurora PostgreSQL, React frontend. This spec adds hosting for the frontend (S3 + CloudFront) and the IaC tool (AWS SAM).
 - No credentials, tokens, account IDs, or database passwords in the repository. Environment-specific values come from deploy-time parameters and environment variables.
 - The database is never reachable from the public internet.
-- Lambda keeps no long-lived state between invocations (AGENTS.md). Connection pooling is delegated to RDS Proxy.
+- Lambda keeps no long-lived state between invocations (AGENTS.md). Each invocation opens and closes its own connection. RDS Proxy is not used in this version (see I-4).
 - Documentation, identifiers, and resource names are in English.
 
 ## 4. Decisions Taken
@@ -35,8 +35,8 @@
 | I-1 | Two environments: `dev` and `prod`, each with its own full set of resources | Safe testing before production |
 | I-2 | IaC with AWS SAM (`template.yaml`) | Serverless-first; SAM covers Lambda, API Gateway, and plain CloudFormation resources for the rest |
 | I-3 | Frontend hosting: private S3 bucket behind CloudFront | Static hosting, HTTPS, global caching |
-| I-4 | Lambda connects to Aurora through RDS Proxy | Avoids exhausting database connections under concurrent invocations (plan 001, R-3) |
-| I-5 | The API Lambda authenticates to RDS Proxy with IAM database authentication (plan 001, R-2). RDS Proxy connects to Aurora with a managed secret in Secrets Manager (Aurora-managed master user secret, rotated by AWS). Whether the proxy can use IAM to Aurora instead is checked in the plan. | No password in the application, the repository, or environment variables |
+| I-4 | Lambda connects directly to the Aurora cluster endpoint. RDS Proxy is not used now and may be added later through a spec change. (Changed 2026-10-23, was: through RDS Proxy.) | RDS Proxy has a high fixed cost compared with the expected load and prevents Aurora Serverless v2 from pausing. Traffic is low (plan 001, R-3). |
+| I-5 | The API Lambda and the migration Lambda authenticate to Aurora with IAM database authentication (plan 001, R-2). The Aurora-managed master user secret in Secrets Manager (rotated by AWS) exists only for the first role-creating migration (Q-4) and is never read by the API Lambda. | No password in the application, the repository, or environment variables |
 | I-6 | Primary region: `us-east-1` (see Open Questions Q-1 to confirm) | See section 4a |
 
 ### 4a. Region rationale
@@ -54,7 +54,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 ### FR-2: Backend deployment
 
 - **AC-2.1.** The system shall deploy the backend Lambda function (spec 001, plan section 4) behind API Gateway, exposing `GET /businesses` over HTTPS.
-- **AC-2.2.** The Lambda function shall run inside the VPC and reach the database only through RDS Proxy.
+- **AC-2.2.** The Lambda function shall run inside the VPC and reach the database only through the cluster endpoint, using IAM authentication and TLS.
 - **AC-2.3.** The Lambda execution role shall have only the permissions it needs: write logs and connect to the database with IAM authentication as the application database user.
 - **AC-2.4.** The API shall allow cross-origin requests only from the frontend origin of the same environment (CORS), never from `*` in `prod`.
 - **AC-2.5.** Lambda logs shall go to CloudWatch Logs with a defined retention period of 30 days.
@@ -62,7 +62,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 ### FR-3: Database
 
 - **AC-3.1.** The system shall provision an Aurora PostgreSQL cluster per environment, in private subnets, with no public access.
-- **AC-3.2.** The database shall accept connections only from RDS Proxy and from the migration mechanism (FR-5).
+- **AC-3.2.** The database shall accept connections only from the API Lambda and the migration Lambda (FR-5), through security groups.
 - **AC-3.3.** Storage shall be encrypted at rest and connections encrypted in transit.
 - **AC-3.4.** `prod` shall keep automated backups with a defined retention period of 7 days. `dev` may use a shorter one.
 - **AC-3.5.** The engine version shall be a version supported by Aurora PostgreSQL, verified against the official AWS documentation before the template is written. The version chosen shall be recorded in the plan.
@@ -92,7 +92,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 
 - **NFR-1 Performance.** The infrastructure shall not prevent spec 001 NFR-1 (list visible in about 3 seconds on a typical mobile connection). Cold-start plus connection time is measured with spec 001 manual check 5.
 - **NFR-2 Security.** Least-privilege IAM, no public database, TLS everywhere, no secrets in the repository or in Lambda environment variables.
-- **NFR-3 Cost.** Expected traffic is low. Database capacity in `dev` shall be the minimum available, and the choice for `prod` shall be justified in the plan (Q-2).
+- **NFR-3 Cost.** Expected traffic is low. Database capacity in `dev` shall be the minimum available, including scaling to zero when idle. The choice for `prod` shall be justified in the plan.
 - **NFR-4 Reproducibility.** Destroying and recreating an environment from the template shall give the same result, apart from data.
 - **NFR-5 Observability.** Errors from Lambda and the API shall be visible in CloudWatch. No alerting is required in this MVP.
 
@@ -100,7 +100,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 
 | # | Situation | Expected behavior |
 |---|---|---|
-| EC-1 | The database is unreachable or the proxy rejects a connection | The API returns `500 { "error": "internal_error" }` (spec 001 AC-6.4); details only in logs |
+| EC-1 | The database is unreachable or rejects a connection | The API returns `500 { "error": "internal_error" }` (spec 001 AC-6.4); details only in logs |
 | EC-2 | A browser from a different origin calls the API | The browser blocks it (AC-2.4) |
 | EC-3 | A user opens a deep link such as `/anything` | CloudFront serves the app (AC-4.3) |
 | EC-4 | A migration fails halfway | The transaction rolls back (plan 001, section 2) and the release stops |
@@ -140,10 +140,12 @@ No new npm packages are introduced by this spec. Tooling that is not a project d
 Resolved on 2026-10-23:
 
 - **Q-1.** Region is `us-east-1` (I-6 confirmed). Latency from Barranquilla is still measured before `prod` is created.
-- **Q-2.** Aurora Serverless v2 in both environments. Whether it can pause or scale to zero while RDS Proxy is in front is verified in the AWS documentation during planning.
+- **Q-2.** Aurora Serverless v2 in both environments. `dev` scales to zero when idle. `prod` keeps a minimum capacity above zero so users never wait for a resume (details in the plan).
 - **Q-3.** No custom domain for the first release (stays out of scope, section 8).
 - **Q-5.** CloudWatch log retention is 30 days. `prod` backup retention is 7 days. `dev` uses the minimum.
 - **Q-7.** One AWS account holds both environments, separated by resource names and tags.
 
 - **Q-4.** Migrations run through a migration Lambda in the VPC invoked by the deploy command (AC-5.2a). The same mechanism may run the `dev` seed script once it is approved in a task list.
-- **Q-6.** A managed Secrets Manager secret used only by RDS Proxy is accepted (I-5). The plan checks whether end-to-end IAM authentication is supported for our engine version and region, and uses it if so.
+- **Q-6.** Obsolete: RDS Proxy is not used now (I-4). The only managed secret is the Aurora master user secret needed for the bootstrap migration (I-5, Q-4).
+- **Q-8.** RDS Proxy is deferred. It is added later through a spec change if connection exhaustion appears (decided 2026-10-23).
+- **Q-9.** `backend/seeds/dev_businesses.sql` (sample rows, `dev` only, never run in `prod`) is approved as a deliverable.
