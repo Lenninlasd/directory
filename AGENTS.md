@@ -37,8 +37,8 @@ The binding rules live in `docs/constitution.md`. If this file and the constitut
 Follow these steps in order. Do not skip ahead, and stop at each approval gate.
 
 1. **Spec** — Write or update `specs/<NNN-feature>/spec.md`: goal, user stories, acceptance criteria, API contract, data model, out-of-scope. **Gate: human approval.**
-2. **Plan** — Write `plan.md`: technical approach within the fixed stack, files to touch, data flow, risks. **Gate: human approval.**
-3. **Tasks** — Write `tasks.md`: small, ordered, verifiable tasks, each linked to an acceptance criterion. **Gate: human approval.**
+2. **Plan** — Before writing, the feature's `spec.md` (it must be `Status: Approved`). Write `plan.md`: technical approach within the fixed stack, files to touch, data flow, risks.**Gate: human approval.**
+3. **Tasks** — Before writing, read the approved `spec.md` and `plan.md`. Write `tasks.md`: small, ordered, verifiable tasks, each linked to an acceptance criterion. **Gate: human approval.**
 4. **Test** — For each task, write the automated tests first (business rules and API endpoint). Run them and confirm they fail for the right reason.
 5. **Code** — Write the minimum code to make the tests pass. Run lint, type check, and the full test suite. Mark the task done in `tasks.md`.
 
