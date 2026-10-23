@@ -1,3 +1,7 @@
+## [0.0.2] - 2026-10-23 11:44(UTC-05:00)
+
+**Changed:** Principle 6 (Language Standard) now makes user interface text Spanish, while code, comments, identifiers, specs, commit messages, logs, and API field names stay in English. Translation or multi-language support is explicitly out of scope until an approved spec adds it. Rationale: the audience is Spanish-speaking residents of Alameda del Río, and the engineering artifacts stay in English for consistency. Principles 1 to 5 are unchanged.
+
 ## [0.0.1] - 2026-10-22 12:42(UTC-05:00)
 
 **Changed:** Principle 1 (Stack Simplicity) now declares the serverless-native stack: Node.js + TypeScript + Express deployed on AWS Lambda behind API Gateway, with Amazon Aurora DSQL (PostgreSQL-compatible distributed SQL) replacing standalone PostgreSQL as the persistence layer. Principle 3 (Separation of Concerns) now explicitly forbids Lambda imports in business logic, and Principle 5 (Data Persistence) now requires migrations to be Aurora DSQL-compatible. Principles 2, 4, and 6 are unchanged. Rationale: align the constitution with the serverless evolution of the stack while keeping every rule verifiable in code review and the document within the 15-line limit.

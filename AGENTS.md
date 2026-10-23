@@ -26,7 +26,7 @@ The binding rules live in `docs/constitution.md`. If this file and the constitut
 
 1. **No spec, no code.** Never write or modify source code, tests, migrations, or configuration unless an approved Markdown spec in `specs/` covers the change. If none exists, stop and ask for one.
 2. **Approval is explicit.** A spec, plan, or task list is approved only when a human says so in the chat or marks `Status: Approved` in the file. Never self-approve.
-3. **English only.** All code, comments, identifiers, specs, commit messages, PR text, logs, and API/user-facing text must be in English, regardless of the language used in the chat.
+3. **English everywhere except the UI.** All code, comments, identifiers, specs, commit messages, PR text, logs, and API field names must be in English, regardless of the language used in the chat. Only user interface text (labels, buttons, loading, empty, and error messages) is written in Spanish. Translation or multi-language support is out of scope until an approved spec adds it.
 4. **No scope creep.** Implement only what the approved spec and tasks describe. Propose extras as spec changes instead of coding them.
 5. **No heavy abstractions.** No ORMs, no DI frameworks, no generic repositories, no global state libraries, no UI component libraries. Do not add any library beyond the stack listed above without an approved spec that justifies it.
 6. **pnpm only.** Never use `npm` or `yarn`, and never commit `package-lock.json` or `yarn.lock`.
