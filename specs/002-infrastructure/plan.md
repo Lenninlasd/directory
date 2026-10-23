@@ -1,6 +1,6 @@
 # Plan 002: Hosting, Deployment, and Infrastructure
 
-- **Status:** Draft (revised 2026-10-23: RDS Proxy removed, see spec I-4)
+- **Status:** Approved RDS Proxy removed, see spec I-4)
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Created:** 2026-10-23
 
@@ -55,12 +55,12 @@ Each fact was checked against the official AWS documentation. Sources are listed
 | `infra/template.yaml` | SAM template: network, database, Lambdas, HTTP API, S3, CloudFront, log groups, IAM roles |
 | `infra/samconfig.toml` | `dev` and `prod` deploy parameters. Contains no secrets and no account IDs. |
 | `infra/README.md` | Deployment guide: prerequisites, one-time setup, deploy, migrate, rollback (spec AC-1.3, AC-6.1, AC-6.3) |
-| `backend/src/handlers/migrate.ts` | Migration Lambda entry: calls the migration logic of `scripts/migrate.ts` and returns a summary |
+| `backend/src/handlers/migrate.ts` | Migration Lambda entry: calls the migration logic of `backend/scripts/migrate.ts` and returns a summary |
 | `backend/migrations/002_create_database_users.sql` | Creates the `app_user` and `migrator` roles and grants (see R-4) |
-| `backend/seeds/dev_businesses.sql` | Sample rows for `dev` only. Needs approval in the task list. |
-| `scripts/deploy.sh` | Documented sequence: `sam build`, `sam deploy`, invoke migrate, build frontend, sync to S3, invalidate CloudFront |
+| `backend/seeds/dev_businesses.sql` | Sample rows for `dev` only. Approved (spec Q-9). Never run in `prod`. |
+| `infra/deploy.sh` | Documented sequence: `sam build`, `sam deploy`, invoke migrate, build frontend, sync to S3, invalidate CloudFront |
 
-The migration logic (read files in order, one transaction per file, record in `schema_migrations`) is shared between `scripts/migrate.ts` and the migration Lambda, so there is one implementation (plan 001, D-7).
+The migration logic (read files in order, one transaction per file, record in `schema_migrations`) is shared between `backend/scripts/migrate.ts` and the migration Lambda, so there is one implementation (plan 001, D-7).
 
 ## 5. Template Resources
 
@@ -125,7 +125,7 @@ Infrastructure cannot be unit tested like application code, so checks are script
 | FR-3 (AC-3.1 to 3.5) | Section 5 (Network, Database), P-1, P-2, V-2 |
 | FR-4 (AC-4.1 to 4.5) | Section 5 (Frontend), P-7, P-8, section 6 |
 | FR-5 (AC-5.1 to 5.3, 5.2a) | Sections 4, 6, 7, P-6 |
-| FR-6 (AC-6.1 to 6.3) | Section 6, `scripts/deploy.sh`, README |
+| FR-6 (AC-6.1 to 6.3) | Section 6, `infra/deploy.sh`, README |
 | NFR-1 | P-1, P-3, V-7, check "Performance" |
 | NFR-2 | P-5, P-6, section 5 (IAM, Network) |
 | NFR-3 | P-1, P-2 |
