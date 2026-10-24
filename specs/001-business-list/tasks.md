@@ -48,7 +48,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first:** valid number with country code; spaces, dashes, parentheses, and a leading `+` removed; exactly 8 and exactly 15 digits valid; 7 and 16 digits invalid; leading `0` invalid; letters invalid; empty string invalid; `null` returns `null`.
   - **Done when:** all cases pass. The module has no imports.
 
-- [ ] **001-T4 Business service: map and sort**
+- [x] **001-T4 Business service: map and sort**
   - **Covers:** AC-5.1, AC-5.2, AC-2.3, AC-2.4, EC-1, EC-6
   - **Do:** `backend/src/services/businessService.ts`, `listActiveBusinesses(findRows)`. Normalizes numbers (001-T3), sorts by `createdAt` desc, then name with `Intl.Collator("es")`, then id (plan section 4), maps to `Business`.
   - **Tests first (fake `findRows`):** newest first; equal times ordered by name with accents and mixed case (for example "Árbol", "abeja", "Zapatería"); equal time and name ordered by id; empty list returns `[]`; invalid number becomes `null`; output objects have exactly the six API fields.
