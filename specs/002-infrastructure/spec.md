@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-23 (RDS Proxy removed, I-4 and I-5 revised)
+- **Last updated:** 2026-10-24 (RDS Proxy removed; FR-7 data migrations and FR-8 CI added; AC-2.3 and AC-5.3 clarified)
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
@@ -55,7 +55,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 
 - **AC-2.1.** The system shall deploy the backend Lambda function (spec 001, plan section 4) behind API Gateway, exposing `GET /businesses` over HTTPS.
 - **AC-2.2.** The Lambda function shall run inside the VPC and reach the database only through the cluster endpoint, using IAM authentication and TLS.
-- **AC-2.3.** The Lambda execution role shall have only the permissions it needs: write logs and connect to the database with IAM authentication as the application database user.
+- **AC-2.3.** The Lambda execution role shall have only the permissions it needs: write logs, manage its VPC network interfaces (required for any Lambda in a VPC), and connect to the database with IAM authentication as the application database user.
 - **AC-2.4.** The API shall allow cross-origin requests only from the frontend origin of the same environment (CORS), never from `*` in `prod`.
 - **AC-2.5.** Lambda logs shall go to CloudWatch Logs with a defined retention period of 30 days.
 
@@ -80,13 +80,24 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 - **AC-5.1.** The system shall provide a documented, repeatable way to run `backend/migrations/*.sql` against the database of each environment, using the in-repo script defined in plan 001 (D-7).
 - **AC-5.2.** The migration mechanism shall reach the private database without opening it to the internet (mechanism chosen in Q-4).
 - **AC-5.2a.** The migration mechanism is a migration Lambda in the VPC, deployed by the same template and invoked by the deploy command. It shall use a database user that can change the schema, separate from the read-only user of the API Lambda (AC-2.3).
-- **AC-5.3.** Migrations shall run before the new backend version receives traffic when a migration is part of the release.
+- **AC-5.3.** Migrations run right after the stack update, so every migration shall be compatible with both the previous and the new backend version (add first, remove in a later release).
 
 ### FR-6: Deployment process
 
 - **AC-6.1.** A documented command sequence shall deploy the backend, run migrations, build the frontend, and publish it for a chosen environment.
 - **AC-6.2.** Deploying to `prod` shall require an explicit action by a human; it shall never happen as a side effect of a `dev` deploy.
 - **AC-6.3.** Deployment documentation shall explain how to roll back to the previous backend and frontend version.
+
+### FR-7: Business data loading
+
+- **AC-7.1.** Business rows for every environment shall be added or changed only through versioned SQL data migrations in `backend/migrations/`, reviewed in a pull request and applied by the migration mechanism (FR-5), like schema changes.
+- **AC-7.2.** Data migrations shall contain only public business contact information (spec 001 section 2 fields). No visitor data.
+- **AC-7.3.** The `dev` seed (Q-9) is separate from data migrations and shall never run in `prod`.
+
+### FR-8: Continuous integration
+
+- **AC-8.1.** On every pull request to `main`, a CI workflow shall run `pnpm install --frozen-lockfile`, `pnpm -r lint`, `pnpm -r typecheck`, and `pnpm -r test`, and a failure shall block the merge.
+- **AC-8.2.** CI shall have no AWS credentials and shall not deploy.
 
 ## 6. Non-Functional Requirements
 
@@ -109,7 +120,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 ## 8. Out of Scope
 
 - A custom domain name and TLS certificate (the default CloudFront and API Gateway URLs are used until a later spec). Confirmed in Q-3.
-- A CI/CD pipeline (GitHub Actions or other). Deployment is run by a human from a terminal in this MVP.
+- Continuous deployment. Deployment is run by a human from a terminal in this MVP. (CI for tests is in scope, FR-8.)
 - Alerting, dashboards, and distributed tracing.
 - Web Application Firewall, rate limiting, and DDoS-specific configuration beyond AWS defaults.
 - Multi-region deployment and disaster recovery beyond automated backups.
@@ -123,12 +134,15 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 |---|---|---|
 | AWS SAM CLI | developer machine (not an npm package, not in the lockfile) | Build and deploy the template |
 | AWS CLI | developer machine | Upload the frontend to S3, invalidate CloudFront, authenticate |
+| GitHub Actions | repository (`.github/workflows/`) | CI for tests (FR-8) |
+| `esbuild` (npm, dev) | backend | Required by the SAM Node.js esbuild builder to bundle the Lambdas |
+| `@aws-sdk/client-secrets-manager` (npm) | backend | The migration Lambda reads the master secret during bootstrap only |
 
-No new npm packages are introduced by this spec. Tooling that is not a project dependency shall be documented with its required version in the deployment documentation.
+Approved by the project owner on 2026-10-24. Tooling that is not a project dependency shall be documented with its required version in the deployment documentation.
 
 ## 10. Completion Criteria
 
-1. Every functional requirement (FR-1 to FR-6) is verified by a documented manual check or an automated check, since infrastructure cannot be unit tested like application code.
+1. Every functional requirement (FR-1 to FR-8) is verified by a documented manual check or an automated check, since infrastructure cannot be unit tested like application code.
 2. `dev` and `prod` each serve the directory of spec 001 over HTTPS from their own URL.
 3. The spec 001 manual checks (inactive rows, WhatsApp, layout, accessibility, performance, freshness) pass in `dev`.
 4. The database is confirmed unreachable from the public internet.

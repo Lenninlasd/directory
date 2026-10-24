@@ -37,7 +37,7 @@ The binding rules live in `docs/constitution.md`. If this file and the constitut
 Follow these steps in order. Do not skip ahead, and stop at each approval gate.
 
 1. **Spec** — Write or update `specs/<NNN-feature>/spec.md`: goal, user stories, acceptance criteria, API contract, data model, out-of-scope. **Gate: human approval.**
-2. **Plan** — Before writing, the feature's `spec.md` (it must be `Status: Approved`). Write `plan.md`: technical approach within the fixed stack, files to touch, data flow, risks.**Gate: human approval.**
+2. **Plan** — Before writing, read the feature's `spec.md` (it must be `Status: Approved`). Write `plan.md`: technical approach within the fixed stack, files to touch, data flow, risks. **Gate: human approval.**
 3. **Tasks** — Before writing, read the approved `spec.md` and `plan.md`. Write `tasks.md`: small, ordered, verifiable tasks, each linked to an acceptance criterion. **Gate: human approval.**
 4. **Test** — For each task, write the automated tests first (business rules and API endpoint). Run them and confirm they fail for the right reason.
 5. **Code** — Write the minimum code to make the tests pass. Run lint, type check, and the full test suite. Mark the task done in `tasks.md`.
@@ -66,7 +66,7 @@ Every PR must link to its spec, and each commit should reference a task.
 
 - Style with Tailwind utility classes in JSX. No CSS-in-JS, no inline `style` objects unless a value is truly dynamic.
 - Keep custom CSS to the Tailwind entry file. Avoid `@apply` except for a repeated pattern justified in the spec.
-- Define design tokens (colors, spacing, fonts) in the Tailwind configuration, not as magic values in components.
+- Define design tokens (colors, spacing, fonts) in the Tailwind configuration, not as magic values in components. With Tailwind v4 this is the `@theme` block in the Tailwind entry CSS file.
 - Verify the Tailwind setup (version and configuration style) against the official documentation before writing it.
 
 ## Setup and commands
@@ -101,6 +101,7 @@ Run lint, type check, and tests before finishing any task, and fix failures befo
 ## Commits and pull requests
 
 - Commit messages in English, imperative mood, referencing the task, for example: `Add businesses list endpoint (001-T3)`.
+- One branch and one pull request per milestone, one commit per task (see the milestone table in `specs/001-business-list/tasks.md`).
 - PR title format: `[001-business-list] <Short title>`.
 - PR description must link the spec and list which acceptance criteria it satisfies.
 - A PR that violates `docs/constitution.md` or this file is rejected.

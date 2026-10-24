@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-23 (added AC-2.5 and section 8a)
+- **Last updated:** 2026-10-24 (business data loading clarified, section 8a extended)
 
 ## 1. Context and Objective
 
@@ -107,7 +107,7 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 - Filters, including by category, and any sort option other than the fixed order.
 - A detail page for each business.
 - Extended business attributes: description, logo, cover image, exact address, coordinates, email, Instagram, catalog link, opening hours, home delivery flag, payment methods, and verification status.
-- Creating, editing, or removing businesses through the product. The initial businesses are loaded directly by the team, outside the product.
+- Creating, editing, or removing businesses through the product. The team loads and changes businesses through reviewed, versioned SQL data migrations applied by the deployment process (spec 002 FR-7), not through the product.
 - Business owner accounts and ownership claims.
 - User accounts, login, favorites, reviews, and ratings.
 - Maps and directions.
@@ -116,17 +116,20 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 
 ## 8a. Approved Dependencies
 
-Approved by the project owner on 2026-10-23, in addition to the fixed stack. Each is the minimum needed to build and test this feature.
+Approved by the project owner on 2026-10-23 and extended on 2026-10-24, in addition to the fixed stack. Infrastructure-related packages are approved in spec 002 section 9. Each is the minimum needed to build and test this feature.
 
 | Package | Where | Why |
 |---|---|---|
-| `express`, a Lambda adapter (for example `serverless-http`) | backend | Express on Lambda; the adapter converts API Gateway events |
+| `express`, `serverless-http` | backend | Express on Lambda; `serverless-http` converts API Gateway events |
 | `pg`, `@aws-sdk/rds-signer` | backend | PostgreSQL driver and IAM token generation |
 | `typescript`, `eslint` with `typescript-eslint`, `vitest` | root / both | Strict typing, the `lint` script, and one shared test runner |
 | `vite`, `@vitejs/plugin-react` | frontend | Build and dev server |
 | `tailwindcss`, `@tailwindcss/vite` | frontend | Styling |
 | `@tanstack/react-query` | frontend | Server state |
-| `jsdom`, `@testing-library/react` | frontend (dev) | Component and hook tests |
+| `react`, `react-dom` | frontend | The UI library of the fixed stack |
+| `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom` | frontend (dev) | Component and hook tests, realistic user interaction, and readable DOM assertions |
+| `@types/node`, `@types/express`, `@types/pg`, `@types/react`, `@types/react-dom` | dev | Type definitions for strict TypeScript |
+| `eslint-plugin-react-hooks` | frontend (dev) | Lint rules for correct hook usage |
 
 Exact package names are confirmed against official documentation in the first task that uses them.
 
