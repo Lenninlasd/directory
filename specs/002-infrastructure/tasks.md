@@ -20,7 +20,7 @@ Work happens on one branch and pull request per milestone (plan P-14). Every pul
 
 ## M1: Continuous integration
 
-- [ ] **002-T0 CI workflow**
+- [x] **002-T0 CI workflow**
   - **Covers:** AC-8.1, AC-8.2, plan P-13, constitution principle 4
   - **When:** right after 001-T1, so the first pull request already runs CI.
   - **Do:** `.github/workflows/ci.yml` on pull requests to `main`: Node.js 24 and pnpm, `pnpm install --frozen-lockfile`, `pnpm -r lint`, `pnpm -r typecheck`, `pnpm -r test`. No AWS credentials, no deploy. Branch protection on `main` requiring this check (one-time manual step, documented in `infra/README.md`, AC-1.3).
