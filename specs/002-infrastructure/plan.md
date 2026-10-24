@@ -55,12 +55,12 @@ Each fact was checked against the official AWS documentation. Sources are listed
 | `infra/template.yaml` | SAM template: network, database, Lambdas, HTTP API, S3, CloudFront, log groups, IAM roles |
 | `infra/samconfig.toml` | `dev` and `prod` deploy parameters. Contains no secrets and no account IDs. |
 | `infra/README.md` | Deployment guide: prerequisites, one-time setup, deploy, migrate, rollback (spec AC-1.3, AC-6.1, AC-6.3) |
-| `backend/src/handlers/migrate.ts` | Migration Lambda entry: calls the migration logic of `backend/scripts/migrate.ts` and returns a summary |
-| `backend/migrations/002_create_database_users.sql` | Creates the `app_user` and `migrator` roles and grants (see R-4) |
+| `backend/src/handlers/migrate.ts` | Migration Lambda entry: calls the shared `runMigrations` logic and returns a summary |
+| `backend/migrations/001_create_database_users.sql` | Creates the `app_user` and `migrator` roles and grants, and default privileges so tables created by `migrator` are readable by `app_user` (see R-4). Runs before `002_create_businesses.sql`. |
 | `backend/seeds/dev_businesses.sql` | Sample rows for `dev` only. Approved (spec Q-9). Never run in `prod`. |
 | `infra/deploy.sh` | Documented sequence: `sam build`, `sam deploy`, invoke migrate, build frontend, sync to S3, invalidate CloudFront |
 
-The migration logic (read files in order, one transaction per file, record in `schema_migrations`) is shared between `backend/scripts/migrate.ts` and the migration Lambda, so there is one implementation (plan 001, D-7).
+The migration logic (read files in order, one transaction per file, record in `schema_migrations`) lives in `backend/src/migrations/runMigrations.ts` and is shared between `backend/scripts/migrate.ts` and the migration Lambda, so there is one implementation (plan 001, D-7).
 
 ## 5. Template Resources
 
@@ -140,7 +140,7 @@ Infrastructure cannot be unit tested like application code, so checks are script
 | R-1 | IAM tokens connecting directly to the cluster endpoint have not been proven in this project | First infrastructure task in `dev` proves connect, `rds_iam`, and TLS before anything else is built on it |
 | R-2 | Without a proxy, many concurrent Lambda invocations can exhaust Aurora connections (plan 001, R-3) | Low traffic expected. Add RDS Proxy through a spec change if it appears (spec Q-8). Application code does not change; only the host changes. |
 | R-3 | VPC-attached Lambda cold starts are slower than non-VPC ones, and `dev` resumes can take 15 to 30 s | Measure in the performance check. `prod` never pauses. Memory can be raised. Escalate through a spec change if NFR-1 fails. |
-| R-4 | Creating database users and `GRANT rds_iam` must be versioned too | Put them in `002_create_database_users.sql`, run once as the master user (R-5), then all later migrations run as `migrator` |
+| R-4 | Creating database users and `GRANT rds_iam` must be versioned too | Put them in `001_create_database_users.sql`. Bootstrap: when the `migrator` role does not exist, the migration Lambda applies only this file as the master user, then reconnects as `migrator` for the rest |
 | R-5 | Bootstrap: the first migration needs the master user. This costs a Secrets Manager interface VPC endpoint (small fixed monthly cost per Availability Zone and environment, price to confirm) or the alternative of making the master user connect with IAM too (not yet verified). | Decided in the first migration task. Record the choice and the cost in the README. If the endpoint is too costly, this is a spec change, not a silent workaround. |
 | R-6 | The IAM token used by Lambda expires after 15 minutes | One connection per invocation (plan 001, D-3) means a fresh token each time |
 | R-7 | Exact versions of SAM CLI and AWS CLI affect the template | Record the versions used in `infra/README.md` (spec section 9) |
@@ -149,7 +149,8 @@ Infrastructure cannot be unit tested like application code, so checks are script
 ## 11. Decisions Taken (2026-10-23)
 
 - **Q-1.** No RDS Proxy now. `dev` scales to zero, `prod` runs 0.5 to 2 ACU. The proxy may be added later through a spec change.
-- **Q-2.** The very first role-creating migration runs in the migration Lambda with the Aurora-managed master secret. All later migrations run as `migrator`.
+- **Q-2.** The very first role-creating migration runs in the migration Lambda with the Aurora-managed master secret, only when the `migrator` role does not exist. All later migrations run as `migrator`.
+- **Q-4 (tasks).** The seed runs through the migration Lambda when invoked with `{"seed": true}` and only when `Environment` is `dev`. Local frontend development uses a Vite dev proxy, so CORS stays limited to the CloudFront origin in both environments.
 - **Q-3.** `backend/seeds/dev_businesses.sql` is approved for `dev` only.
 
 No open questions remain. R-5 is a cost detail to confirm during the first migration task.

@@ -42,7 +42,7 @@ Table `businesses` (covers FR-1, FR-2, FR-3, FR-5):
 
 No foreign keys and no secondary index: the query reads all active rows, and the table has hundreds of rows, not millions. An index is added together with pagination in a future spec.
 
-Migration `backend/migrations/001_create_businesses.sql` holds a single `CREATE TABLE` statement. Aurora PostgreSQL supports transactional DDL, so the migration script can run each file in one transaction.
+Migration `backend/migrations/002_create_businesses.sql` holds a single `CREATE TABLE` statement. It runs after `001_create_database_users.sql` (spec 002 tasks, Q-1), so the table is created by `migrator` and `app_user` gets `SELECT` through default privileges. Aurora PostgreSQL supports transactional DDL, so the migration script runs each file in one transaction.
 
 ## 3. API Contract (FR-1, FR-2, FR-5, FR-6)
 
@@ -76,7 +76,7 @@ Migration `backend/migrations/001_create_businesses.sql` holds a single `CREATE 
 - An empty list is `200` with `"businesses": []` (FR-7 is rendered by the frontend).
 - `whatsappNumber` is `null` when the stored value is missing or invalid (AC-2.3).
 - Order is already final: newest first, then name, then id (FR-5). The client never re-sorts.
-- Not returned: `isActive`, `createdAt`, or any other attribute (AC-2.4, NFR-7).
+- Not returned: `isActive`, `createdAt`, or any other attribute (AC-2.4).
 
 **500** `{ "error": "internal_error" }`, with no stack trace or database message (AC-6.4). Details go to the logs only.
 
@@ -91,9 +91,10 @@ Migration `backend/migrations/001_create_businesses.sql` holds a single `CREATE 
 | `src/db/connect.ts` | Generates the IAM token (or reads credentials from the environment), opens one connection, returns a client | `pg`, RDS signer |
 | `src/app.ts` | `createApp(deps)`: Express app, `GET /businesses`, error middleware | `express` |
 | `src/handlers/lambda.ts` | Lambda entry: wires the real dependencies and adapts the Express app | adapter |
-| `src/local.ts` | Local dev server on a fixed port, same app | `express` |
-| `scripts/migrate.ts` | Applies `migrations/*.sql` in order, one statement per transaction, records applied files in `schema_migrations` | `pg` |
-| `migrations/001_create_businesses.sql` | Section 2 table | n/a |
+| `src/local.ts` | Local dev server on a fixed port, same app, wired to an in-memory fake repository with sample rows (no local database) | `express` |
+| `src/migrations/runMigrations.ts` | Shared migration logic: applies `migrations/*.sql` in order, one transaction per file, records applied files in `schema_migrations` | `pg` types |
+| `scripts/migrate.ts` | Thin CLI over `runMigrations` | `pg` |
+| `migrations/002_create_businesses.sql` | Section 2 table | n/a |
 
 The service receives the repository function as an argument (plain function passing, no DI framework). The handler contains no business rules.
 
@@ -116,7 +117,7 @@ sort businesses by:
 |---|---|
 | `src/main.tsx` | Creates the single `QueryClient` from `createQueryClient()` and renders `<App />` |
 | `src/queryClient.ts` | `createQueryClient()`: the only default options are `retry: 2` and `retryDelay: 1000` (AC-6.1). Tests use the same factory. |
-| `src/api/businesses.ts` | `fetchBusinesses()`: plain `fetch` to `${VITE_API_BASE_URL}/businesses`; throws on a non-OK response |
+| `src/api/businesses.ts` | `fetchBusinesses()`: plain `fetch` to `${VITE_API_BASE_URL}/businesses`; throws on a non-OK response. In local development `VITE_API_BASE_URL` is empty and the Vite dev server proxies `/businesses` to the `dev` API, so CORS stays strict. |
 | `src/features/businesses/queryKeys.ts` | `BUSINESSES_QUERY_KEY = ['businesses'] as const` |
 | `src/features/businesses/useBusinesses.ts` | `useQuery` wrapper, the only place that calls the API function |
 | `src/features/businesses/whatsapp.ts` | `buildWhatsappUrl(number)`: `https://wa.me/<number>?text=<encoded greeting>` (AC-4.1, AC-4.2) |
@@ -219,7 +220,7 @@ All resolved on 2026-10-23:
 
 - **Q-1.** Resolved: WhatsApp validation rule added to the spec as AC-2.5.
 - **Q-2.** Resolved: dependencies approved in spec section 8a.
-- **Q-3.** Resolved: spec `002-infrastructure` (Lambda, API Gateway, Aurora PostgreSQL cluster, frontend hosting, CORS, VPC) is written and approved before tasks for 001 start. Not yet created.
+- **Q-3.** Resolved: spec `002-infrastructure` (Lambda, API Gateway, Aurora PostgreSQL cluster, frontend hosting, CORS, VPC) is written and approved before tasks for 001 start. Done.
 - **R-2.** Resolved: IAM database authentication (see risk R-2).
 
 ## 12. Constitution Check
@@ -228,5 +229,5 @@ All resolved on 2026-10-23:
 2. **Spec-Code Alignment:** Complies. The spec is Approved, every part of the plan traces to an FR or NFR (section 9), and nothing outside spec 001 is planned. Items the spec does not cover are raised as open questions instead of assumed.
 3. **Separation of Concerns:** Complies. Domain and service modules have no Express, Lambda, or React imports. The handler only parses input, calls the service, and responds. React components only render, and data comes through `fetchBusinesses` and `useBusinesses`.
 4. **Testing Standard:** Complies. Business rules and the endpoint have automated tests, written first, and run in CI through `pnpm -r test` (section 8). Behavior that cannot be automated has documented manual checks.
-5. **Data Persistence:** Complies. One versioned SQL migration, one DDL statement per file, raw parameterized SQL, no ORM, and no manual schema edits (applied by `scripts/migrate.ts`). To be checked against the Aurora PostgreSQL documentation; the UUID function and engine version are flagged in R-2.
+5. **Data Persistence:** Complies. Versioned SQL migrations, each run in one transaction, raw parameterized SQL, no ORM, and no manual schema edits (applied by `runMigrations`). To be checked against the Aurora PostgreSQL documentation; the UUID function and engine version are flagged in R-2.
 6. **Language Standard:** Complies. Code, comments, identifiers, API field names, the migration, and this plan are in English. Spanish appears only as UI text, defined in `frontend/src/strings.ts`.

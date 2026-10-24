@@ -37,7 +37,7 @@
 | I-3 | Frontend hosting: private S3 bucket behind CloudFront | Static hosting, HTTPS, global caching |
 | I-4 | Lambda connects directly to the Aurora cluster endpoint. RDS Proxy is not used now and may be added later through a spec change. (Changed 2026-10-23, was: through RDS Proxy.) | RDS Proxy has a high fixed cost compared with the expected load and prevents Aurora Serverless v2 from pausing. Traffic is low (plan 001, R-3). |
 | I-5 | The API Lambda and the migration Lambda authenticate to Aurora with IAM database authentication (plan 001, R-2). The Aurora-managed master user secret in Secrets Manager (rotated by AWS) exists only for the first role-creating migration (Q-4) and is never read by the API Lambda. | No password in the application, the repository, or environment variables |
-| I-6 | Primary region: `us-east-1` (see Open Questions Q-1 to confirm) | See section 4a |
+| I-6 | Primary region: `us-east-1` (confirmed, Q-1) | See section 4a |
 
 ### 4a. Region rationale
 
@@ -108,7 +108,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 
 ## 8. Out of Scope
 
-- A custom domain name and TLS certificate (the default CloudFront and API Gateway URLs are used until a later spec). Q-3 asks to confirm.
+- A custom domain name and TLS certificate (the default CloudFront and API Gateway URLs are used until a later spec). Confirmed in Q-3.
 - A CI/CD pipeline (GitHub Actions or other). Deployment is run by a human from a terminal in this MVP.
 - Alerting, dashboards, and distributed tracing.
 - Web Application Firewall, rate limiting, and DDoS-specific configuration beyond AWS defaults.
