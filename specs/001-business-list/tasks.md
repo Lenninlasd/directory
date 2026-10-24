@@ -30,7 +30,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 
 ## M1: Backend
 
-- [ ] **001-T1 Workspace and backend scaffolding**
+- [x] **001-T1 Workspace and backend scaffolding**
   - **Covers:** enabler for all ACs (constitution 1, 4, 6; AGENTS.md commands)
   - **Do:** root `package.json`, `pnpm-workspace.yaml`, shared strict `tsconfig.base.json`, ESLint flat config with `typescript-eslint`, Vitest. `backend/package.json` with `lint`, `typecheck`, `test`, `build` scripts. Pin the Node.js version to 24 (matches Lambda `nodejs24.x`, plan 002 P-3). Install only packages from spec section 8a (and `esbuild` from spec 002 section 9), and check each package name and current setup against its official documentation first.
   - **Tests first:** one placeholder test in `backend/` that fails until Vitest is wired, then passes.
