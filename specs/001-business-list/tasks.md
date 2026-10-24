@@ -54,7 +54,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first (fake `findRows`):** newest first; equal times ordered by name with accents and mixed case (for example "Árbol", "abeja", "Zapatería"); equal time and name ordered by id; empty list returns `[]`; invalid number becomes `null`; output objects have exactly the six API fields.
   - **Done when:** tests pass. The module imports only from `domain/`.
 
-- [ ] **001-T5 Business repository**
+- [x] **001-T5 Business repository**
   - **Covers:** AC-1.2 (query level); plan R-2
   - **Do:** `backend/src/repositories/businessRepository.ts`, `findActiveBusinessRows(execute)` with one constant SQL statement that selects the columns of plan section 2 and filters `is_active = true`. Check the Data API documentation for how `UUID`, `TIMESTAMPTZ`, `BOOLEAN`, and `NULL` values are returned, and convert them explicitly to `BusinessRow` (for example `created_at` to a `Date`).
   - **Tests first (fake `execute` that records the SQL and returns a sample Data API response):** the SQL contains `is_active = true`; selects exactly the needed columns; the SQL is a constant (no concatenation or interpolation); records are converted to `BusinessRow` with correct types, including a `NULL` WhatsApp number.
