@@ -36,13 +36,13 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first:** one placeholder test in `backend/` that fails until Vitest is wired, then passes.
   - **Done when:** `pnpm install`, `pnpm -r lint`, `pnpm -r typecheck`, `pnpm -r test` succeed. `pnpm-lock.yaml` is committed. No `package-lock.json` or `yarn.lock`.
 
-- [ ] **001-T2 Domain types**
+- [x] **001-T2 Domain types**
   - **Covers:** AC-2.1, AC-2.4 (shape of the data)
   - **Do:** `backend/src/domain/business.ts` with `BusinessRow` (database shape, plan section 2) and `Business` (API shape, plan section 3). No imports.
   - **Tests first:** none (types only). Type checking in later tasks covers them.
   - **Done when:** `pnpm -r typecheck` passes.
 
-- [ ] **001-T3 WhatsApp number rule**
+- [x] **001-T3 WhatsApp number rule**
   - **Covers:** AC-2.5, AC-2.2, AC-2.3, EC-5
   - **Do:** `backend/src/domain/whatsappNumber.ts`, `normalizeWhatsappNumber(raw: string | null): string | null` (plan section 4, business rules).
   - **Tests first:** valid number with country code; spaces, dashes, parentheses, and a leading `+` removed; exactly 8 and exactly 15 digits valid; 7 and 16 digits invalid; leading `0` invalid; letters invalid; empty string invalid; `null` returns `null`.
