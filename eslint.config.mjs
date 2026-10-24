@@ -11,6 +11,8 @@ export default defineConfig(
     extends: [tseslint.configs.recommended],
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
+      // Express identifies error handlers by their four parameters, so unused ones are named with `_`.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
 );

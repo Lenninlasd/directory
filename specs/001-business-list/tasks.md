@@ -66,7 +66,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first (fake wrapper):** files applied in name order; already-applied files skipped; a failing file is rolled back, not recorded, and later files do not run; a second run is a no-op; a file with more than one statement is rejected before anything runs.
   - **Done when:** tests pass. The SQL file holds only the `CREATE TABLE` statement.
 
-- [ ] **001-T7 Express app and Lambda handler (endpoint)**
+- [x] **001-T7 Express app and Lambda handler (endpoint)**
   - **Covers:** AC-1.1, AC-6.4, AC-7.1 (API side), FR-1, FR-7; plan section 3, D-8
   - **Do:** `backend/src/app.ts` `createApp(deps)` with `GET /businesses` and an error middleware. `backend/src/handlers/lambda.ts` adapts the app with `serverless-http` and wires real dependencies. Logs never include request headers or client IP addresses.
   - **Tests first (handler called with an API Gateway HTTP API event, fake repository):** `200` with the exact contract of plan section 3; `200` with `{"businesses": []}`; when the repository throws, `500` with body exactly `{"error":"internal_error"}` and no stack or database text; the error is logged without request headers or client IP; the response `Content-Type` is JSON.
