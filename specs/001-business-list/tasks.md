@@ -60,7 +60,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first (fake `execute` that records the SQL and returns a sample Data API response):** the SQL contains `is_active = true`; selects exactly the needed columns; the SQL is a constant (no concatenation or interpolation); records are converted to `BusinessRow` with correct types, including a `NULL` WhatsApp number.
   - **Done when:** tests pass.
 
-- [ ] **001-T6 Migration runner and migration 001**
+- [x] **001-T6 Migration runner and migration 001**
   - **Covers:** spec section 9 completion criterion 1 for data; plan D-7; constitution 5; spec 002 EC-4
   - **Do:** `backend/src/migrations/runMigrations.ts`: reads the ordered migration files, creates `schema_migrations` if missing, skips applied files, and runs each file (exactly one statement) plus its `schema_migrations` record in one Data API transaction; stops on the first failure (plan 002, P-11). Migration `backend/migrations/001_create_businesses.sql` (plan section 2; `gen_random_uuid()` confirmed in plan 002 V-3). The command line that calls it is 002-T3.
   - **Tests first (fake wrapper):** files applied in name order; already-applied files skipped; a failing file is rolled back, not recorded, and later files do not run; a second run is a no-op; a file with more than one statement is rejected before anything runs.
