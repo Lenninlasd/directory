@@ -106,6 +106,13 @@ Run lint, type check, and tests before finishing any task, and fix failures befo
 - PR description must link the spec and list which acceptance criteria it satisfies.
 - A PR that violates `docs/constitution.md` or this file is rejected.
 
+### Git: the human commits
+
+- The agent may create and switch branches, and may stage files (`git add`).
+- The agent never runs `git commit`, `git push`, `git merge`, `git rebase`, or `git reset`. The project settings (`.claude/settings.json`) also block these commands.
+- When a task is done, the agent stops and reports: the files changed, the checks it ran, and a suggested commit message (English, imperative, with the task id, for example `Add WhatsApp number rule (001-T3)`, plus the attribution trailer the session requires).
+- The human reviews the diff (`git diff --staged`) and commits.
+
 ## When in doubt
 
 Stop and ask. Ambiguity belongs in the spec, not in the code.
