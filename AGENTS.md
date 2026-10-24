@@ -29,6 +29,9 @@ The binding rules live in `docs/constitution.md`. If this file and the constitut
 3. **English everywhere except the UI.** All code, comments, identifiers, specs, commit messages, PR text, logs, and API field names must be in English, regardless of the language used in the chat. Only user interface text (labels, buttons, loading, empty, and error messages) is written in Spanish. Translation or multi-language support is out of scope until an approved spec adds it.
 4. **No scope creep.** Implement only what the approved spec and tasks describe. Propose extras as spec changes instead of coding them.
 5. **No heavy abstractions.** No ORMs, no DI frameworks, no generic repositories, no global state libraries, no UI component libraries. Do not add any library beyond the stack listed above without an approved spec that justifies it.
+   - First decide whether the library is necessary: prefer the standard library or a few lines of code, and do not add a package that only makes tests or types slightly nicer.
+   - If it is necessary, stop and ask the human before installing. Say what the package does, which task needs it, and what the alternative without it would be.
+   - Only after approval, install it and record it in the dependency table of the spec in the same change, with the date.
 6. **pnpm only.** Never use `npm` or `yarn`, and never commit `package-lock.json` or `yarn.lock`.
 7. **Never commit secrets.** No credentials, tokens, or account IDs in code, tests, or specs. Use environment variables and IAM roles.
 
