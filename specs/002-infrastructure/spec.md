@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-24 (RDS Proxy removed; FR-7 data migrations and FR-8 CI added; AC-2.3 and AC-5.3 clarified)
+- **Last updated:** 2026-10-24 (RDS Proxy removed; FR-7 data migrations and FR-8 CI added; AC-2.3 and AC-5.3 clarified; database access through the RDS Data API)
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
@@ -25,7 +25,7 @@
 - Everything in the stack is fixed by `docs/constitution.md`: Lambda + API Gateway, Aurora PostgreSQL, React frontend. This spec adds hosting for the frontend (S3 + CloudFront) and the IaC tool (AWS SAM).
 - No credentials, tokens, account IDs, or database passwords in the repository. Environment-specific values come from deploy-time parameters and environment variables.
 - The database is never reachable from the public internet.
-- Lambda keeps no long-lived state between invocations (AGENTS.md). Each invocation opens and closes its own connection. RDS Proxy is not used in this version (see I-4).
+- Lambda keeps no long-lived state between invocations (AGENTS.md). It holds no database connections: every query is an HTTPS call to the RDS Data API (I-4).
 - Documentation, identifiers, and resource names are in English.
 
 ## 4. Decisions Taken
@@ -35,8 +35,8 @@
 | I-1 | Two environments: `dev` and `prod`, each with its own full set of resources | Safe testing before production |
 | I-2 | IaC with AWS SAM (`template.yaml`) | Serverless-first; SAM covers Lambda, API Gateway, and plain CloudFormation resources for the rest |
 | I-3 | Frontend hosting: private S3 bucket behind CloudFront | Static hosting, HTTPS, global caching |
-| I-4 | Lambda connects directly to the Aurora cluster endpoint. RDS Proxy is not used now and may be added later through a spec change. (Changed 2026-10-23, was: through RDS Proxy.) | RDS Proxy has a high fixed cost compared with the expected load and prevents Aurora Serverless v2 from pausing. Traffic is low (plan 001, R-3). |
-| I-5 | The API Lambda and the migration Lambda authenticate to Aurora with IAM database authentication (plan 001, R-2). The Aurora-managed master user secret in Secrets Manager (rotated by AWS) exists only for the first role-creating migration (Q-4) and is never read by the API Lambda. | No password in the application, the repository, or environment variables |
+| I-4 | All database access goes through the RDS Data API (HTTPS, managed by AWS). Lambda runs outside the VPC and opens no database connections. RDS Proxy is not used. (Changed 2026-10-24, was: direct IAM connection from a VPC Lambda; before that, RDS Proxy.) | Removes Lambda VPC networking, connection handling, database users, and the migration Lambda. AWS manages connections, so connection exhaustion is not a concern. |
+| I-5 | Access is controlled by IAM permissions on the Data API (`rds-data:*` actions on the cluster) plus the Aurora-managed master user secret in Secrets Manager (created and rotated by AWS), which the Data API reads on the caller's behalf. The application never reads the password. | No password in the application, the repository, or environment variables |
 | I-6 | Primary region: `us-east-1` (confirmed, Q-1) | See section 4a |
 
 ### 4a. Region rationale
@@ -54,15 +54,15 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 ### FR-2: Backend deployment
 
 - **AC-2.1.** The system shall deploy the backend Lambda function (spec 001, plan section 4) behind API Gateway, exposing `GET /businesses` over HTTPS.
-- **AC-2.2.** The Lambda function shall run inside the VPC and reach the database only through the cluster endpoint, using IAM authentication and TLS.
-- **AC-2.3.** The Lambda execution role shall have only the permissions it needs: write logs, manage its VPC network interfaces (required for any Lambda in a VPC), and connect to the database with IAM authentication as the application database user.
+- **AC-2.2.** The Lambda function shall reach the database only through the RDS Data API (HTTPS).
+- **AC-2.3.** The Lambda execution role shall have only the permissions it needs: write logs, `rds-data:ExecuteStatement` on this environment's cluster, and `secretsmanager:GetSecretValue` on this environment's database secret.
 - **AC-2.4.** The API shall allow cross-origin requests only from the frontend origin of the same environment (CORS), never from `*` in `prod`.
 - **AC-2.5.** Lambda logs shall go to CloudWatch Logs with a defined retention period of 30 days.
 
 ### FR-3: Database
 
 - **AC-3.1.** The system shall provision an Aurora PostgreSQL cluster per environment, in private subnets, with no public access.
-- **AC-3.2.** The database shall accept connections only from the API Lambda and the migration Lambda (FR-5), through security groups.
+- **AC-3.2.** The database shall accept no direct network connections: its security group has no inbound rules, and all access goes through the Data API.
 - **AC-3.3.** Storage shall be encrypted at rest and connections encrypted in transit.
 - **AC-3.4.** `prod` shall keep automated backups with a defined retention period of 7 days. `dev` may use a shorter one.
 - **AC-3.5.** The engine version shall be a version supported by Aurora PostgreSQL, verified against the official AWS documentation before the template is written. The version chosen shall be recorded in the plan.
@@ -78,8 +78,8 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 ### FR-5: Database migrations
 
 - **AC-5.1.** The system shall provide a documented, repeatable way to run `backend/migrations/*.sql` against the database of each environment, using the in-repo script defined in plan 001 (D-7).
-- **AC-5.2.** The migration mechanism shall reach the private database without opening it to the internet (mechanism chosen in Q-4).
-- **AC-5.2a.** The migration mechanism is a migration Lambda in the VPC, deployed by the same template and invoked by the deploy command. It shall use a database user that can change the schema, separate from the read-only user of the API Lambda (AC-2.3).
+- **AC-5.2.** The migration mechanism shall reach the private database without opening it to the internet.
+- **AC-5.2a.** The migration mechanism is a script in the repository, run by the deploy command from the developer's machine, that applies migrations through the RDS Data API with the developer's AWS credentials.
 - **AC-5.3.** Migrations run right after the stack update, so every migration shall be compatible with both the previous and the new backend version (add first, remove in a later release).
 
 ### FR-6: Deployment process
@@ -135,8 +135,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 | AWS SAM CLI | developer machine (not an npm package, not in the lockfile) | Build and deploy the template |
 | AWS CLI | developer machine | Upload the frontend to S3, invalidate CloudFront, authenticate |
 | GitHub Actions | repository (`.github/workflows/`) | CI for tests (FR-8) |
-| `esbuild` (npm, dev) | backend | Required by the SAM Node.js esbuild builder to bundle the Lambdas |
-| `@aws-sdk/client-secrets-manager` (npm) | backend | The migration Lambda reads the master secret during bootstrap only |
+| `esbuild` (npm, dev) | backend | Required by the SAM Node.js esbuild builder to bundle the Lambda |
 
 Approved by the project owner on 2026-10-24. Tooling that is not a project dependency shall be documented with its required version in the deployment documentation.
 
@@ -159,7 +158,7 @@ Resolved on 2026-10-23:
 - **Q-5.** CloudWatch log retention is 30 days. `prod` backup retention is 7 days. `dev` uses the minimum.
 - **Q-7.** One AWS account holds both environments, separated by resource names and tags.
 
-- **Q-4.** Migrations run through a migration Lambda in the VPC invoked by the deploy command (AC-5.2a). The same mechanism may run the `dev` seed script once it is approved in a task list.
-- **Q-6.** Obsolete: RDS Proxy is not used now (I-4). The only managed secret is the Aurora master user secret needed for the bootstrap migration (I-5, Q-4).
-- **Q-8.** RDS Proxy is deferred. It is added later through a spec change if connection exhaustion appears (decided 2026-10-23).
+- **Q-4.** Migrations run through a script that uses the RDS Data API, invoked by the deploy command (AC-5.2a; changed 2026-10-24, was: a migration Lambda in the VPC). The same script runs the `dev` seed.
+- **Q-6.** Obsolete: RDS Proxy is not used (I-4). The only secret is the Aurora-managed master user secret, read by the Data API (I-5).
+- **Q-8.** RDS Proxy is not needed: the Data API manages connections (decided 2026-10-24).
 - **Q-9.** `backend/seeds/dev_businesses.sql` (sample rows, `dev` only, never run in `prod`) is approved as a deliverable.

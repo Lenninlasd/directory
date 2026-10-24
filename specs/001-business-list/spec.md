@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-24 (business data loading clarified, section 8a extended)
+- **Last updated:** 2026-10-24 (business data loading clarified, section 8a extended, database access through the RDS Data API)
 
 ## 1. Context and Objective
 
@@ -121,14 +121,14 @@ Approved by the project owner on 2026-10-23 and extended on 2026-10-24, in addit
 | Package | Where | Why |
 |---|---|---|
 | `express`, `serverless-http` | backend | Express on Lambda; `serverless-http` converts API Gateway events |
-| `pg`, `@aws-sdk/rds-signer` | backend | PostgreSQL driver and IAM token generation |
+| `@aws-sdk/client-rds-data` | backend | Queries Aurora through the RDS Data API (spec 002, I-4) |
 | `typescript`, `eslint` with `typescript-eslint`, `vitest` | root / both | Strict typing, the `lint` script, and one shared test runner |
 | `vite`, `@vitejs/plugin-react` | frontend | Build and dev server |
 | `tailwindcss`, `@tailwindcss/vite` | frontend | Styling |
 | `@tanstack/react-query` | frontend | Server state |
 | `react`, `react-dom` | frontend | The UI library of the fixed stack |
 | `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom` | frontend (dev) | Component and hook tests, realistic user interaction, and readable DOM assertions |
-| `@types/node`, `@types/express`, `@types/pg`, `@types/react`, `@types/react-dom` | dev | Type definitions for strict TypeScript |
+| `@types/node`, `@types/express`, `@types/react`, `@types/react-dom` | dev | Type definitions for strict TypeScript |
 | `eslint-plugin-react-hooks` | frontend (dev) | Lint rules for correct hook usage |
 
 Exact package names are confirmed against official documentation in the first task that uses them.

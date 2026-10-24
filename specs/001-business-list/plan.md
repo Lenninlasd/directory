@@ -16,7 +16,7 @@ Browser (React + TanStack Query)
     -> Lambda handler (Express app via adapter)   parse input, call service, respond
       -> businessService.listActiveBusinesses     validate WhatsApp number, sort, map to API shape
         -> businessRepository                     raw SQL, active rows only
-          -> Aurora PostgreSQL (businesses table)
+          -> RDS Data API (HTTPS) -> Aurora PostgreSQL (businesses table)
 ```
 
 Key decisions:
@@ -42,7 +42,7 @@ Table `businesses` (covers FR-1, FR-2, FR-3, FR-5):
 
 No foreign keys and no secondary index: the query reads all active rows, and the table has hundreds of rows, not millions. An index is added together with pagination in a future spec.
 
-Migration `backend/migrations/002_create_businesses.sql` holds a single `CREATE TABLE` statement. It runs after `001_create_database_users.sql` (spec 002 tasks, Q-1), so the table is created by `migrator` and `app_user` gets `SELECT` through default privileges. Aurora PostgreSQL supports transactional DDL, so the migration script runs each file in one transaction.
+Migration `backend/migrations/001_create_businesses.sql` holds a single `CREATE TABLE` statement. Every migration file holds exactly one statement and runs in its own transaction (plan 002, P-11).
 
 ## 3. API Contract (FR-1, FR-2, FR-5, FR-6)
 
@@ -87,13 +87,14 @@ Migration `backend/migrations/002_create_businesses.sql` holds a single `CREATE 
 | `src/domain/business.ts` | Types: `BusinessRow` (DB shape), `Business` (API shape) | none |
 | `src/domain/whatsappNumber.ts` | `normalizeWhatsappNumber(raw): string \| null` | none |
 | `src/services/businessService.ts` | `listActiveBusinesses(findRows)`: normalize numbers, sort, map to `Business[]` | domain only |
-| `src/repositories/businessRepository.ts` | `findActiveBusinessRows(client)`: parameterized raw SQL | `pg` types |
-| `src/db/connect.ts` | Generates the IAM token (or reads credentials from the environment), opens one connection, returns a client | `pg`, RDS signer |
+| `src/repositories/businessRepository.ts` | `findActiveBusinessRows(execute)`: one constant SQL statement, maps Data API records to `BusinessRow` | none (receives the wrapper function) |
+| `src/db/dataApi.ts` | Small wrapper over `ExecuteStatement` (and transactions for migrations): cluster ARN, secret ARN, and database from environment variables; named parameters; retries `DatabaseResumingException` (plan 002, P-12) | `@aws-sdk/client-rds-data` |
 | `src/app.ts` | `createApp(deps)`: Express app, `GET /businesses`, error middleware | `express` |
 | `src/handlers/lambda.ts` | Lambda entry: wires the real dependencies and adapts the Express app | `serverless-http` |
 | `src/local.ts` | Local dev server on a fixed port, same app, wired to an in-memory fake repository with sample rows (no local database) | `express` |
-| `src/migrations/runMigrations.ts` | Migration logic used by the migration Lambda (spec 002): applies `migrations/*.sql` in order, one transaction per file, records applied files in `schema_migrations`. No command-line script, because no database is reachable from outside the VPC. | `pg` types |
-| `migrations/002_create_businesses.sql` | Section 2 table | n/a |
+| `src/migrations/runMigrations.ts` | Applies `migrations/*.sql` in order, one statement and one transaction per file, recording each file in `schema_migrations` in the same transaction | none (receives the wrapper) |
+| `scripts/migrate.ts` | Command line run by the deploy script from the developer's machine (plan 002, P-10) | `src/db/dataApi.ts` |
+| `migrations/001_create_businesses.sql` | Section 2 table | n/a |
 
 The service receives the repository function as an argument (plain function passing, no DI framework). The handler contains no business rules.
 
@@ -140,11 +141,11 @@ Notes:
 |---|---|---|
 | D-1 | Return all active rows in one query; no pagination | Offset or cursor pagination: excluded by the spec, and adds cursor logic and an index |
 | D-2 | Sort in the service with a pure comparator | `ORDER BY name` in SQL: the result depends on the database collation, so "alphabetical" may not follow Spanish rules (accents, case). Sorting in the service keeps the rule explicit and testable without a database. |
-| D-3 | Open one connection per invocation and close it at the end | Module-level pool: IAM tokens expire, and AGENTS.md forbids long-lived state between invocations. The extra connect time must fit in NFR-1 (see R-1). |
+| D-3 | Query through the RDS Data API (HTTPS); no database connection in the Lambda | Native driver with one connection per invocation: needs the Lambda in a VPC, IAM tokens, and connection handling (spec 002, I-4). |
 | D-4 | Frontend builds the WhatsApp link; backend sends a normalized number or `null` | Backend returns a ready URL: it would put Spanish text and presentation concerns in the API |
 | D-5 | Spanish strings in one `strings.ts` | An i18n library: translation is out of scope, and a new dependency would need approval |
 | D-6 | Retry via TanStack Query defaults (`retry: 2`, `retryDelay: 1000`) | Hand-written retry loop: duplicates what the library already does |
-| D-7 | Apply migrations with small in-repo logic run by the migration Lambda (spec 002) | `node-pg-migrate` or similar: a new dependency. Running SQL by hand: forbidden ("never edit the schema manually"). |
+| D-7 | Apply migrations with small in-repo logic run by `scripts/migrate.ts` through the Data API (spec 002) | `node-pg-migrate` or similar: a new dependency. Running SQL by hand: forbidden ("never edit the schema manually"). |
 | D-8 | Test the endpoint by calling the Lambda handler with an API Gateway event and a fake repository | `supertest`: another dependency, and it tests Express instead of the handler contract |
 
 ## 7. Dependencies Requiring Approval
@@ -154,14 +155,14 @@ The constitution says any dependency beyond the fixed stack needs an approved sp
 | Package | Where | Why |
 |---|---|---|
 | `express`, `serverless-http` | backend | Constitution names Express on Lambda; the adapter converts API Gateway events |
-| `pg`, `@aws-sdk/rds-signer` | backend | PostgreSQL driver and IAM token generation. Exact packages to confirm (see R-2). |
+| `@aws-sdk/client-rds-data` | backend | Queries Aurora through the RDS Data API |
 | `typescript`, `eslint` with `typescript-eslint`, `vitest` | root / both | Strict typing, the `lint` script, and the test runner. A single runner is shared by both packages. |
 | `vite`, `@vitejs/plugin-react` | frontend | Build and dev server for React + TypeScript |
 | `tailwindcss`, `@tailwindcss/vite` | frontend | Allowed by AGENTS.md; v4 setup verified in the docs |
 | `@tanstack/react-query` | frontend | Allowed by AGENTS.md |
 | `jsdom`, `@testing-library/react` | frontend (dev) | Component and hook tests without a real browser |
 
-Additional packages (`react`, `react-dom`, `@types/*`, `@testing-library/user-event`, `@testing-library/jest-dom`, `eslint-plugin-react-hooks`) are approved in spec section 8a. `esbuild` and `@aws-sdk/client-secrets-manager` are approved in spec 002 section 9.
+Additional packages (`react`, `react-dom`, `@types/*`, `@testing-library/user-event`, `@testing-library/jest-dom`, `eslint-plugin-react-hooks`) are approved in spec section 8a. `esbuild` is approved in spec 002 section 9.
 
 ## 8. Testing Strategy
 
@@ -208,9 +209,9 @@ Documented manual checks (cannot be automated without extra tooling):
 
 | # | Risk | Mitigation |
 |---|---|---|
-| R-1 | Cold start plus a new database connection and token on every invocation may exceed the 3 s target (NFR-1) | Measure in manual check 5. If it fails, propose a spec change to allow connection reuse rather than doing it silently. |
-| R-2 | Connection approach is decided: IAM database authentication with a short-lived token from `@aws-sdk/rds-signer`, no password in the application or repository (see spec 002 I-5). Engine version (PostgreSQL 17) and `gen_random_uuid()` were confirmed in plan 002 (V-2, V-3). | Prove the IAM connection in the first `dev` deployment (plan 002, R-1) |
-| R-3 | Lambda can exhaust Aurora connections under concurrent invocations, since each invocation opens its own connection | Low traffic expected for this read-only endpoint; revisit by adding RDS Proxy through a spec change (decision in spec 002, I-4) |
+| R-1 | Lambda cold start plus a Data API call may exceed the 3 s target (NFR-1) | Measure in manual check 5. If it fails, propose a spec change rather than working around it silently. |
+| R-2 | Data API result formats (timestamps, UUIDs) differ from a native driver | The repository converts explicitly and is tested with sample Data API responses (plan 002, R-1). Engine version and `gen_random_uuid()` were confirmed in plan 002 (V-2, V-3). |
+| R-3 | Connection exhaustion | Not applicable: the Data API manages connections (spec 002, I-4). |
 | R-4 | Returning every row grows the response and query time as businesses are added | Acceptable for hundreds of rows. Pagination is the planned future spec. |
 | R-5 | Cross-origin requests from the frontend host to API Gateway need CORS | Configured with the infrastructure (separate spec); `VITE_API_BASE_URL` keeps the API origin out of the code |
 | R-6 | JavaScript dates have millisecond precision while `TIMESTAMPTZ` has microseconds, so near-equal times may tie | The name and id tie-breaks keep the order deterministic |
@@ -222,7 +223,7 @@ All resolved on 2026-10-23:
 - **Q-1.** Resolved: WhatsApp validation rule added to the spec as AC-2.5.
 - **Q-2.** Resolved: dependencies approved in spec section 8a.
 - **Q-3.** Resolved: spec `002-infrastructure` (Lambda, API Gateway, Aurora PostgreSQL cluster, frontend hosting, CORS, VPC) is written and approved before tasks for 001 start. Done.
-- **R-2.** Resolved: IAM database authentication (see risk R-2).
+- **R-2.** Resolved: database access through the RDS Data API (spec 002, I-4).
 
 ## 12. Constitution Check
 
@@ -230,5 +231,5 @@ All resolved on 2026-10-23:
 2. **Spec-Code Alignment:** Complies. The spec is Approved, every part of the plan traces to an FR or NFR (section 9), and nothing outside spec 001 is planned. Items the spec does not cover are raised as open questions instead of assumed.
 3. **Separation of Concerns:** Complies. Domain and service modules have no Express, Lambda, or React imports. The handler only parses input, calls the service, and responds. React components only render, and data comes through `fetchBusinesses` and `useBusinesses`.
 4. **Testing Standard:** Complies. Business rules and the endpoint have automated tests, written first, and run on every pull request by the CI workflow of spec 002 FR-8 (section 8). Behavior that cannot be automated has documented manual checks.
-5. **Data Persistence:** Complies. Versioned SQL migrations, each run in one transaction, raw parameterized SQL, no ORM, and no manual schema edits (applied by `runMigrations`). To be checked against the Aurora PostgreSQL documentation; the UUID function and engine version are flagged in R-2.
+5. **Data Persistence:** Complies. Versioned SQL migrations, one statement each, each run in one transaction, raw parameterized SQL, no ORM, and no manual schema edits (applied by `runMigrations` through `scripts/migrate.ts`). To be checked against the Aurora PostgreSQL documentation; the UUID function and engine version are flagged in R-2.
 6. **Language Standard:** Complies. Code, comments, identifiers, API field names, the migration, and this plan are in English. Spanish appears only as UI text, defined in `frontend/src/strings.ts`.

@@ -23,10 +23,10 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 | Milestone | Goal | Tasks |
 |---|---|---|
 | **M1** | API works locally with tests, CI on pull requests | 001-T1, 002-T0, then 001-T2 to 001-T9 |
-| **M2** | API live in `dev` | 002-T1 to 002-T8 |
+| **M2** | API live in `dev` | 002-T1 to 002-T6 |
 | **M3** | Frontend works locally against the `dev` API | 001-T10 to 001-T15 |
-| **M4** | Frontend hosted in `dev`, end-to-end checks | 002-T9 to 002-T12, then 001-T16 |
-| **M5** | `prod` | 002-T13 to 002-T15 |
+| **M4** | Frontend hosted in `dev`, end-to-end checks | 002-T7 to 002-T9, then 001-T16 |
+| **M5** | `prod` | 002-T10 to 002-T12 |
 
 ## M1: Backend
 
@@ -55,15 +55,15 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Done when:** tests pass. The module imports only from `domain/`.
 
 - [ ] **001-T5 Business repository**
-  - **Covers:** AC-1.2 (query level)
-  - **Do:** `backend/src/repositories/businessRepository.ts`, `findActiveBusinessRows(client)` with one static SQL statement that selects the columns of plan section 2 and filters `is_active = true`.
-  - **Tests first (fake client that records the query):** the SQL contains `is_active = true`; selects exactly the needed columns; the query is a constant (no string concatenation or interpolation); rows are mapped to `BusinessRow`.
+  - **Covers:** AC-1.2 (query level); plan R-2
+  - **Do:** `backend/src/repositories/businessRepository.ts`, `findActiveBusinessRows(execute)` with one constant SQL statement that selects the columns of plan section 2 and filters `is_active = true`. Check the Data API documentation for how `UUID`, `TIMESTAMPTZ`, `BOOLEAN`, and `NULL` values are returned, and convert them explicitly to `BusinessRow` (for example `created_at` to a `Date`).
+  - **Tests first (fake `execute` that records the SQL and returns a sample Data API response):** the SQL contains `is_active = true`; selects exactly the needed columns; the SQL is a constant (no concatenation or interpolation); records are converted to `BusinessRow` with correct types, including a `NULL` WhatsApp number.
   - **Done when:** tests pass.
 
 - [ ] **001-T6 Migration runner and migration 001**
   - **Covers:** spec section 9 completion criterion 1 for data; plan D-7; constitution 5; spec 002 EC-4
-  - **Do:** shared migration logic in `backend/src/migrations/runMigrations.ts`: reads an ordered list of migrations, creates `schema_migrations` if missing, skips applied files, runs each file in one transaction, records it, and stops on the first failure. No command-line script (plan section 4). Migration `backend/migrations/002_create_businesses.sql` (plan section 2; `gen_random_uuid()` confirmed in plan 002 V-3). It is number 002 because `001_create_database_users.sql` (002-T4) must run first.
-  - **Tests first (fake client):** files applied in name order; already-applied files skipped; a failing file triggers `ROLLBACK`, is not recorded, and later files do not run; a second run is a no-op.
+  - **Do:** `backend/src/migrations/runMigrations.ts`: reads the ordered migration files, creates `schema_migrations` if missing, skips applied files, and runs each file (exactly one statement) plus its `schema_migrations` record in one Data API transaction; stops on the first failure (plan 002, P-11). Migration `backend/migrations/001_create_businesses.sql` (plan section 2; `gen_random_uuid()` confirmed in plan 002 V-3). The command line that calls it is 002-T3.
+  - **Tests first (fake wrapper):** files applied in name order; already-applied files skipped; a failing file is rolled back, not recorded, and later files do not run; a second run is a no-op; a file with more than one statement is rejected before anything runs.
   - **Done when:** tests pass. The SQL file holds only the `CREATE TABLE` statement.
 
 - [ ] **001-T7 Express app and Lambda handler (endpoint)**
@@ -72,10 +72,10 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first (handler called with an API Gateway HTTP API event, fake repository):** `200` with the exact contract of plan section 3; `200` with `{"businesses": []}`; when the repository throws, `500` with body exactly `{"error":"internal_error"}` and no stack or database text; the error is logged without request headers or client IP; the response `Content-Type` is JSON.
   - **Done when:** tests pass. The handler contains no business rules.
 
-- [ ] **001-T8 Database connection lifecycle**
-  - **Covers:** plan D-3, R-2; spec 002 I-5
-  - **Do:** `backend/src/db/connect.ts`: reads host, port, database, and user from environment variables, gets an IAM token with `@aws-sdk/rds-signer`, connects with TLS, returns a client. The handler opens one connection per invocation and always closes it. Retry and timeout behavior is added in 002-T5.
-  - **Tests first (fake signer and fake client factory):** token requested for the configured host, port, and user; TLS enabled; connection closed after a successful request and after a failing one; missing environment variable fails with a clear error message (in English, logged, not returned to the client).
+- [ ] **001-T8 Data API wrapper**
+  - **Covers:** plan D-3; spec 002 I-4, I-5; plan 002 P-12
+  - **Do:** `backend/src/db/dataApi.ts`: reads cluster ARN, secret ARN, database, and retry budget from environment variables; exposes `execute(sql, parameters)` and transaction helpers for `runMigrations`; passes named parameters; retries `DatabaseResumingException` with a short backoff within the retry budget; never retries other errors. The Lambda handler wires it into the repository.
+  - **Tests first (mocked `RDSDataClient`):** the configured ARNs and database are sent; parameters are passed as named parameters; one `DatabaseResumingException` followed by success returns the result; retries stop when the budget is spent; other errors are not retried; a missing environment variable fails with a clear message (in English, logged, not returned to the client).
   - **Done when:** tests pass. No credentials in code or tests.
 
 - [ ] **001-T9 Local development server**
@@ -134,9 +134,9 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 All resolved by the project owner on 2026-10-23 and 2026-10-24:
 
 - **Q-1.** `local.ts` uses an in-memory fake repository. No local database.
-- **Q-2.** Users migration first: `001_create_database_users.sql`, then `002_create_businesses.sql`.
+- **Q-2.** No database users migration anymore (RDS Data API); `001_create_businesses.sql` is the first migration.
 - **Q-3.** Local frontend reaches the `dev` API through a Vite dev server proxy. CORS stays limited to the CloudFront origin.
-- **Q-4.** No migration command-line script; migrations run only in the migration Lambda.
+- **Q-4.** Migrations run through `backend/scripts/migrate.ts` and the RDS Data API (2026-10-24; this replaced the migration Lambda).
 - **Q-5.** One branch and pull request per milestone, one commit per task.
 
 ## Verification log
