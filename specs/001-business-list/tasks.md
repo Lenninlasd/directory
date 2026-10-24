@@ -1,6 +1,6 @@
 # Tasks 001: Business Directory Listing
 
-- **Status:** Draft
+- **Status:** Approved (approved by the project owner in chat on 2026-10-24)
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Plan:** [plan.md](./plan.md) (Approved)
 - **Related:** [Tasks 002](../002-infrastructure/tasks.md) (infrastructure; milestones are shared)

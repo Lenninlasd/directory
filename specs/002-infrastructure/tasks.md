@@ -1,8 +1,8 @@
 # Tasks 002: Hosting, Deployment, and Infrastructure
 
-- **Status:** Draft
+- **Status:** Approved (approved by the project owner in chat on 2026-10-24)
 - **Spec:** [spec.md](./spec.md) (Approved)
-- **Plan:** [plan.md](./plan.md) (Draft, rewritten for the RDS Data API)
+- **Plan:** [plan.md](./plan.md) (Approved)
 - **Related:** [Tasks 001](../001-business-list/tasks.md) (application; milestones are shared, see the execution order there)
 - **Created:** 2026-10-23
 

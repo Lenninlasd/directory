@@ -1,6 +1,6 @@
 # Plan 002: Hosting, Deployment, and Infrastructure
 
-- **Status:** Draft (rewritten 2026-10-24 for the RDS Data API, spec I-4; previous version was Approved)
+- **Status:** Approved (approved by the project owner in chat on 2026-10-24, after the RDS Data API rewrite and simplifications)
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Created:** 2026-10-23
 
