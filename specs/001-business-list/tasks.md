@@ -22,11 +22,11 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 
 | Milestone | Goal | Tasks |
 |---|---|---|
-| **M1** | API works locally with tests, CI on pull requests | 001-T1, 002-T0, then 001-T2 to 001-T9 |
+| **M1** | Backend with tests, CI on pull requests | 001-T1, 002-T0, then 001-T2 to 001-T8 |
 | **M2** | API live in `dev` | 002-T1 to 002-T6 |
-| **M3** | Frontend works locally against the `dev` API | 001-T10 to 001-T15 |
-| **M4** | Frontend hosted in `dev`, end-to-end checks | 002-T7 to 002-T9, then 001-T16 |
-| **M5** | `prod` | 002-T10 to 002-T12 |
+| **M3** | Frontend works locally against the `dev` API | 001-T9 to 001-T14 |
+| **M4** | Frontend hosted in `dev`, end-to-end checks | 002-T7 to 002-T9, then 001-T15 |
+| **M5** | `prod`, only at launch | 002-T10, 002-T11 |
 
 ## M1: Backend
 
@@ -78,45 +78,39 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first (mocked `RDSDataClient`):** the configured ARNs and database are sent; parameters are passed as named parameters; one `DatabaseResumingException` followed by success returns the result; retries stop when the budget is spent; other errors are not retried; a missing environment variable fails with a clear message (in English, logged, not returned to the client).
   - **Done when:** tests pass. No credentials in code or tests.
 
-- [ ] **001-T9 Local development server**
-  - **Covers:** developer workflow for M1 (plan section 4, `local.ts`)
-  - **Do:** `backend/src/local.ts` serves `createApp` on a fixed port, wired to an in-memory fake repository with a few invented rows (Q-1). No database.
-  - **Tests first:** none beyond 001-T7 (same app). Manual: `curl http://localhost:<port>/businesses` returns the sample rows in the FR-5 order.
-  - **Done when:** the manual `curl` works and the steps are in `backend/README.md`.
-
 ## M3: Frontend
 
-- [ ] **001-T10 Frontend scaffolding**
+- [ ] **001-T9 Frontend scaffolding**
   - **Covers:** enabler; plan section 5 notes (Tailwind v4)
   - **Do:** `frontend/` with Vite, React, TypeScript strict, `@tailwindcss/vite`, `src/index.css` with `@import "tailwindcss";` and an `@theme` block of design tokens (colors, spacing, fonts) that meet WCAG AA contrast. Vitest with `jsdom` and Testing Library. Scripts `dev`, `lint`, `typecheck`, `test`, `build`. Verify the current Tailwind v4 and Vite setup in their official documentation first.
   - **Tests first:** one placeholder component test that fails until the setup works.
   - **Done when:** `pnpm --filter frontend dev` serves a page, and lint, typecheck, test, and build pass.
 
-- [ ] **001-T11 UI strings and WhatsApp link**
+- [ ] **001-T10 UI strings and WhatsApp link**
   - **Covers:** AC-4.1, AC-4.2, AC-1.3, AC-3.1, AC-3.2, AC-6.2, AC-7.1 (texts)
   - **Do:** `frontend/src/strings.ts` with every Spanish text from the spec (exact wording and characters, for example the single ellipsis character `…` in "Cargando…"). `frontend/src/features/businesses/whatsapp.ts` `buildWhatsappUrl(number)`.
   - **Tests first:** URL is `https://wa.me/<number>?text=<encoded greeting>`; the decoded `text` equals the exact greeting of AC-4.1; the greeting does not contain the business name.
   - **Done when:** tests pass.
 
-- [ ] **001-T12 API function**
+- [ ] **001-T11 API function**
   - **Covers:** AC-1.1, AC-6.1 (error detection)
   - **Do:** `frontend/src/api/businesses.ts` `fetchBusinesses()`: one `fetch` to `${VITE_API_BASE_URL}/businesses`, returns `Business[]`, throws on a non-OK status or a network error. Vite dev server proxy: `/businesses` goes to the `dev` API URL read from a local, uncommitted environment file; `VITE_API_BASE_URL` is empty locally (Q-3).
   - **Tests first (mocked `fetch`, never the network):** calls the right URL once; returns the list; throws on `500`; throws on network failure.
   - **Done when:** tests pass.
 
-- [ ] **001-T13 Query client, query key, and hook**
+- [ ] **001-T12 Query client, query key, and hook**
   - **Covers:** AC-6.1, AC-6.3, NFR-4
   - **Do:** `frontend/src/queryClient.ts` `createQueryClient()` with only `retry: 2` and `retryDelay: 1000`. `frontend/src/features/businesses/queryKeys.ts`. `frontend/src/features/businesses/useBusinesses.ts`.
   - **Tests first (fresh `QueryClient` from the factory per test, mocked API, fake timers):** success returns data; a failing API is called 3 times in total, about 1 s apart, then the hook is in error; `refetch` calls the API again.
   - **Done when:** tests pass.
 
-- [ ] **001-T14 Business card and WhatsApp button**
+- [ ] **001-T13 Business card and WhatsApp button**
   - **Covers:** AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-3.1, AC-3.2, AC-4.1, EC-4, EC-5, NFR-3
   - **Do:** `WhatsAppButton.tsx` (anchor, `target="_blank"`, `rel="noopener noreferrer"`, accessible name "Contactar a {name} por WhatsApp") and `BusinessCard.tsx` (plan section 5). Long text wraps.
   - **Tests first:** card shows name, category, and location summary; "En tienda" when `hasPhysicalStore` is true and "Solo domicilios" when false; button present with the right `href` and accessible name when a number exists; no button when the number is `null`, and the rest of the card still renders; no other business fields are rendered.
   - **Done when:** tests pass.
 
-- [ ] **001-T15 Business list, App, and entry point**
+- [ ] **001-T14 Business list, App, and entry point**
   - **Covers:** AC-1.1, AC-1.3, AC-6.2, AC-6.3, AC-6.4, AC-7.1, NFR-2, NFR-4, EC-1, EC-2, EC-3
   - **Do:** `BusinessList.tsx` (loading with `role="status"`, error with `role="alert"` and a "Reintentar" `button` that calls `refetch`, empty message, list as `ul` with one column at 320 px and more from `md`), `App.tsx`, `main.tsx` with the single `QueryClient`.
   - **Tests first (mocked API, fresh `QueryClient`):** "Cargando…" while pending; one card per business in API order; empty message for `[]`; after retries fail, the exact error message and "Reintentar"; clicking "Reintentar" loads again and shows the list; the error view shows no technical details (no status code, no exception text).
@@ -124,16 +118,16 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 
 ## M4: End-to-end verification
 
-- [ ] **001-T16 Manual checks in `dev`**
+- [ ] **001-T15 Manual checks in `dev`**
   - **Covers:** plan section 8 manual checks 1 to 6; spec 001 completion criteria; spec 002 completion criterion 3
-  - **Do:** after 002-T10, run the six manual checks of plan section 8 against the CloudFront URL of `dev`. Record date, device, and result of each check in a "Verification log" section at the end of this file.
+  - **Do:** after 002-T8, run the six manual checks of plan section 8 against the CloudFront URL of `dev`. Record date, device, and result of each check in a "Verification log" section at the end of this file.
   - **Done when:** all six pass, or each failure has an issue or a spec change proposal.
 
 ## Open Questions
 
 All resolved by the project owner on 2026-10-23 and 2026-10-24:
 
-- **Q-1.** `local.ts` uses an in-memory fake repository. No local database.
+- **Q-1.** No local backend server (removed 2026-10-24); the endpoint is covered by tests, and the first real request is in M2.
 - **Q-2.** No database users migration anymore (RDS Data API); `001_create_businesses.sql` is the first migration.
 - **Q-3.** Local frontend reaches the `dev` API through a Vite dev server proxy. CORS stays limited to the CloudFront origin.
 - **Q-4.** Migrations run through `backend/scripts/migrate.ts` and the RDS Data API (2026-10-24; this replaced the migration Lambda).
@@ -141,4 +135,4 @@ All resolved by the project owner on 2026-10-23 and 2026-10-24:
 
 ## Verification log
 
-(Filled in by 001-T16.)
+(Filled in by 001-T15.)

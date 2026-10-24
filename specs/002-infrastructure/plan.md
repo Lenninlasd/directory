@@ -1,10 +1,10 @@
 # Plan 002: Hosting, Deployment, and Infrastructure
 
-- **Status:** Approved (RDS Proxy removed, see spec I-4; revised 2026-10-24 with the owner's decisions in section 11)
+- **Status:** Draft (rewritten 2026-10-24 for the RDS Data API, spec I-4; previous version was Approved)
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Created:** 2026-10-23
 
-Scope: AWS resources, the SAM template, the deploy and migration process, and the deployment documentation. Application behavior is defined by spec 001 and is not changed here.
+Scope: AWS resources, the SAM template, the deploy and migration process, CI, and the deployment documentation. Application behavior is defined by spec 001 and is not changed here.
 
 ## 1. Technical Approach
 
@@ -12,170 +12,148 @@ Scope: AWS resources, the SAM template, the deploy and migration process, and th
 Browser
   -> CloudFront (HTTPS) -> private S3 bucket (built React app, via Origin Access Control)
   -> API Gateway HTTP API  GET /businesses   (CORS: CloudFront origin of the same environment)
-       -> Lambda "api" (in VPC, private subnets)
-            -> Aurora PostgreSQL Serverless v2 cluster endpoint (IAM auth, TLS, private subnets)
+       -> Lambda "api" (no VPC)
+            -> RDS Data API (HTTPS, IAM)  -> Aurora PostgreSQL Serverless v2 (private subnets, no inbound rules)
 
-Deploy command -> aws lambda invoke "migrate" (in VPC) -> Aurora   (schema changes)
+Developer machine: infra/deploy.sh -> backend/scripts/migrate.ts -> RDS Data API -> Aurora
 ```
 
 One SAM template, `infra/template.yaml`, deployed once per environment with `sam deploy --config-env dev|prod`. Environments differ only by parameters (spec AC-1.2).
 
-## 2. Verified AWS Facts (checked 2026-10-23)
+## 2. Verified AWS Facts (checked 2026-10-23 and 2026-10-24)
 
 Each fact was checked against the official AWS documentation. Sources are listed in section 12.
 
 | # | Fact | Consequence |
 |---|---|---|
-| V-1 | RDS Proxy keeps an open connection to the database, so Aurora Serverless v2 never auto-pauses while a proxy exists. | This is why the proxy was removed (spec I-4). Without it, `dev` can scale to zero. |
-| V-2 | Aurora PostgreSQL 17 is under standard support until 28 February 2030 (LTS 17.7). PostgreSQL 18 (18.3+) is available since June 2026 but has no LTS yet. PostgreSQL 13 and 12 are out of standard support. | Use PostgreSQL 17 (P-2). |
-| V-3 | `gen_random_uuid()` is part of PostgreSQL core since version 13, so no extension is needed on 17. | Migration 001 can use it as planned. |
-| V-4 | IAM database authentication needs it enabled on the cluster, `rds-db:connect` on the caller's role, and `GRANT rds_iam TO <user>` for each database user. TLS is required. (Documented for RDS Proxy; the same cluster-level requirements apply to direct connections.) | Used by the API and migration Lambdas (P-6). Direct-to-cluster IAM tokens are proven by the first deployment. |
-| V-5 | Aurora can create and manage the master user password in Secrets Manager (`--manage-master-user-password`). | Provides the master credential for the bootstrap migration only (Q-2 of this plan). |
-| V-6 | Lambda runtimes `nodejs22.x` (deprecation 30 April 2027) and `nodejs24.x` (deprecation 30 April 2028) are available. | Use `nodejs24.x` (P-3). |
-| V-7 | A paused Aurora instance resumes in about 15 seconds, and after more than 24 hours paused it can take 30 seconds or more. AWS recommends client connection timeouts longer than that and retrying failed connections. | `dev` accepts a slow first request (P-1). `prod` never pauses. |
+| V-1 | Aurora Serverless v2 can scale to 0 ACU and auto-pause when there are no connections. RDS Proxy would prevent this. | `dev` can pause (P-1). No proxy. |
+| V-2 | Aurora PostgreSQL 17 is under standard support until 28 February 2030 (LTS 17.7). PostgreSQL 13 and 12 are out of standard support. | Use PostgreSQL 17 (P-2). |
+| V-3 | `gen_random_uuid()` is part of PostgreSQL core since version 13. | The `businesses` migration can use it. |
+| V-4 | The RDS Data API supports Aurora PostgreSQL Serverless v2 from version 17.4 in `us-east-1`. It runs queries on the writer instance only, has a 1 MiB response limit, and is not available on T instance classes. | One `db.serverless` writer is enough. A few hundred businesses are far below 1 MiB. |
+| V-5 | The HTTP endpoint is disabled by default and is enabled per cluster (`EnableHttpEndpoint`). `ExecuteStatement` takes the cluster ARN, a secret ARN, the SQL, and named parameters. Calls without a transaction commit automatically. `BeginTransaction`, `CommitTransaction`, and `RollbackTransaction` exist for explicit transactions. | Parameterized queries (AGENTS.md) and one transaction per migration file are both possible. |
+| V-6 | When the instance is paused, a Data API call fails with `DatabaseResumingException` and resumes the instance; the caller should wait a few seconds and retry. Resume typically takes about 15 seconds, and 30 seconds or more after 24 hours paused. | The Data API wrapper retries on this error (P-12). |
+| V-7 | Access is authorized with IAM: `rds-data:*` actions on the cluster ARN plus `secretsmanager:GetSecretValue` on the database secret. Aurora can create and rotate the master user secret (`ManageMasterUserPassword`). | No database users to create, no bootstrap step. |
+| V-8 | Lambda runtime `nodejs24.x` is available until 30 April 2028. | Use `nodejs24.x` (P-3). |
 
-## 3. Decisions for Approval
+## 3. Decisions
 
-| # | Decision | Alternatives and reason |
+| # | Decision | Reason |
 |---|---|---|
-| P-1 | Aurora Serverless v2 capacity: `dev` minimum 0 ACU (auto-pause after 3600 s idle) and maximum 1 ACU. `prod` minimum 0.5 ACU (never pauses) and maximum 2 ACU. | Confirmed by the owner (no RDS Proxy). `dev` costs almost nothing when idle; its first request after a pause waits about 15 to 30 seconds, so `dev` uses a longer connect timeout and Lambda timeout (P-3) and `connect.ts` retries a failed connection up to 3 times (AWS recommendation). `prod` keeps 0.5 ACU so visitors never wait for a resume (NFR-1). |
-| P-2 | Engine: Aurora PostgreSQL 17 (latest 17.x minor in `us-east-1` at deploy time), single writer instance, no reader instance | Long standard support (to 2030). PostgreSQL 18 is newer but has no LTS yet. One instance is enough for the expected load; Multi-AZ readers cost more and are not required by the spec. |
-| P-3 | Lambda runtime `nodejs24.x`, architecture `arm64`, memory 256 MB, timeout 10 s in `prod` and 29 s in `dev` (API Gateway HTTP API allows at most 30 s) | Longest support window, lower price on arm64. Values to be tuned after the performance check. |
-| P-4 | API Gateway **HTTP API** (not REST API) | Cheaper and simpler, supports CORS natively, and is enough for one `GET` route. SAM expresses it with `AWS::Serverless::HttpApi`. |
-| P-5 | Connectivity: two private subnets in two Availability Zones, **no NAT gateway**. The API Lambda needs no internet access, because generating an IAM token (`@aws-sdk/rds-signer`) is a local signing operation. The migration Lambda reads the master secret only for the bootstrap migration, through a Secrets Manager interface VPC endpoint that exists only while `BootstrapMode` is `true` (P-10). | Avoids the NAT cost and the permanent endpoint cost. |
-| P-6 | Database users: `app_user` (only `SELECT` on `businesses`, IAM auth) and `migrator` (schema changes, IAM auth). Both get `rds_iam`. Both connect to the cluster endpoint. | Least privilege (spec NFR-2, AC-5.2a). |
-| P-7 | Frontend cache: hashed asset names with long cache, `index.html` not cached, plus a CloudFront invalidation of `/index.html` on deploy | Spec AC-4.5 |
-| P-8 | SPA fallback: CloudFront custom error response, 403/404 from S3 returns `/index.html` with status 200 | Spec AC-4.3 |
-| P-9 | Region `us-east-1` (spec I-6). Single AWS account (spec Q-7) | Resource names carry the environment, for example `alameda-dev-api`, and every resource is tagged `Environment` and `Project`. |
-| P-10 | Template parameter `BootstrapMode` (`true` or `false`, default `false`). When `true`, the template creates the Secrets Manager VPC endpoint and gives the migration role `secretsmanager:GetSecretValue` on the master secret. The first deploy of an environment uses `true`; after the bootstrap migration succeeds, the next deploy uses `false`. | Near-zero ongoing cost for a one-time need. |
-| P-11 | The migration Lambda accepts three actions: `migrate` (default), `seed` (refused unless `Environment` is `dev`), and `verify` (read-only report run as `migrator`: `has_table_privilege` for `app_user` on `businesses`, and whether connections use TLS). | Gives evidence for the privilege and TLS checks without any human database access. |
-| P-12 | Connect timeout per environment: `dev` 25 s (covers an auto-pause resume), `prod` 5 s (never pauses, and must fit inside the 10 s Lambda timeout). Up to 3 connection retries in both. | Avoids a `prod` timeout longer than its Lambda timeout. |
-| P-13 | CI: `.github/workflows/ci.yml` runs on pull requests to `main`: pnpm install with the frozen lockfile, lint, typecheck, test. No AWS credentials, no deploy (spec FR-8). | Constitution principle 4 |
-| P-14 | Delivery: one branch and one pull request per milestone, one commit per task (AGENTS.md). | Owner decision 2026-10-24 |
+| P-1 | Aurora Serverless v2 capacity: `dev` 0 to 1 ACU (auto-pause after 3600 s idle); `prod` 0.5 to 2 ACU (never pauses). | `dev` costs almost nothing when idle; `prod` visitors never wait for a resume (NFR-1). |
+| P-2 | Aurora PostgreSQL 17 (latest 17.x minor in `us-east-1` at deploy time, at least 17.4 for the Data API), one `db.serverless` writer, no readers | Long support; the Data API uses the writer only. |
+| P-3 | Lambda `nodejs24.x`, `arm64`, 256 MB, timeout 29 s in `dev` (covers a resume) and 10 s in `prod`, **not in a VPC** | No VPC networking needed with the Data API. |
+| P-4 | API Gateway HTTP API (not REST API) | Cheaper and simpler, native CORS, one route. |
+| P-5 | Network for the database only: a VPC with two private subnets in two Availability Zones (required by the DB subnet group) and a database security group with **no inbound rules**. No NAT, no internet gateway, no VPC endpoints. | The database is unreachable over the network; only the Data API reaches it (AC-3.2). |
+| P-6 | One database credential: the Aurora-managed master user secret, used only through the Data API. No `app_user` or `migrator` roles. | No bootstrap problem. Trade-off in R-2. |
+| P-7 | Frontend cache: hashed asset names with long cache, `index.html` not cached, CloudFront invalidation of `/index.html` on deploy | AC-4.5 |
+| P-8 | No SPA fallback: the directory is one page (spec section 8) | Removed 2026-10-24 |
+| P-9 | Region `us-east-1`, single AWS account; names carry the environment (for example `alameda-dev-api`) and every resource is tagged `Environment` and `Project` | Spec I-6, Q-7 |
+| P-10 | Migrations and seed run from the developer's machine with `node backend/scripts/migrate.ts <env> [--seed]`, through the Data API, using the developer's AWS credentials. Node.js 24 runs TypeScript files directly by stripping types, so no extra tool is needed (to confirm in 001-T6). | No migration Lambda, no bundled `.sql` files. |
+| P-11 | Migration files hold exactly one SQL statement each. The runner runs each file in its own Data API transaction and records it in `schema_migrations` in the same transaction. | Avoids depending on multi-statement support in the Data API, and keeps every file atomic. |
+| P-12 | Data API calls go through one small wrapper that passes named parameters and retries `DatabaseResumingException` with a short backoff, up to about 25 s in `dev` and 5 s in `prod` | V-6; must fit inside the Lambda timeout (P-3). |
+| P-13 | CI: `.github/workflows/ci.yml` on pull requests to `main`: pnpm install with the frozen lockfile, lint, typecheck, test. No AWS credentials, no deploy. | Spec FR-8, constitution 4 |
+| P-14 | Delivery: one branch and one pull request per milestone, one commit per task | Owner decision 2026-10-24 |
 
 ## 4. Repository Layout (new files)
 
 | File | Purpose |
 |---|---|
-| `infra/template.yaml` | SAM template: network, database, Lambdas, HTTP API, S3, CloudFront, log groups, IAM roles |
-| `infra/samconfig.toml` | `dev` and `prod` deploy parameters. Contains no secrets and no account IDs. |
-| `infra/README.md` | Deployment guide: prerequisites, one-time setup, deploy, migrate, rollback (spec AC-1.3, AC-6.1, AC-6.3) |
-| `backend/src/handlers/migrate.ts` | Migration Lambda entry: calls the shared `runMigrations` logic and returns a summary |
-| `backend/migrations/001_create_database_users.sql` | Creates the `app_user` and `migrator` roles and grants, and default privileges so tables created by `migrator` are readable by `app_user` (see R-4). Runs before `002_create_businesses.sql`. |
-| `backend/seeds/dev_businesses.sql` | Sample rows for `dev` only. Approved (spec Q-9). Never run in `prod`. Idempotent (upsert), so a changed row can be applied again for the freshness check. |
-| `backend/migrations/NNN_*.sql` (data) | Real business rows, added through reviewed data migrations (spec FR-7). The first one is written in M5 with data provided by the team. |
-| `.github/workflows/ci.yml` | CI for tests (P-13) |
-| `infra/deploy.sh` | Documented sequence: `sam build`, `sam deploy`, invoke migrate, build frontend, sync to S3, invalidate CloudFront |
-
-The migration logic (read files in order, one transaction per file, record in `schema_migrations`) lives in `backend/src/migrations/runMigrations.ts` and is used only by the migration Lambda (plan 001, D-7). There is no command-line script, since no database is reachable from outside the VPC.
+| `infra/template.yaml` | SAM template: database network, Aurora, API Lambda, HTTP API, S3, CloudFront, log group, IAM role |
+| `infra/samconfig.toml` | `dev` and `prod` deploy parameters. No secrets, no account IDs. |
+| `infra/deploy.sh` | Deploy sequence (section 6) |
+| `infra/README.md` | Prerequisites, deploy, migrate, seed, rollback, verification results |
+| `backend/scripts/migrate.ts` | Command line: reads stack outputs (cluster ARN, secret ARN), runs `runMigrations` (plan 001) through the Data API; `--seed` runs the seed, refused unless the environment is `dev` |
+| `backend/migrations/001_create_businesses.sql` | The `businesses` table (plan 001 section 2) |
+| `backend/migrations/NNN_*.sql` (data) | Real business rows (spec FR-7), one `INSERT` per file, written in M5 with data from the team |
+| `backend/seeds/dev_businesses.sql` | Sample rows for `dev` only, one upsert statement (spec Q-9) |
+| `.github/workflows/ci.yml` | CI (P-13) |
 
 ## 5. Template Resources
 
 | Group | Resources |
 |---|---|
-| Network | VPC, two private subnets (two AZs), route table, security groups: `lambda-sg` (outbound to `db-sg`, and to the Secrets Manager endpoint while it exists), `db-sg` (inbound only from `lambda-sg`) |
-| Database | `AWS::RDS::DBSubnetGroup`, `AWS::RDS::DBCluster` (aurora-postgresql 17, encrypted, IAM auth enabled, Serverless v2 scaling per P-1, managed master user secret, backup retention 7 days in `prod` and 1 day in `dev`, deletion protection in `prod`), one `AWS::RDS::DBInstance` (`db.serverless`) |
-| Backend | `AWS::Serverless::Function` `api` and `migrate` (both in the VPC), a Secrets Manager interface VPC endpoint for `migrate` only when `BootstrapMode` is `true` (P-10), `AWS::Serverless::HttpApi` with the `GET /businesses` route and CORS, log groups with 30-day retention |
-| IAM | Both roles: logs and the VPC network interface permissions every VPC Lambda needs. `api` role: `rds-db:connect` for `app_user` only. `migrate` role: `rds-db:connect` for `migrator`, and `secretsmanager:GetSecretValue` on the master secret only when `BootstrapMode` is `true`. |
-| Frontend | Private S3 bucket (block all public access, encrypted), CloudFront distribution with Origin Access Control, HTTPS redirect, SPA fallback, response headers policy |
-| Outputs | API URL, CloudFront domain, cluster endpoint name. Used by the deploy script. No secrets. |
+| Network | VPC, two private subnets (two AZs), `db-sg` with no inbound rules |
+| Database | `AWS::RDS::DBSubnetGroup`; `AWS::RDS::DBCluster` (aurora-postgresql 17, encrypted, `EnableHttpEndpoint: true`, `ManageMasterUserPassword: true`, Serverless v2 scaling per P-1, backup retention 7 days in `prod` and 1 day in `dev`, deletion protection and `Retain` policy in `prod`); one `AWS::RDS::DBInstance` (`db.serverless`, not publicly accessible) |
+| Backend | `AWS::Serverless::Function` `api` (no VPC; environment variables: cluster ARN, secret ARN, database name, retry budget), `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin, log group with 30-day retention |
+| IAM | `api` role: logs, `rds-data:ExecuteStatement` on the cluster ARN only, `secretsmanager:GetSecretValue` on the master secret only |
+| Frontend | Private S3 bucket (block public access, encrypted), CloudFront with Origin Access Control, HTTPS redirect, cache behavior per P-7 |
+| Outputs | API URL, CloudFront domain, bucket name, distribution id, cluster ARN, secret ARN (an ARN is not a secret) |
 
 ## 6. Deployment Order (spec FR-6)
 
-1. `sam build` and `sam deploy --config-env <env>` (creates or updates the stack).
-2. Invoke the `migrate` Lambda and fail the deploy if it reports an error (EC-4). The new API code is already live at this point, so every migration must work with both the previous and the new backend (spec AC-5.3).
-3. Build the frontend with `VITE_API_BASE_URL` set to the stack output (AC-4.4).
-4. `aws s3 sync` of the build, then a CloudFront invalidation of `/index.html` (P-7).
+1. `sam build` and `sam deploy --config-env <env>`.
+2. `node backend/scripts/migrate.ts <env>`; stop on error (EC-4). The new API code is already live, so every migration must work with both the previous and the new backend (spec AC-5.3).
+3. Build the frontend with `VITE_API_BASE_URL` from the stack output (AC-4.4).
+4. `aws s3 sync`, then invalidate `/index.html` (P-7).
 5. Print the CloudFront URL.
 
-Deploying to `prod` is a separate, explicit command with a confirmation prompt (AC-6.2).
+`prod` requires a typed confirmation (AC-6.2). The developer's AWS credentials need permission to deploy the stack and to call the Data API for the migration step; the README lists them.
 
-**First deploy of an environment:** run with `BootstrapMode=true`, which applies the users migration as the master user and then the rest as `migrator`. Then deploy again with `BootstrapMode=false` to remove the endpoint and the secret permission. The README describes both steps.
-
-**Rollback (AC-6.3).** Backend: redeploy the previous Git commit with the same command (SAM versions Lambda code through CloudFormation). Frontend: rebuild and sync the previous commit, then invalidate. Database migrations are forward-only; a bad migration is fixed by a new migration file, never by editing an applied one.
+**Rollback (AC-6.3).** Redeploy the previous Git commit with the same command. Migrations are forward-only; a bad migration is fixed by a new file.
 
 ## 7. Backend Changes Required by This Plan
 
-These are small and belong to the tasks of this spec, not to spec 001:
+- `backend/src/db/dataApi.ts` (plan 001): the Data API wrapper of P-12, used by the repository and by `runMigrations`.
+- `backend/scripts/migrate.ts` (P-10).
+- `esbuild` is a backend dev dependency, needed by the SAM esbuild builder (spec section 9).
 
-- `src/db/connect.ts` (plan 001) reads the cluster endpoint, port, database name, user, and connect timeout from environment variables set by the template, generates the IAM token with `@aws-sdk/rds-signer`, connects with TLS, and retries a failed connection up to 3 times (P-12, V-7).
-- `src/handlers/migrate.ts` is new (section 4).
-- The Lambda packages are built by the SAM esbuild builder (`sam build`), which needs `esbuild` installed as a backend dev dependency (approved in spec section 9). How `.sql` files are included in the bundle is verified in the SAM documentation in 002-T4.
+## 8. Verification
 
-## 8. Testing and Verification Strategy
+Checks are written first and recorded in `infra/README.md`. Failure cases (EC-1, EC-4) are covered by unit tests rather than drills against `dev`.
 
-Infrastructure cannot be unit tested like application code, so checks are scripted or documented (spec section 10, criterion 1). Authoring order for each infrastructure task: write the check first, see it fail, then add the resources.
-
-| Check | Command or procedure | Covers |
+| Check | Procedure | Covers |
 |---|---|---|
-| Template is valid | `sam validate --lint` | AC-1.1, AC-1.2 |
-| Same template, two environments | Deploy `dev`, then `prod` with only parameter differences; diff of resolved parameters in the README | AC-1.2 |
-| API reachable | `curl -i https://<api>/businesses` returns `200` and the contract of plan 001 section 3 | AC-2.1 |
-| API contract after migration + seed | The response lists only the seeded active rows | spec 001 AC-1.2 |
-| CORS | Request with `Origin: <cloudfront origin>` receives the allow header. Request with another origin does not. | AC-2.4, EC-2 |
-| Least privilege | `verify` action (P-11) reports that `app_user` has `SELECT` and no `INSERT`, `UPDATE`, or `DELETE` on `businesses`. The `api` role policy lists only `app_user`. | AC-2.3, P-6 |
-| Database is private | `nc` or `psql` from a laptop to the cluster endpoint times out. The cluster has `PubliclyAccessible: false`. | AC-3.1, AC-3.2 |
-| Encryption | `describe-db-clusters` shows `StorageEncrypted: true`. The cluster parameter `rds.force_ssl` is `1`, and the `verify` action reports that its own connection uses TLS. | AC-3.3 |
-| Backups and logs | `describe-db-clusters` shows 7 days in `prod`. `describe-log-groups` shows 30 days. | AC-3.4, AC-2.5 |
-| Frontend over HTTPS | `curl -I http://<cloudfront>` redirects. The bucket URL directly returns `403`. | AC-4.1, AC-4.2 |
-| SPA fallback | `curl -i https://<cloudfront>/anything` returns `200` and the app HTML | AC-4.3, EC-3 |
-| Freshness | Deploy a changed frontend, reload, see the change without a manual cache clear | AC-4.5, EC-5 |
-| Migration failure | On a throwaway branch (never merged), a deliberately broken migration deployed to `dev` rolls back and the deploy stops. Then redeploy `main`. | EC-4 |
-| DB failure | Deploy `dev` with the API database user parameter set to a user that does not exist, call the API: response is `500 {"error":"internal_error"}` and the details appear only in CloudWatch. Then redeploy with the right user. | EC-1 |
-| Rollback | Execute the README rollback once in `dev` | AC-6.3 |
-| Performance | Run spec 001 manual check 5 in `prod` (including a cold start). In `dev`, record the time of the first request after a pause. | NFR-1 |
-| CI | A pull request with a failing test is blocked; the same pull request with the fix passes | FR-8 |
-| Data migration | A data migration adds a business; the API shows it after deploy | FR-7 |
+| Template valid | `sam validate --lint` | AC-1.1, AC-1.2 |
+| API reachable | `curl -i https://<api>/businesses` returns `200` and the plan 001 contract | AC-2.1, AC-2.2 |
+| Seeded data | After `migrate.ts dev --seed`, only active rows, FR-5 order, invalid numbers as `null` | spec 001 AC-1.2, AC-2.3, FR-5 |
+| CORS | Allowed origin gets the header; another origin does not | AC-2.4, EC-2 |
+| Least privilege | The `api` role policy lists only the three permissions of section 5, scoped to this environment's ARNs | AC-2.3 |
+| Database private | Cluster and instance are not publicly accessible; `db-sg` has no inbound rules | AC-3.1, AC-3.2 |
+| Encryption | `StorageEncrypted: true`; the Data API is HTTPS only | AC-3.3 |
+| Backups and logs | 7-day backups in `prod`; 30-day log retention | AC-3.4, AC-2.5 |
+| Frontend HTTPS | HTTP redirects; direct bucket URL returns `403` | AC-4.1, AC-4.2 |
+| Frontend freshness | Changed frontend visible after reload | AC-4.5, EC-5 |
+| Rollback | Documented in the README (no drill) | AC-6.3 |
+| Performance | Spec 001 manual check 5 in `prod`; first request after a `dev` pause recorded | NFR-1 |
+| CI | A pull request with a failing test is blocked | FR-8 |
+| Data migration | A data migration adds a business; the API shows it | FR-7 |
 
 ## 9. Traceability
 
 | Requirement | Covered by |
 |---|---|
-| FR-1 (AC-1.1 to 1.3) | Sections 4, 5, P-9, README |
-| FR-2 (AC-2.1 to 2.5) | Section 5 (Backend, IAM), P-4, P-5, P-6 |
-| FR-3 (AC-3.1 to 3.5) | Section 5 (Network, Database), P-1, P-2, V-2 |
-| FR-4 (AC-4.1 to 4.5) | Section 5 (Frontend), P-7, P-8, section 6 |
-| FR-5 (AC-5.1 to 5.3, 5.2a) | Sections 4, 6, 7, P-6 |
-| FR-6 (AC-6.1 to 6.3) | Section 6, `infra/deploy.sh`, README |
-| FR-7 (AC-7.1 to 7.3) | Section 4 (data migrations, seed), P-11 |
-| FR-8 (AC-8.1, 8.2) | P-13, section 4 |
-| NFR-1 | P-1, P-3, V-7, check "Performance" |
-| NFR-2 | P-5, P-6, section 5 (IAM, Network) |
-| NFR-3 | P-1, P-2 |
+| FR-1 | Sections 4, 5, P-9, README |
+| FR-2 | Section 5 (Backend, IAM), P-3, P-4, P-12 |
+| FR-3 | Section 5 (Network, Database), P-1, P-2, P-5, P-6 |
+| FR-4 | Section 5 (Frontend), P-7, section 6 |
+| FR-5 | P-10, P-11, section 6 |
+| FR-6 | Section 6, `infra/deploy.sh`, README |
+| FR-7 | Section 4 (data migrations, seed), P-10 |
+| FR-8 | P-13 |
+| NFR-1 | P-1, P-3, P-12, check "Performance" |
+| NFR-2 | P-5, P-6, section 5 (IAM) |
+| NFR-3 | P-1, P-2, P-5 (no NAT, no endpoints) |
 | NFR-4 | Section 6, same template for both environments |
-| NFR-5 | Log groups in section 5, no alerting |
-| EC-1 to EC-5 | Section 8 checks |
+| NFR-5 | Log group in section 5 |
+| EC-1, EC-4 | Unit tests of the endpoint (plan 001) and of `runMigrations` |
+| EC-2, EC-5 | Section 8 |
 
 ## 10. Risks
 
 | # | Risk | Mitigation |
 |---|---|---|
-| R-1 | IAM tokens connecting directly to the cluster endpoint have not been proven in this project | First infrastructure task in `dev` proves connect, `rds_iam`, and TLS before anything else is built on it |
-| R-2 | Without a proxy, many concurrent Lambda invocations can exhaust Aurora connections (plan 001, R-3) | Low traffic expected. Add RDS Proxy through a spec change if it appears (spec Q-8). Application code does not change; only the host changes. |
-| R-3 | VPC-attached Lambda cold starts are slower than non-VPC ones, and `dev` resumes can take 15 to 30 s | Measure in the performance check. `prod` never pauses. Memory can be raised. Escalate through a spec change if NFR-1 fails. |
-| R-4 | Creating database users and `GRANT rds_iam` must be versioned too | Put them in `001_create_database_users.sql`. Bootstrap: when the `migrator` role does not exist, the migration Lambda applies only this file as the master user, then reconnects as `migrator` for the rest |
-| R-5 | Bootstrap needs the master user, which needs a Secrets Manager VPC endpoint | Resolved by P-10: the endpoint exists only while `BootstrapMode` is `true`. Someone could forget to switch it off; the README and the deploy script print a reminder while it is `true`. |
-| R-6 | The IAM token used by Lambda expires after 15 minutes | One connection per invocation (plan 001, D-3) means a fresh token each time |
-| R-7 | Exact versions of SAM CLI and AWS CLI affect the template | Record the versions used in `infra/README.md` (spec section 9) |
-| R-8 | An accidental `sam delete` or stack replacement of the cluster in `prod` destroys data | `DeletionProtection` and a `Retain` deletion policy on the cluster in `prod`, and a final snapshot policy |
+| R-1 | Data API result types differ from a native driver (for example how `TIMESTAMPTZ` and `UUID` come back) | 001-T5 checks the documented formats, and the repository converts explicitly; covered by unit tests with sample responses. |
+| R-2 | The API role uses the master credential through the Data API, so a bug could in principle write data. There is no read-only database user. | The repository runs one constant `SELECT` with no user input, and the IAM policy allows only `ExecuteStatement` (no transactions). A read-only user can be added later through a spec change. |
+| R-3 | `dev` resume takes 15 to 30 s | Retry wrapper (P-12) and 29 s timeout in `dev`; `prod` never pauses. |
+| R-4 | Node.js type stripping may not support every TypeScript syntax used in `migrate.ts` | Keep the script to erasable syntax; confirm in 001-T6. Fallback: run it after `tsc` compilation. |
+| R-5 | Accidental deletion of the `prod` cluster | Deletion protection, `Retain` policy, final snapshot |
+| R-6 | SAM CLI and AWS CLI versions affect the template | Record versions in `infra/README.md` |
 
-## 11. Decisions Taken (2026-10-23)
+## 11. Decisions Taken
 
-- **Q-1.** No RDS Proxy now. `dev` scales to zero, `prod` runs 0.5 to 2 ACU. The proxy may be added later through a spec change.
-- **Q-2.** The very first role-creating migration runs in the migration Lambda with the Aurora-managed master secret, only when the `migrator` role does not exist. All later migrations run as `migrator`.
-- **Q-4 (tasks).** The seed runs through the migration Lambda when invoked with `{"seed": true}` and only when `Environment` is `dev`. Local frontend development uses a Vite dev proxy, so CORS stays limited to the CloudFront origin in both environments.
-- **Q-3.** `backend/seeds/dev_businesses.sql` is approved for `dev` only.
-
-Added 2026-10-24:
-
-- Business data is loaded through versioned data migrations (spec FR-7).
-- Minimal CI for tests (spec FR-8, P-13). Continuous deployment stays out of scope.
-- Migrations must be backward compatible instead of running before the stack update (spec AC-5.3).
-- Packages `esbuild` and `@aws-sdk/client-secrets-manager` approved (spec section 9).
-- One branch and pull request per milestone (P-14).
-- Secrets Manager endpoint only during bootstrap (P-10).
-- `verify` action and a configuration-based failure drill (P-11, section 8).
-- No migration command-line script (section 4).
+- 2026-10-23: no RDS Proxy; `dev` scales to zero, `prod` 0.5 to 2 ACU; seed approved for `dev` only.
+- 2026-10-24: data migrations for real businesses (FR-7); CI for tests (FR-8); backward-compatible migrations (AC-5.3); one branch and pull request per milestone; **RDS Data API for all database access**, which removed the Lambda VPC, IAM database tokens, database users, the bootstrap step, the Secrets Manager endpoint, and the migration Lambda.
+- 2026-10-24 simplifications: `prod` is created only at launch (M5); no SPA fallback; failure and rollback drills and the region latency check removed (unit tests cover EC-1 and EC-4; rollback stays documented); no local development server.
 
 No open questions remain.
 
@@ -183,14 +161,17 @@ No open questions remain.
 
 - Aurora Serverless v2 auto-pause: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2-auto-pause.html>
 - Aurora PostgreSQL release calendar: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraPostgreSQLReleaseNotes/aurorapostgresql-release-calendar.html>
-- RDS Proxy end-to-end IAM: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/rds-proxy-iam-migration.html>
+- Data API regions and engines: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Concepts.Aurora_Fea_Regions_DB-eng.Feature.Data_API.html>
+- Data API limitations: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.limitations.html>
+- Data API `ExecuteStatement`: <https://docs.aws.amazon.com/rdsdataservice/latest/APIReference/API_ExecuteStatement.html>
+- Data API access: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.access.html>
 - Lambda runtimes: <https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html>
 
 ## 13. Constitution Check
 
-1. **Stack Simplicity:** Complies. Only the fixed stack plus the approved S3 + CloudFront and SAM. RDS Proxy is deliberately left out to keep it simple. New tooling and the two backend packages are approved in spec section 9.
-2. **Spec-Code Alignment:** Complies. Every part traces to an AC or NFR (section 9). Anything not covered by the spec is raised as a question (P-1, Q-2, Q-3).
-3. **Separation of Concerns:** Complies. The migration Lambda is a thin handler over shared migration logic. Infrastructure holds no business rules.
-4. **Testing Standard:** Complies. Unit tests run in CI on every pull request (P-13). Infrastructure checks are written first and documented in section 8, since unit tests do not apply to a template.
-5. **Data Persistence:** Complies. All schema and data changes, including database users, are versioned SQL files applied by the migration mechanism. Versions and IAM behavior were checked against the AWS documentation (section 2).
-6. **Language Standard:** Complies. Everything is in English. The infrastructure has no UI text.
+1. **Stack Simplicity:** Complies. Fixed stack plus approved S3, CloudFront, SAM, and GitHub Actions. The Data API is part of Aurora; its client package is approved in spec 001 section 8a.
+2. **Spec-Code Alignment:** Complies. Every part traces to an AC or NFR (section 9).
+3. **Separation of Concerns:** Complies. Infrastructure holds no business rules; the migration script is a thin command over `runMigrations`.
+4. **Testing Standard:** Complies. Unit tests run in CI on every pull request (P-13); infrastructure checks are documented in section 8.
+5. **Data Persistence:** Complies. Schema and data changes are versioned SQL files, one statement each, applied by `runMigrations`. Queries are parameterized through the Data API.
+6. **Language Standard:** Complies. Everything is in English.

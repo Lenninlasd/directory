@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-24 (RDS Proxy removed; FR-7 data migrations and FR-8 CI added; AC-2.3 and AC-5.3 clarified; database access through the RDS Data API)
+- **Last updated:** 2026-10-24 (RDS Proxy removed; FR-7 data migrations and FR-8 CI added; AC-2.3 and AC-5.3 clarified; database access through the RDS Data API; simplified: `prod` created at launch, no SPA fallback, fewer drills)
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
@@ -32,7 +32,7 @@
 
 | # | Decision | Reason |
 |---|---|---|
-| I-1 | Two environments: `dev` and `prod`, each with its own full set of resources | Safe testing before production |
+| I-1 | Two environments, `dev` and `prod`, each with its own full set of resources. Only `dev` is created at first; `prod` is created from the same template when the directory launches (M5). | Safe testing before production, without paying for `prod` before it has users |
 | I-2 | IaC with AWS SAM (`template.yaml`) | Serverless-first; SAM covers Lambda, API Gateway, and plain CloudFormation resources for the rest |
 | I-3 | Frontend hosting: private S3 bucket behind CloudFront | Static hosting, HTTPS, global caching |
 | I-4 | All database access goes through the RDS Data API (HTTPS, managed by AWS). Lambda runs outside the VPC and opens no database connections. RDS Proxy is not used. (Changed 2026-10-24, was: direct IAM connection from a VPC Lambda; before that, RDS Proxy.) | Removes Lambda VPC networking, connection handling, database users, and the migration Lambda. AWS manages connections, so connection exhaustion is not a concern. |
@@ -41,7 +41,7 @@
 
 ### 4a. Region rationale
 
-Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-east-1` (São Paulo). Latency from Colombia to `us-east-1` is generally similar to or lower than to São Paulo, because international routes from the Caribbean coast mostly pass through the United States. `us-east-1` also has the widest service availability and lower prices. CloudFront serves the frontend from edge locations regardless of the origin region, so the region choice mainly affects the API and the database. To be validated by a latency measurement from Barranquilla before `prod` is created.
+Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-east-1` (São Paulo). Latency from Colombia to `us-east-1` is generally similar to or lower than to São Paulo, because international routes from the Caribbean coast mostly pass through the United States. `us-east-1` also has the widest service availability and lower prices. CloudFront serves the frontend from edge locations regardless of the origin region, so the region choice mainly affects the API and the database.
 
 ## 5. Functional Requirements
 
@@ -71,7 +71,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 
 - **AC-4.1.** The system shall store the built frontend in a private S3 bucket that is reachable only through CloudFront.
 - **AC-4.2.** CloudFront shall serve the site over HTTPS and redirect HTTP to HTTPS.
-- **AC-4.3.** CloudFront shall serve the frontend entry page for unknown paths, so the single-page app loads on any URL.
+- **AC-4.3.** Removed 2026-10-24 (single page, see section 8).
 - **AC-4.4.** The frontend build shall receive the API base URL of its environment (`VITE_API_BASE_URL`) at build time.
 - **AC-4.5.** Deploying a new frontend version shall make it visible to users without waiting for stale cache entries (cache invalidation or versioned asset names).
 
@@ -111,15 +111,16 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 
 | # | Situation | Expected behavior |
 |---|---|---|
-| EC-1 | The database is unreachable or rejects a connection | The API returns `500 { "error": "internal_error" }` (spec 001 AC-6.4); details only in logs |
+| EC-1 | The database is unreachable or rejects a request | The API returns `500 { "error": "internal_error" }` (spec 001 AC-6.4); details only in logs (verified by unit tests) |
 | EC-2 | A browser from a different origin calls the API | The browser blocks it (AC-2.4) |
-| EC-3 | A user opens a deep link such as `/anything` | CloudFront serves the app (AC-4.3) |
-| EC-4 | A migration fails halfway | The transaction rolls back (plan 001, section 2) and the release stops |
+| EC-3 | Removed 2026-10-24 (single page) | n/a |
+| EC-4 | A migration fails halfway | The transaction rolls back (plan 001, section 2) and the release stops (verified by unit tests) |
 | EC-5 | A new frontend is deployed while users have the old one cached | New visitors get the new version (AC-4.5) |
 
 ## 8. Out of Scope
 
 - A custom domain name and TLS certificate (the default CloudFront and API Gateway URLs are used until a later spec). Confirmed in Q-3.
+- Routing for more than one page (the directory is a single page; unknown paths are not redirected to it).
 - Continuous deployment. Deployment is run by a human from a terminal in this MVP. (CI for tests is in scope, FR-8.)
 - Alerting, dashboards, and distributed tracing.
 - Web Application Firewall, rate limiting, and DDoS-specific configuration beyond AWS defaults.
@@ -145,14 +146,14 @@ Approved by the project owner on 2026-10-24. Tooling that is not a project depen
 2. `dev` and `prod` each serve the directory of spec 001 over HTTPS from their own URL.
 3. The spec 001 manual checks (inactive rows, WhatsApp, layout, accessibility, performance, freshness) pass in `dev`.
 4. The database is confirmed unreachable from the public internet.
-5. Deployment, migration, and rollback are documented and have been executed at least once in `dev`.
+5. Deployment and migration have been executed at least once in `dev`, and rollback is documented.
 6. This spec is marked `Status: Approved` by a human before planning starts.
 
 ## 11. Open Questions
 
 Resolved on 2026-10-23:
 
-- **Q-1.** Region is `us-east-1` (I-6 confirmed). Latency from Barranquilla is still measured before `prod` is created.
+- **Q-1.** Region is `us-east-1` (I-6 confirmed). No separate latency measurement (decided 2026-10-24).
 - **Q-2.** Aurora Serverless v2 in both environments. `dev` scales to zero when idle. `prod` keeps a minimum capacity above zero so users never wait for a resume (details in the plan).
 - **Q-3.** No custom domain for the first release (stays out of scope, section 8).
 - **Q-5.** CloudWatch log retention is 30 days. `prod` backup retention is 7 days. `dev` uses the minimum.
