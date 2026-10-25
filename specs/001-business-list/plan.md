@@ -88,7 +88,7 @@ Migration `backend/migrations/001_create_businesses.sql` holds a single `CREATE 
 | `src/domain/whatsappNumber.ts` | `normalizeWhatsappNumber(raw): string \| null` | none |
 | `src/services/businessService.ts` | `listActiveBusinesses(findRows)`: normalize numbers, sort, map to `Business[]` | domain only |
 | `src/repositories/businessRepository.ts` | `findActiveBusinessRows(execute)`: one constant SQL statement, maps Data API records to `BusinessRow` | none (receives the wrapper function) |
-| `src/db/dataApi.ts` | Small wrapper over `ExecuteStatement` (and transactions for migrations): cluster ARN, secret ARN, and database from environment variables; named parameters; retries `DatabaseResumingException` (plan 002, P-12) | `@aws-sdk/client-rds-data` |
+| `src/db/dataApi.ts` | Small wrapper over `ExecuteStatement` (and transactions for migrations): cluster ARN, secret ARN, and database from environment variables; named parameters; no retries (plan 002, P-12) | `@aws-sdk/client-rds-data` |
 | `src/app.ts` | `createApp(deps)`: Express app, `GET /businesses`, error middleware | `express` |
 | `src/handlers/lambda.ts` | Lambda entry: wires the real dependencies and adapts the Express app | `serverless-http` |
 | `src/migrations/runMigrations.ts` | Applies `migrations/*.sql` in order, one statement and one transaction per file, recording each file in `schema_migrations` in the same transaction | none (receives the wrapper) |

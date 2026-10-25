@@ -1,5 +1,8 @@
+import { RDSDataClient } from '@aws-sdk/client-rds-data';
 import serverless from 'serverless-http';
 import { createApp } from '../app.ts';
+import { createDataApi, readDataApiConfig } from '../db/dataApi.ts';
+import { findActiveBusinessRows } from '../repositories/businessRepository.ts';
 import { listActiveBusinesses, type FindActiveBusinessRows } from '../services/businessService.ts';
 
 export interface HandlerDependencies {
@@ -15,3 +18,17 @@ export function createHandler({ findRows, logError }: HandlerDependencies) {
   });
   return serverless(app);
 }
+
+/**
+ * Reads the configuration and creates the Data API client on every request, so no state is kept
+ * between invocations (AGENTS.md) and configuration errors reach the error handler as `internal_error`.
+ */
+async function findRowsThroughDataApi() {
+  const dataApi = createDataApi(readDataApiConfig(process.env), new RDSDataClient({}));
+  return findActiveBusinessRows(dataApi.execute);
+}
+
+export const handler = createHandler({
+  findRows: findRowsThroughDataApi,
+  logError: (error) => console.error('GET /businesses failed', error),
+});

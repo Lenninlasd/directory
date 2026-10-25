@@ -72,10 +72,10 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first (handler called with an API Gateway HTTP API event, fake repository):** `200` with the exact contract of plan section 3; `200` with `{"businesses": []}`; when the repository throws, `500` with body exactly `{"error":"internal_error"}` and no stack or database text; the error is logged without request headers or client IP; the response `Content-Type` is JSON.
   - **Done when:** tests pass. The handler contains no business rules.
 
-- [ ] **001-T8 Data API wrapper**
+- [x] **001-T8 Data API wrapper**
   - **Covers:** plan D-3; spec 002 I-4, I-5; plan 002 P-12
-  - **Do:** `backend/src/db/dataApi.ts`: reads cluster ARN, secret ARN, database, and retry budget from environment variables; exposes `execute(sql, parameters)` and transaction helpers for `runMigrations`; passes named parameters; retries `DatabaseResumingException` with a short backoff within the retry budget; never retries other errors. The Lambda handler wires it into the repository.
-  - **Tests first (mocked `RDSDataClient`):** the configured ARNs and database are sent; parameters are passed as named parameters; one `DatabaseResumingException` followed by success returns the result; retries stop when the budget is spent; other errors are not retried; a missing environment variable fails with a clear message (in English, logged, not returned to the client).
+  - **Do:** `backend/src/db/dataApi.ts`: reads cluster ARN, secret ARN, and database from environment variables; exposes `execute(sql, parameters)` and `inTransaction` for `runMigrations`; passes named parameters; does not retry (plan 002 P-12, simplified 2026-10-24). The Lambda handler wires it into the repository.
+  - **Tests first (mocked `RDSDataClient`):** the configured ARNs and database are sent; parameters are passed as named parameters; JSON records are parsed; errors, including `DatabaseResumingException`, are not retried; transactions commit, or roll back and rethrow; a missing environment variable fails with a clear message (in English, logged, not returned to the client).
   - **Done when:** tests pass. No credentials in code or tests.
 
 ## M3: Frontend

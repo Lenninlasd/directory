@@ -140,6 +140,24 @@ describe('GET /businesses handler', () => {
     expect(logged).not.toContain('test-agent');
   });
 
+  it('returns internal_error and logs a clear message when the Data API configuration is missing (001-T8)', async () => {
+    vi.stubEnv('DATA_API_CLUSTER_ARN', '');
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { handler } = await import('../../src/handlers/lambda.ts');
+
+      const response = await invoke(handler, httpApiEvent('/businesses'));
+
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toBe('{"error":"internal_error"}');
+      const loggedErrors = consoleError.mock.calls.flat().filter((argument) => argument instanceof Error);
+      expect(loggedErrors.map((error) => error.message)).toContain('Missing environment variable DATA_API_CLUSTER_ARN');
+    } finally {
+      consoleError.mockRestore();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('does not call the repository for other requests', async () => {
     const findRows = vi.fn(async () => []);
     const handler = createHandler({ findRows, logError: () => {} });
