@@ -20,7 +20,7 @@ Work happens on one branch and pull request per milestone (plan P-14). Every pul
 
 ## M1: Continuous integration
 
-- [ ] **002-T0 CI workflow**
+- [x] **002-T0 CI workflow**
   - **Covers:** AC-8.1, AC-8.2, plan P-13, constitution principle 4
   - **When:** right after 001-T1, so the first pull request already runs CI.
   - **Do:** `.github/workflows/ci.yml` on pull requests to `main`: Node.js 24 and pnpm, `pnpm install --frozen-lockfile`, `pnpm -r lint`, `pnpm -r typecheck`, `pnpm -r test`. No AWS credentials, no deploy. Branch protection on `main` requiring this check (one-time manual step, documented in `infra/README.md`, AC-1.3).
@@ -33,7 +33,7 @@ Prerequisite: M1 of tasks 001 is done.
 
 - [ ] **002-T1 Template skeleton and deploy configuration**
   - **Covers:** AC-1.1, AC-1.2, AC-1.3, plan R-6, spec section 9
-  - **Do:** `infra/template.yaml` (SAM transform; parameters `Environment` (`dev`/`prod`), database name, Data API retry budget; tags `Project` and `Environment`), `infra/samconfig.toml` (`dev` and `prod`, `us-east-1`), `infra/README.md` (SAM CLI and AWS CLI versions, credentials setup, the AWS permissions a developer needs).
+  - **Do:** `infra/template.yaml` (SAM transform; parameters `Environment` (`dev`/`prod`), database name; tags `Project` and `Environment`), `infra/samconfig.toml` (`dev` and `prod`, `us-east-1`), `infra/README.md` (SAM CLI and AWS CLI versions, credentials setup, the AWS permissions a developer needs).
   - **Checks first:** `sam validate --lint` passes; `samconfig.toml` has no account ID or secret.
   - **Done when:** `sam deploy --config-env dev` creates an empty stack.
 
@@ -52,7 +52,7 @@ Prerequisite: M1 of tasks 001 is done.
 
 - [ ] **002-T4 API Lambda, HTTP API, CORS, and logs**
   - **Covers:** AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, NFR-5, plan P-3, P-4, P-12, R-2
-  - **Do:** `api` function (`nodejs24.x`, `arm64`, 256 MB, timeout 29 s in `dev` and 10 s in `prod`, no VPC, environment variables for cluster ARN, secret ARN, database, retry budget), built with the SAM esbuild builder. `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin of the same environment (until 002-T7 exists, no browser origin is allowed; test with `curl`). Log group with 30-day retention. Role: logs, `rds-data:ExecuteStatement` on the cluster ARN, `secretsmanager:GetSecretValue` on the secret ARN, nothing else.
+  - **Do:** `api` function (`nodejs24.x`, `arm64`, 256 MB, timeout 10 s, no VPC, environment variables `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `DATABASE_NAME`), built with the SAM esbuild builder. `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin of the same environment (until 002-T7 exists, no browser origin is allowed; test with `curl`). Log group with 30-day retention. Role: logs, `rds-data:ExecuteStatement` on the cluster ARN, `secretsmanager:GetSecretValue` on the secret ARN, nothing else.
   - **Checks first:** `curl -i https://<api>/businesses` returns `200` and `{"businesses":[]}`; a request with a non-allowed `Origin` gets no `Access-Control-Allow-Origin`; log retention is 30 days; the role policy has exactly the three permissions.
   - **Done when:** checks pass in `dev`.
 

@@ -30,52 +30,52 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 
 ## M1: Backend
 
-- [ ] **001-T1 Workspace and backend scaffolding**
+- [x] **001-T1 Workspace and backend scaffolding**
   - **Covers:** enabler for all ACs (constitution 1, 4, 6; AGENTS.md commands)
   - **Do:** root `package.json`, `pnpm-workspace.yaml`, shared strict `tsconfig.base.json`, ESLint flat config with `typescript-eslint`, Vitest. `backend/package.json` with `lint`, `typecheck`, `test`, `build` scripts. Pin the Node.js version to 24 (matches Lambda `nodejs24.x`, plan 002 P-3). Install only packages from spec section 8a (and `esbuild` from spec 002 section 9), and check each package name and current setup against its official documentation first.
   - **Tests first:** one placeholder test in `backend/` that fails until Vitest is wired, then passes.
   - **Done when:** `pnpm install`, `pnpm -r lint`, `pnpm -r typecheck`, `pnpm -r test` succeed. `pnpm-lock.yaml` is committed. No `package-lock.json` or `yarn.lock`.
 
-- [ ] **001-T2 Domain types**
+- [x] **001-T2 Domain types**
   - **Covers:** AC-2.1, AC-2.4 (shape of the data)
   - **Do:** `backend/src/domain/business.ts` with `BusinessRow` (database shape, plan section 2) and `Business` (API shape, plan section 3). No imports.
   - **Tests first:** none (types only). Type checking in later tasks covers them.
   - **Done when:** `pnpm -r typecheck` passes.
 
-- [ ] **001-T3 WhatsApp number rule**
+- [x] **001-T3 WhatsApp number rule**
   - **Covers:** AC-2.5, AC-2.2, AC-2.3, EC-5
   - **Do:** `backend/src/domain/whatsappNumber.ts`, `normalizeWhatsappNumber(raw: string | null): string | null` (plan section 4, business rules).
   - **Tests first:** valid number with country code; spaces, dashes, parentheses, and a leading `+` removed; exactly 8 and exactly 15 digits valid; 7 and 16 digits invalid; leading `0` invalid; letters invalid; empty string invalid; `null` returns `null`.
   - **Done when:** all cases pass. The module has no imports.
 
-- [ ] **001-T4 Business service: map and sort**
+- [x] **001-T4 Business service: map and sort**
   - **Covers:** AC-5.1, AC-5.2, AC-2.3, AC-2.4, EC-1, EC-6
   - **Do:** `backend/src/services/businessService.ts`, `listActiveBusinesses(findRows)`. Normalizes numbers (001-T3), sorts by `createdAt` desc, then name with `Intl.Collator("es")`, then id (plan section 4), maps to `Business`.
   - **Tests first (fake `findRows`):** newest first; equal times ordered by name with accents and mixed case (for example "Árbol", "abeja", "Zapatería"); equal time and name ordered by id; empty list returns `[]`; invalid number becomes `null`; output objects have exactly the six API fields.
   - **Done when:** tests pass. The module imports only from `domain/`.
 
-- [ ] **001-T5 Business repository**
+- [x] **001-T5 Business repository**
   - **Covers:** AC-1.2 (query level); plan R-2
   - **Do:** `backend/src/repositories/businessRepository.ts`, `findActiveBusinessRows(execute)` with one constant SQL statement that selects the columns of plan section 2 and filters `is_active = true`. Check the Data API documentation for how `UUID`, `TIMESTAMPTZ`, `BOOLEAN`, and `NULL` values are returned, and convert them explicitly to `BusinessRow` (for example `created_at` to a `Date`).
   - **Tests first (fake `execute` that records the SQL and returns a sample Data API response):** the SQL contains `is_active = true`; selects exactly the needed columns; the SQL is a constant (no concatenation or interpolation); records are converted to `BusinessRow` with correct types, including a `NULL` WhatsApp number.
   - **Done when:** tests pass.
 
-- [ ] **001-T6 Migration runner and migration 001**
+- [x] **001-T6 Migration runner and migration 001**
   - **Covers:** spec section 9 completion criterion 1 for data; plan D-7; constitution 5; spec 002 EC-4
   - **Do:** `backend/src/migrations/runMigrations.ts`: reads the ordered migration files, creates `schema_migrations` if missing, skips applied files, and runs each file (exactly one statement) plus its `schema_migrations` record in one Data API transaction; stops on the first failure (plan 002, P-11). Migration `backend/migrations/001_create_businesses.sql` (plan section 2; `gen_random_uuid()` confirmed in plan 002 V-3). The command line that calls it is 002-T3.
   - **Tests first (fake wrapper):** files applied in name order; already-applied files skipped; a failing file is rolled back, not recorded, and later files do not run; a second run is a no-op; a file with more than one statement is rejected before anything runs.
   - **Done when:** tests pass. The SQL file holds only the `CREATE TABLE` statement.
 
-- [ ] **001-T7 Express app and Lambda handler (endpoint)**
+- [x] **001-T7 Express app and Lambda handler (endpoint)**
   - **Covers:** AC-1.1, AC-6.4, AC-7.1 (API side), FR-1, FR-7; plan section 3, D-8
   - **Do:** `backend/src/app.ts` `createApp(deps)` with `GET /businesses` and an error middleware. `backend/src/handlers/lambda.ts` adapts the app with `serverless-http` and wires real dependencies. Logs never include request headers or client IP addresses.
   - **Tests first (handler called with an API Gateway HTTP API event, fake repository):** `200` with the exact contract of plan section 3; `200` with `{"businesses": []}`; when the repository throws, `500` with body exactly `{"error":"internal_error"}` and no stack or database text; the error is logged without request headers or client IP; the response `Content-Type` is JSON.
   - **Done when:** tests pass. The handler contains no business rules.
 
-- [ ] **001-T8 Data API wrapper**
+- [x] **001-T8 Data API wrapper**
   - **Covers:** plan D-3; spec 002 I-4, I-5; plan 002 P-12
-  - **Do:** `backend/src/db/dataApi.ts`: reads cluster ARN, secret ARN, database, and retry budget from environment variables; exposes `execute(sql, parameters)` and transaction helpers for `runMigrations`; passes named parameters; retries `DatabaseResumingException` with a short backoff within the retry budget; never retries other errors. The Lambda handler wires it into the repository.
-  - **Tests first (mocked `RDSDataClient`):** the configured ARNs and database are sent; parameters are passed as named parameters; one `DatabaseResumingException` followed by success returns the result; retries stop when the budget is spent; other errors are not retried; a missing environment variable fails with a clear message (in English, logged, not returned to the client).
+  - **Do:** `backend/src/db/dataApi.ts`: reads cluster ARN, secret ARN, and database from environment variables; exposes `execute(sql, parameters)` and `inTransaction` for `runMigrations`; passes named parameters; does not retry (plan 002 P-12, simplified 2026-10-24). The Lambda handler wires it into the repository.
+  - **Tests first (mocked `RDSDataClient`):** the configured ARNs and database are sent; parameters are passed as named parameters; JSON records are parsed; errors, including `DatabaseResumingException`, are not retried; transactions commit, or roll back and rethrow; a missing environment variable fails with a clear message (in English, logged, not returned to the client).
   - **Done when:** tests pass. No credentials in code or tests.
 
 ## M3: Frontend

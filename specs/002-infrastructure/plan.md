@@ -31,7 +31,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 | V-3 | `gen_random_uuid()` is part of PostgreSQL core since version 13. | The `businesses` migration can use it. |
 | V-4 | The RDS Data API supports Aurora PostgreSQL Serverless v2 from version 17.4 in `us-east-1`. It runs queries on the writer instance only, has a 1 MiB response limit, and is not available on T instance classes. | One `db.serverless` writer is enough. A few hundred businesses are far below 1 MiB. |
 | V-5 | The HTTP endpoint is disabled by default and is enabled per cluster (`EnableHttpEndpoint`). `ExecuteStatement` takes the cluster ARN, a secret ARN, the SQL, and named parameters. Calls without a transaction commit automatically. `BeginTransaction`, `CommitTransaction`, and `RollbackTransaction` exist for explicit transactions. | Parameterized queries (AGENTS.md) and one transaction per migration file are both possible. |
-| V-6 | When the instance is paused, a Data API call fails with `DatabaseResumingException` and resumes the instance; the caller should wait a few seconds and retry. Resume typically takes about 15 seconds, and 30 seconds or more after 24 hours paused. | The Data API wrapper retries on this error (P-12). |
+| V-6 | When the instance is paused, a Data API call fails with `DatabaseResumingException` and resumes the instance; the caller should wait a few seconds and retry. Resume typically takes about 15 seconds, and 30 seconds or more after 24 hours paused. | No retry (P-12): in `dev` the first request after a pause fails and a later one succeeds. `prod` never pauses. |
 | V-7 | Access is authorized with IAM: `rds-data:*` actions on the cluster ARN plus `secretsmanager:GetSecretValue` on the database secret. Aurora can create and rotate the master user secret (`ManageMasterUserPassword`). | No database users to create, no bootstrap step. |
 | V-8 | Lambda runtime `nodejs24.x` is available until 30 April 2028. | Use `nodejs24.x` (P-3). |
 
@@ -41,7 +41,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 |---|---|---|
 | P-1 | Aurora Serverless v2 capacity: `dev` 0 to 1 ACU (auto-pause after 3600 s idle); `prod` 0.5 to 2 ACU (never pauses). | `dev` costs almost nothing when idle; `prod` visitors never wait for a resume (NFR-1). |
 | P-2 | Aurora PostgreSQL 17 (latest 17.x minor in `us-east-1` at deploy time, at least 17.4 for the Data API), one `db.serverless` writer, no readers | Long support; the Data API uses the writer only. |
-| P-3 | Lambda `nodejs24.x`, `arm64`, 256 MB, timeout 29 s in `dev` (covers a resume) and 10 s in `prod`, **not in a VPC** | No VPC networking needed with the Data API. |
+| P-3 | Lambda `nodejs24.x`, `arm64`, 256 MB, timeout 10 s in both environments, **not in a VPC** | No VPC networking needed with the Data API. |
 | P-4 | API Gateway HTTP API (not REST API) | Cheaper and simpler, native CORS, one route. |
 | P-5 | Network for the database only: a VPC with two private subnets in two Availability Zones (required by the DB subnet group) and a database security group with **no inbound rules**. No NAT, no internet gateway, no VPC endpoints. | The database is unreachable over the network; only the Data API reaches it (AC-3.2). |
 | P-6 | One database credential: the Aurora-managed master user secret, used only through the Data API. No `app_user` or `migrator` roles. | No bootstrap problem. Trade-off in R-2. |
@@ -50,7 +50,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 | P-9 | Region `us-east-1`, single AWS account; names carry the environment (for example `alameda-dev-api`) and every resource is tagged `Environment` and `Project` | Spec I-6, Q-7 |
 | P-10 | Migrations and seed run from the developer's machine with `node backend/scripts/migrate.ts <env> [--seed]`, through the Data API, using the developer's AWS credentials. Node.js 24 runs TypeScript files directly by stripping types, so no extra tool is needed (to confirm in 001-T6). | No migration Lambda, no bundled `.sql` files. |
 | P-11 | Migration files hold exactly one SQL statement each. The runner runs each file in its own Data API transaction and records it in `schema_migrations` in the same transaction. | Avoids depending on multi-statement support in the Data API, and keeps every file atomic. |
-| P-12 | Data API calls go through one small wrapper that passes named parameters and retries `DatabaseResumingException` with a short backoff, up to about 25 s in `dev` and 5 s in `prod` | V-6; must fit inside the Lambda timeout (P-3). |
+| P-12 | Data API calls go through one small wrapper that passes named parameters and supports transactions. It does **not** retry: a `DatabaseResumingException` fails the request (changed 2026-10-24 by the owner). | Simpler code. Only `dev` pauses (P-1); its first request after a pause shows the error screen, and "Reintentar" or re-running the migration script works once the database is awake. |
 | P-13 | CI: `.github/workflows/ci.yml` on pull requests to `main`: pnpm install with the frozen lockfile, lint, typecheck, test. No AWS credentials, no deploy. | Spec FR-8, constitution 4 |
 | P-14 | Delivery: one branch and one pull request per milestone, one commit per task | Owner decision 2026-10-24 |
 
@@ -74,7 +74,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 |---|---|
 | Network | VPC, two private subnets (two AZs), `db-sg` with no inbound rules |
 | Database | `AWS::RDS::DBSubnetGroup`; `AWS::RDS::DBCluster` (aurora-postgresql 17, encrypted, `EnableHttpEndpoint: true`, `ManageMasterUserPassword: true`, Serverless v2 scaling per P-1, backup retention 7 days in `prod` and 1 day in `dev`, deletion protection and `Retain` policy in `prod`); one `AWS::RDS::DBInstance` (`db.serverless`, not publicly accessible) |
-| Backend | `AWS::Serverless::Function` `api` (no VPC; environment variables: cluster ARN, secret ARN, database name, retry budget), `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin, log group with 30-day retention |
+| Backend | `AWS::Serverless::Function` `api` (no VPC; environment variables: cluster ARN, secret ARN, database name), `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin, log group with 30-day retention |
 | IAM | `api` role: logs, `rds-data:ExecuteStatement` on the cluster ARN only, `secretsmanager:GetSecretValue` on the master secret only |
 | Frontend | Private S3 bucket (block public access, encrypted), CloudFront with Origin Access Control, HTTPS redirect, cache behavior per P-7 |
 | Outputs | API URL, CloudFront domain, bucket name, distribution id, cluster ARN, secret ARN (an ARN is not a secret) |
@@ -144,7 +144,7 @@ Checks are written first and recorded in `infra/README.md`. Failure cases (EC-1,
 |---|---|---|
 | R-1 | Data API result types differ from a native driver (for example how `TIMESTAMPTZ` and `UUID` come back) | 001-T5 checks the documented formats, and the repository converts explicitly; covered by unit tests with sample responses. |
 | R-2 | The API role uses the master credential through the Data API, so a bug could in principle write data. There is no read-only database user. | The repository runs one constant `SELECT` with no user input, and the IAM policy allows only `ExecuteStatement` (no transactions). A read-only user can be added later through a spec change. |
-| R-3 | `dev` resume takes 15 to 30 s | Retry wrapper (P-12) and 29 s timeout in `dev`; `prod` never pauses. |
+| R-3 | `dev` resume takes 15 to 30 s, and the first request after a pause fails | Accepted for `dev` (P-12). `prod` never pauses. |
 | R-4 | Node.js type stripping may not support every TypeScript syntax used in `migrate.ts` | Keep the script to erasable syntax; confirm in 001-T6. Fallback: run it after `tsc` compilation. |
 | R-5 | Accidental deletion of the `prod` cluster | Deletion protection, `Retain` policy, final snapshot |
 | R-6 | SAM CLI and AWS CLI versions affect the template | Record versions in `infra/README.md` |
