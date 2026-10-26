@@ -1,0 +1,22 @@
+version = 0.1
+
+# Run SAM commands from the infra/ directory. Choose the environment with --config-env dev|prod.
+# No account IDs or secrets belong in this file (spec 002 section 3).
+
+[dev.deploy.parameters]
+stack_name = "alameda-dev"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+resolve_s3 = true
+confirm_changeset = true
+parameter_overrides = "Environment=\"dev\""
+tags = "Project=\"alameda\" Environment=\"dev\""
+
+[prod.deploy.parameters]
+stack_name = "alameda-prod"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+resolve_s3 = true
+confirm_changeset = true
+parameter_overrides = "Environment=\"prod\""
+tags = "Project=\"alameda\" Environment=\"prod\""

@@ -31,7 +31,7 @@ Work happens on one branch and pull request per milestone (plan P-14). Every pul
 
 Prerequisite: M1 of tasks 001 is done.
 
-- [ ] **002-T1 Template skeleton and deploy configuration**
+- [x] **002-T1 Template skeleton and deploy configuration**
   - **Covers:** AC-1.1, AC-1.2, AC-1.3, plan R-6, spec section 9
   - **Do:** `infra/template.yaml` (SAM transform; parameters `Environment` (`dev`/`prod`), database name; tags `Project` and `Environment`), `infra/samconfig.toml` (`dev` and `prod`, `us-east-1`), `infra/README.md` (SAM CLI and AWS CLI versions, credentials setup, the AWS permissions a developer needs).
   - **Checks first:** `sam validate --lint` passes; `samconfig.toml` has no account ID or secret.

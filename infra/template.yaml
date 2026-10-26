@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Alameda directory (spec 002). One stack per environment.
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - prod
+    Description: Environment name. The same template is deployed to both (spec 002 AC-1.2).
+
+Resources:
+  # CloudFormation requires at least one resource. This free placeholder is removed in 002-T2,
+  # when the first real resource is added.
+  Placeholder:
+    Type: AWS::CloudFormation::WaitConditionHandle
+
+Outputs:
+  Environment:
+    Description: Environment this stack belongs to.
+    Value: !Ref Environment
