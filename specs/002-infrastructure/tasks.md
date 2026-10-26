@@ -43,7 +43,7 @@ Prerequisite: M1 of tasks 001 is done.
   - **Checks first:** `describe-db-clusters` shows the engine version, `StorageEncrypted: true`, the Data API enabled, the scaling range and backup retention per environment; the instance is not publicly accessible; `db-sg` has no inbound rules; `aws rds-data execute-statement --sql "select 1"` with your credentials succeeds.
   - **Done when:** checks pass in `dev`.
 
-- [ ] **002-T3 Migration script**
+- [x] **002-T3 Migration script**
   - **Covers:** AC-5.1, AC-5.2, AC-5.2a, EC-4, plan P-10, P-11, R-4
   - **Do:** `backend/scripts/migrate.ts <env> [--seed]`: reads the cluster ARN and secret ARN from the stack outputs, runs `runMigrations` (001-T6) through `dataApi.ts` (001-T8), prints the applied files. `--seed` is refused unless the environment is `dev`. Confirm that Node.js 24 runs it directly (type stripping); otherwise compile with `tsc` first and document that.
   - **Tests first (unit, fake wrapper):** `--seed` refused for `prod`; unknown environment rejected; output lists applied files; a failing migration exits with a non-zero code.
