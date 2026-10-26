@@ -37,7 +37,7 @@ Prerequisite: M1 of tasks 001 is done.
   - **Checks first:** `sam validate --lint` passes; `samconfig.toml` has no account ID or secret.
   - **Done when:** `sam deploy --config-env dev` creates an empty stack.
 
-- [ ] **002-T2 Aurora cluster with the Data API**
+- [x] **002-T2 Aurora cluster with the Data API**
   - **Covers:** AC-3.1, AC-3.2, AC-3.3, AC-3.4, AC-3.5, NFR-3, plan P-1, P-2, P-5, P-6, R-5
   - **Do:** confirm the latest Aurora PostgreSQL 17.x minor in `us-east-1` (at least 17.4) with `aws rds describe-db-engine-versions` and record it in the plan. VPC with two private subnets, `db-sg` with no inbound rules, DB subnet group, cluster (encrypted, `EnableHttpEndpoint: true`, `ManageMasterUserPassword: true`, scaling and backups per environment, deletion protection and `Retain` in `prod`), one `db.serverless` instance not publicly accessible. Outputs: cluster ARN, secret ARN.
   - **Checks first:** `describe-db-clusters` shows the engine version, `StorageEncrypted: true`, the Data API enabled, the scaling range and backup retention per environment; the instance is not publicly accessible; `db-sg` has no inbound rules; `aws rds-data execute-statement --sql "select 1"` with your credentials succeeds.

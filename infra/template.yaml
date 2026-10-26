@@ -1,5 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
+# LanguageExtensions allows Fn::If in DeletionPolicy and UpdateReplacePolicy (Retain only in prod, plan R-5).
+# It must come before the SAM transform.
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
 Description: Alameda directory (spec 002). One stack per environment.
 
 Parameters:
@@ -9,14 +13,120 @@ Parameters:
       - dev
       - prod
     Description: Environment name. The same template is deployed to both (spec 002 AC-1.2).
+  DatabaseName:
+    Type: String
+    Default: alameda
+    AllowedPattern: '[a-z][a-z0-9_]*'
+    Description: Name of the PostgreSQL database created in the cluster.
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+# Per-environment database settings (plan P-1, spec AC-3.4).
+Mappings:
+  DatabaseSettings:
+    dev:
+      MinCapacity: 0
+      MaxCapacity: 1
+      BackupRetentionDays: 1
+    prod:
+      MinCapacity: 0.5
+      MaxCapacity: 2
+      BackupRetentionDays: 7
 
 Resources:
-  # CloudFormation requires at least one resource. This free placeholder is removed in 002-T2,
-  # when the first real resource is added.
-  Placeholder:
-    Type: AWS::CloudFormation::WaitConditionHandle
+  # Network for the database only (plan P-5): two private subnets, no internet gateway, no NAT.
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: !Sub alameda-${Environment}-vpc
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub alameda-${Environment}-private-a
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub alameda-${Environment}-private-b
+
+  # No inbound rules: only the Data API reaches the database (spec AC-3.2).
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Aurora cluster. No inbound rules, access only through the RDS Data API.
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub alameda-${Environment}-db-sg
+
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets for the Aurora cluster.
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+
+  DatabaseCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: !If [IsProd, Retain, Delete]
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    Properties:
+      DBClusterIdentifier: !Sub alameda-${Environment}-db
+      Engine: aurora-postgresql
+      # Latest 17.x in us-east-1 on 2026-10-26; the Data API needs 17.4 or newer (plan P-2, V-4).
+      EngineVersion: '17.11'
+      DatabaseName: !Ref DatabaseName
+      MasterUsername: alameda_admin
+      # Aurora creates and rotates the password in Secrets Manager (spec I-5, plan P-6).
+      ManageMasterUserPassword: true
+      EnableHttpEndpoint: true
+      StorageEncrypted: true
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref DatabaseSecurityGroup
+      BackupRetentionPeriod: !FindInMap [DatabaseSettings, !Ref Environment, BackupRetentionDays]
+      DeletionProtection: !If [IsProd, true, false]
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: !FindInMap [DatabaseSettings, !Ref Environment, MinCapacity]
+        MaxCapacity: !FindInMap [DatabaseSettings, !Ref Environment, MaxCapacity]
+        # Auto-pause only applies when MinCapacity is 0, so only in dev.
+        SecondsUntilAutoPause: !If [IsProd, !Ref AWS::NoValue, 3600]
+
+  # One writer; the Data API runs queries on the writer only (plan V-4).
+  DatabaseWriter:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: !If [IsProd, Retain, Delete]
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    Properties:
+      DBInstanceIdentifier: !Sub alameda-${Environment}-db-writer
+      DBClusterIdentifier: !Ref DatabaseCluster
+      DBInstanceClass: db.serverless
+      Engine: aurora-postgresql
+      PubliclyAccessible: false
 
 Outputs:
   Environment:
     Description: Environment this stack belongs to.
     Value: !Ref Environment
+  ClusterArn:
+    Description: Aurora cluster ARN, used by the Data API.
+    Value: !GetAtt DatabaseCluster.DBClusterArn
+  SecretArn:
+    Description: ARN of the Aurora-managed master user secret, used by the Data API.
+    Value: !GetAtt DatabaseCluster.MasterUserSecret.SecretArn
