@@ -2,6 +2,72 @@
 
 Deployment guide for spec 002. Sections are added as the tasks in `specs/002-infrastructure/tasks.md` are completed.
 
+## Architecture
+
+Solid boxes exist in `dev` today. Boxes marked `(planned)` come with tasks 002-T4 to T7.
+
+```
+                          +-----------------------+
+                          |  Browser (Spanish UI) |
+                          +-----------+-----------+
+                                      | HTTPS
+              +-----------------------+----------------------+
+              | static files                                 | GET /businesses (CORS)
+              v                                              v
+   +----------------------+                      +--------------------------+
+   | CloudFront (OAC)     |                      | API Gateway HTTP API     |
+   | (planned, T7)        |                      | (planned, T4)            |
+   +----------+-----------+                      +------------+-------------+
+              v                                               v
+   +----------------------+                      +--------------------------+
+   | S3 bucket (private)  |                      | Lambda `api` (no VPC)    |
+   | React + Tailwind     |                      | nodejs24.x, arm64        |
+   | (planned, T7)        |                      | (planned, T4)            |
+   +----------------------+                      +------------+-------------+
+                                                              | AWS SDK, IAM role:
+                                                              | rds-data:ExecuteStatement
+                                                              | secretsmanager:GetSecretValue
+                                                              v
+ +------------------------ AWS (us-east-1), one stack per environment --------------------+
+ |                                                                                        |
+ |            +-----------------------------+        +--------------------------+         |
+ |            | RDS Data API (HTTPS)        |------->| Secrets Manager          |         |
+ |            | EnableHttpEndpoint: true    | creds  | Aurora-managed password  |         |
+ |            +--------------+--------------+        +--------------------------+         |
+ |                           | AWS internal path                                          |
+ |  +------------------------+------------ VPC 10.0.0.0/16 -----------------------------+ |
+ |  |  no internet gateway, no NAT          |                                           | |
+ |  |   +-----------------------------------v---------------------------------------+   | |
+ |  |   | Private subnet A (10.0.1.0/24, AZ 1)  Private subnet B (10.0.2.0/24, AZ 2)|   | |
+ |  |   |   +---------------------------------------------------------------+       |   | |
+ |  |   |   | Aurora PostgreSQL 17.11 Serverless v2 (1 writer, encrypted)   |       |   | |
+ |  |   |   | db-sg: no inbound rules                                       |       |   | |
+ |  |   |   +---------------------------------------------------------------+       |   | |
+ |  |   +---------------------------------------------------------------------------+   | |
+ |  +-----------------------------------------------------------------------------------+ |
+ +----------------------------------------------------------------------------------------+
+                                          ^
+                                          | same Data API, your own AWS credentials
+                         +----------------+-----------------+
+                         | Developer machine                |
+                         | node backend/scripts/migrate.ts  |
+                         +----------------------------------+
+```
+
+Backend layers, from the request to the database:
+
+```
+API Gateway event
+  -> handlers/lambda.ts                    serverless-http adapter, builds the Data API client per request
+  -> app.ts                                Express: GET /businesses
+  -> services/businessService.ts           business rules, framework-free
+  -> repositories/businessRepository.ts    parameterized SQL
+  -> db/dataApi.ts                         ExecuteStatement through @aws-sdk/client-rds-data
+  -> Aurora PostgreSQL
+```
+
+Why two subnets: an RDS DB subnet group must span at least two Availability Zones, even for a single writer (plan P-5). The second subnet is what allows Aurora to place or fail over an instance in another zone later.
+
 ## Prerequisites
 
 These tools run on the developer machine. They are not npm packages and are not in the lockfile (spec 002 section 9). Record the versions you use here.
