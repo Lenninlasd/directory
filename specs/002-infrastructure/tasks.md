@@ -50,9 +50,9 @@ Prerequisite: M1 of tasks 001 is done.
   - **Checks first:** `node backend/scripts/migrate.ts dev` applies `001_create_businesses.sql`; a second run applies nothing; `schema_migrations` lists the file.
   - **Done when:** tests and checks pass.
 
-- [ ] **002-T4 API Lambda, HTTP API, CORS, and logs**
+- [x] **002-T4 API Lambda, HTTP API, CORS, and logs**
   - **Covers:** AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, NFR-5, plan P-3, P-4, P-12, R-2
-  - **Do:** `api` function (`nodejs24.x`, `arm64`, 256 MB, timeout 10 s, no VPC, environment variables `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `DATABASE_NAME`), built with the SAM esbuild builder. `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin of the same environment (until 002-T7 exists, no browser origin is allowed; test with `curl`). Log group with 30-day retention. Role: logs, `rds-data:ExecuteStatement` on the cluster ARN, `secretsmanager:GetSecretValue` on the secret ARN, nothing else.
+  - **Do:** `api` function (`nodejs24.x`, `arm64`, 256 MB, timeout 10 s, no VPC, environment variables `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `DATABASE_NAME`), built by the SAM makefile builder (`backend/Makefile` runs esbuild with `pnpm exec`; changed 2026-10-27 because the SAM esbuild builder runs `npm install`). `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin of the same environment (until 002-T7 exists, no browser origin is allowed; test with `curl`). Log group with 30-day retention. Role: logs, `rds-data:ExecuteStatement` on the cluster ARN, `secretsmanager:GetSecretValue` on the secret ARN, nothing else.
   - **Checks first:** `curl -i https://<api>/businesses` returns `200` and `{"businesses":[]}`; a request with a non-allowed `Origin` gets no `Access-Control-Allow-Origin`; log retention is 30 days; the role policy has exactly the three permissions.
   - **Done when:** checks pass in `dev`.
 

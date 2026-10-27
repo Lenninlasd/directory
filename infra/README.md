@@ -4,7 +4,7 @@ Deployment guide for spec 002. Sections are added as the tasks in `specs/002-inf
 
 ## Architecture
 
-Solid boxes exist in `dev` today. Boxes marked `(planned)` come with tasks 002-T4 to T7.
+Solid boxes exist in `dev` today. Boxes marked `(planned)` come with task 002-T7.
 
 ```
                           +-----------------------+
@@ -16,13 +16,13 @@ Solid boxes exist in `dev` today. Boxes marked `(planned)` come with tasks 002-T
               v                                              v
    +----------------------+                      +--------------------------+
    | CloudFront (OAC)     |                      | API Gateway HTTP API     |
-   | (planned, T7)        |                      | (planned, T4)            |
+   | (planned, T7)        |                      | GET /businesses          |
    +----------+-----------+                      +------------+-------------+
               v                                               v
    +----------------------+                      +--------------------------+
    | S3 bucket (private)  |                      | Lambda `api` (no VPC)    |
    | React + Tailwind     |                      | nodejs24.x, arm64        |
-   | (planned, T7)        |                      | (planned, T4)            |
+   | (planned, T7)        |                      | 256 MB, timeout 10 s     |
    +----------------------+                      +------------+-------------+
                                                               | AWS SDK, IAM role:
                                                               | rds-data:ExecuteStatement
@@ -88,6 +88,7 @@ Permissions needed so far (extended by later tasks as resources are added):
 - 002-T1: create, update, and delete CloudFormation stacks named `alameda-*`, and use the S3 bucket that SAM creates for deployment artifacts.
 - 002-T2: create, update, and delete the VPC, subnets, and security group (`ec2:*Vpc*`, `ec2:*Subnet*`, `ec2:*SecurityGroup*`, `ec2:Describe*`, `ec2:CreateTags`), the DB subnet group, cluster, and instance (`rds:*` on `alameda-*` resources); the Aurora-managed master secret (`secretsmanager:CreateSecret`, `secretsmanager:TagResource`, `secretsmanager:RotateSecret`, `kms:DescribeKey` on the `aws/secretsmanager` key); and, for the Data API check, `rds-data:ExecuteStatement` on the cluster and `secretsmanager:GetSecretValue` on its secret.
 - 002-T3: `cloudformation:DescribeStacks` on `alameda-*` stacks; `rds-data:ExecuteStatement`, `rds-data:BeginTransaction`, `rds-data:CommitTransaction`, and `rds-data:RollbackTransaction` on the cluster; `secretsmanager:GetSecretValue` on its secret.
+- 002-T4: create, update, and delete the `alameda-*` Lambda function (`lambda:*Function*`, `lambda:*Permission`, `lambda:TagResource`), its role (`iam:CreateRole`, `iam:DeleteRole`, `iam:GetRole`, `iam:PutRolePolicy`, `iam:DeleteRolePolicy`, `iam:GetRolePolicy`, `iam:TagRole`, `iam:PassRole` on `alameda-*` roles), the HTTP API (`apigateway:*` on `/apis*`), and the log group (`logs:CreateLogGroup`, `logs:DeleteLogGroup`, `logs:PutRetentionPolicy`, `logs:TagResource`, `logs:DescribeLogGroups`); for the checks, `lambda:GetFunctionConfiguration`, `iam:ListAttachedRolePolicies`, and `logs:FilterLogEvents`.
 
 ## Commands
 
@@ -171,3 +172,20 @@ SECRET_ARN=$(aws cloudformation describe-stacks --stack-name alameda-dev --query
 | Same command again | Prints `No pending migrations` | Passed (2026-10-26) |
 | `aws rds-data execute-statement --resource-arn "$CLUSTER_ARN" --secret-arn "$SECRET_ARN" --database alameda --sql "select name from schema_migrations"` | Lists `001_create_businesses.sql` | Passed (2026-10-26): `001_create_businesses.sql`; `businesses` exists with 0 rows |
 | Failure cases (unknown environment, failing migration exits non-zero, stack unreadable) | Covered by `backend/test/scripts/migrate.test.ts` | Passed (2026-10-26): 12 tests, full suite 67 passed |
+
+### API Lambda, HTTP API, CORS, and logs (002-T4, spec AC-2.1 to AC-2.5, NFR-5)
+
+Set this variable first (stack output, no value is written to the repository):
+
+```
+API_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+```
+
+| Check | Expected (`dev`) | Result |
+|---|---|---|
+| `curl -i "$API_URL/businesses"` | `200`, `content-type: application/json`, body `{"businesses":[]}` (no seed yet). If the cluster is paused, the first request returns `500 {"error":"internal_error"}`; retry after about 30 s (plan P-12). | Passed (2026-10-27): first requests returned `500 {"error":"internal_error"}` with `DatabaseResumingException` in the logs (cluster paused, as documented); after the resume `200`, `application/json`, `{"businesses":[]}` |
+| `curl -i -H "Origin: https://example.com" "$API_URL/businesses"` | No `access-control-allow-origin` header (no browser origin is allowed until 002-T7 adds the CloudFront origin) | Passed (2026-10-27): `200`, no `access-control-*` headers |
+| `aws logs describe-log-groups --log-group-name-prefix /aws/lambda/alameda-dev-api --query "logGroups[].{Name:logGroupName,Retention:retentionInDays}"` | One group `/aws/lambda/alameda-dev-api`, retention `30` | Passed (2026-10-27): one group, retention `30` |
+| `aws lambda get-function-configuration --function-name alameda-dev-api --query "{Runtime:Runtime,Arch:Architectures,Memory:MemorySize,Timeout:Timeout,Vpc:VpcConfig.SubnetIds,Log:LoggingConfig.LogGroup,Env:keys(Environment.Variables)}"` | `nodejs24.x`, `arm64`, 256 MB, 10 s, no VPC subnets, log group `/aws/lambda/alameda-dev-api`, variables `DATABASE_NAME`, `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN` | Passed (2026-10-27): `nodejs24.x`, `arm64`, 256, 10, VPC `null`, log group and the three variables as expected |
+| Role policies: `ROLE=$(aws lambda get-function-configuration --function-name alameda-dev-api --query Role --output text \| cut -d/ -f2)`, then `aws iam list-attached-role-policies --role-name "$ROLE"` and `aws iam get-role-policy --role-name "$ROLE" --policy-name api-access` | No managed policies attached; one inline policy with exactly: `logs:CreateLogStream` and `logs:PutLogEvents` on the function's log group, `rds-data:ExecuteStatement` on the `dev` cluster ARN, `secretsmanager:GetSecretValue` on the `dev` secret ARN | Passed (2026-10-27): no attached policies; only `api-access`, with the three statements scoped to the log group, `alameda-dev-db`, and its `rds!cluster-…` secret |
+| Lambda errors are visible: `aws logs tail /aws/lambda/alameda-dev-api --since 1h` after a request | Request logs appear; a failed request logs `GET /businesses failed` with the error (NFR-5) | Passed (2026-10-27): `ERROR GET /businesses failed DatabaseResumingException: …` visible during the resume |

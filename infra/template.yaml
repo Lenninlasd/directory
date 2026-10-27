@@ -120,6 +120,76 @@ Resources:
       Engine: aurora-postgresql
       PubliclyAccessible: false
 
+  # Backend (plan P-3, P-4). The function name is fixed so the log group name is known in advance.
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/alameda-${Environment}-api
+      RetentionInDays: 30
+
+  # Only the three permissions of spec AC-2.3. No managed policies, so nothing broader is granted.
+  ApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: api-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt ApiLogGroup.Arn
+              - Effect: Allow
+                Action: rds-data:ExecuteStatement
+                Resource: !GetAtt DatabaseCluster.DBClusterArn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !GetAtt DatabaseCluster.MasterUserSecret.SecretArn
+
+  # No CorsConfiguration yet: no browser origin is allowed until 002-T7 adds the CloudFront origin.
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub alameda-${Environment}-api
+      CodeUri: ../backend
+      Handler: lambda.handler
+      Runtime: nodejs24.x
+      Architectures:
+        - arm64
+      MemorySize: 256
+      Timeout: 10
+      Role: !GetAtt ApiRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref ApiLogGroup
+      # No VpcConfig: the function reaches the database only through the Data API (spec AC-2.2).
+      Environment:
+        Variables:
+          DATA_API_CLUSTER_ARN: !GetAtt DatabaseCluster.DBClusterArn
+          DATA_API_SECRET_ARN: !GetAtt DatabaseCluster.MasterUserSecret.SecretArn
+          DATABASE_NAME: !Ref DatabaseName
+      Events:
+        ListBusinesses:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /businesses
+            Method: GET
+    # backend/Makefile bundles with esbuild through pnpm (plan section 7). Needs build_in_source (samconfig.toml).
+    Metadata:
+      BuildMethod: makefile
+
 Outputs:
   Environment:
     Description: Environment this stack belongs to.
@@ -130,3 +200,6 @@ Outputs:
   SecretArn:
     Description: ARN of the Aurora-managed master user secret, used by the Data API.
     Value: !GetAtt DatabaseCluster.MasterUserSecret.SecretArn
+  ApiUrl:
+    Description: Base URL of the HTTP API (VITE_API_BASE_URL for the frontend build).
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}

@@ -1,3 +1,7 @@
 packages:
   - backend
   - frontend
+
+# esbuild's install script only checks its binary, which comes from its platform package. Not needed.
+allowBuilds:
+  esbuild: false

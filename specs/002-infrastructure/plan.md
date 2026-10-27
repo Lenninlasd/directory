@@ -95,7 +95,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 
 - `backend/src/db/dataApi.ts` (plan 001): the Data API wrapper of P-12, used by the repository and by `runMigrations`.
 - `backend/scripts/migrate.ts` (P-10).
-- `esbuild` is a backend dev dependency, needed by the SAM esbuild builder (spec section 9).
+- `esbuild` is a backend dev dependency (spec section 9). `backend/Makefile` runs it with `pnpm exec` for the SAM makefile builder (`BuildMethod: makefile`), so the bundle uses the versions in `pnpm-lock.yaml`. SAM's esbuild builder is not used because it runs `npm install` (changed 2026-10-27, owner decision).
 
 ## 8. Verification
 
