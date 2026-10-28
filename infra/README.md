@@ -210,3 +210,33 @@ API_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "S
 | `node backend/scripts/migrate.ts dev --seed` | Prints `No pending migrations` and `Seeded dev_businesses.sql` | Passed (2026-10-27) |
 | `curl -s "$API_URL/businesses"` | 8 businesses (no Lavandería Burbujas), in this order: Ferretería El Tornillo, Arepas La Mona, cafe del rio, Café del Río, Uñas y Estilo Caro, Tutorías de Matemáticas, Panadería Doña Rosa, Distribuidora…; `whatsappNumber` is `null` for Uñas y Estilo Caro and Tutorías de Matemáticas | Passed (2026-10-27): 8 rows in that order; the two `null` numbers as expected; separators removed (`573001234567`, `573005550101`) |
 | Run the seed again, then the same `curl` | Identical response (the upsert is idempotent) | Passed (2026-10-27): byte-identical responses |
+
+### Security checks (002-T6, spec AC-2.3, AC-3.1, AC-3.2, AC-3.3, NFR-2, completion criterion 4)
+
+The "Least privilege", "Database private", and "Encryption" checks of plan section 8, run against `dev`. `ROLE`, `SG`, `VPC`, and `ENDPOINT` come from the commands in the first column; no values are written to the repository.
+
+#### Least privilege (AC-2.3)
+
+| Check | Expected | Result |
+|---|---|---|
+| `ROLE=$(aws lambda get-function-configuration --function-name alameda-dev-api --query Role --output text \| cut -d/ -f2)`, then `aws iam list-attached-role-policies --role-name "$ROLE"` and `aws iam list-role-policies --role-name "$ROLE"` | No managed policies; one inline policy, `api-access` | Passed (2026-10-28): `[]` attached; `["api-access"]` |
+| `aws iam get-role-policy --role-name "$ROLE" --policy-name api-access` | Exactly three statements: `logs:CreateLogStream` and `logs:PutLogEvents` on `/aws/lambda/alameda-dev-api`, `rds-data:ExecuteStatement` on the `alameda-dev-db` cluster ARN, `secretsmanager:GetSecretValue` on the stack's `SecretArn`. No `*` actions or resources | Passed (2026-10-28): the three statements, each scoped to this environment's log group, cluster, and secret (they match the stack outputs); no wildcards except the `:*` log stream suffix of the log group ARN |
+| `aws iam get-role --role-name "$ROLE" --query Role.AssumeRolePolicyDocument` | Only `lambda.amazonaws.com` can assume the role | Passed (2026-10-28): `lambda.amazonaws.com`, `sts:AssumeRole` only |
+| `aws lambda get-function-configuration --function-name alameda-dev-api --query "keys(Environment.Variables)"` | Only ARNs, the database name, and `NODE_OPTIONS`; no password or secret value (NFR-2) | Passed (2026-10-28): `DATABASE_NAME`, `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `NODE_OPTIONS` |
+
+#### Database private (AC-3.1, AC-3.2, completion criterion 4)
+
+| Check | Expected | Result |
+|---|---|---|
+| `aws rds describe-db-instances --db-instance-identifier alameda-dev-db-writer --query "DBInstances[0].{Public:PubliclyAccessible,Vpc:DBSubnetGroup.VpcId}"` | Public `false` | Passed (2026-10-28): `false` |
+| `SG=$(aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].VpcSecurityGroups[0].VpcSecurityGroupId" --output text)`, then `aws ec2 describe-security-groups --group-ids "$SG" --query "SecurityGroups[0].IpPermissions"` | `[]` | Passed (2026-10-28): `[]` |
+| With `VPC` from the first check: `aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values=$VPC`, `aws ec2 describe-nat-gateways --filter Name=vpc-id,Values=$VPC`, `aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VPC` | No internet gateway, no NAT gateway; the only route is `10.0.0.0/16 local` | Passed (2026-10-28): no internet gateway, no NAT gateway, one route `10.0.0.0/16 local` |
+| `ENDPOINT=$(aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].Endpoint" --output text)`, then `dig +short "$ENDPOINT"` and `nc -z -G 5 -w 5 "$ENDPOINT" 5432` | The name resolves to a private `10.0.x.x` address; the connection from the internet fails | Passed (2026-10-28): resolves to `10.0.1.x`; TCP 5432 not reachable |
+
+#### Encryption (AC-3.3)
+
+| Check | Expected | Result |
+|---|---|---|
+| `aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].{Encrypted:StorageEncrypted,Kms:KmsKeyId}"` | `true`, with a KMS key | Passed (2026-10-28): `true`, KMS key ARN set (the default `aws/rds` key) |
+| `aws secretsmanager describe-secret --secret-id "$SECRET_ARN" --query "{Kms:KmsKeyId,Rotation:RotationEnabled}"` | Encrypted with KMS, rotation enabled (managed by Aurora). `KmsKeyId` is `null` when the default `aws/secretsmanager` key is used; Secrets Manager always encrypts | Passed (2026-10-28): `KmsKeyId` `null` (default key), rotation `true` |
+| `curl -m 8 http://rds-data.us-east-1.amazonaws.com/Execute` and `curl -m 8 "http://<api host>/businesses"` | Both fail: the Data API and the HTTP API accept HTTPS only | Passed (2026-10-28): Data API over HTTP timed out, over HTTPS answered `403` (unsigned request); HTTP API over HTTP connection refused on port 80, over HTTPS `200` |

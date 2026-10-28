@@ -62,7 +62,7 @@ Prerequisite: M1 of tasks 001 is done.
   - **Checks first:** after `node backend/scripts/migrate.ts dev --seed`, `curl` returns only active rows in the FR-5 order with `null` for the invalid and missing numbers; running the seed twice gives the same result.
   - **Done when:** checks pass in `dev`.
 
-- [ ] **002-T6 Security checks**
+- [x] **002-T6 Security checks**
   - **Covers:** AC-2.3, AC-3.1, AC-3.2, AC-3.3, NFR-2, spec completion criterion 4
   - **Do:** run and record the "Least privilege", "Database private", and "Encryption" checks of plan section 8.
   - **Done when:** all pass and results are in `infra/README.md`.
