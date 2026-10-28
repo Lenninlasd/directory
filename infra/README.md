@@ -190,3 +190,23 @@ API_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "S
 | `aws lambda get-function-configuration --function-name alameda-dev-api --query "{Runtime:Runtime,Arch:Architectures,Memory:MemorySize,Timeout:Timeout,Vpc:VpcConfig.SubnetIds,Log:LoggingConfig.LogGroup,Env:keys(Environment.Variables)}"` | `nodejs24.x`, `arm64`, 256 MB, 10 s, no VPC subnets, log group `/aws/lambda/alameda-dev-api`, variables `DATABASE_NAME`, `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `NODE_OPTIONS` (`--enable-source-maps`) | Passed (2026-10-27): `nodejs24.x`, `arm64`, 256, 10, VPC `null`, log group and the three variables as expected |
 | Role policies: `ROLE=$(aws lambda get-function-configuration --function-name alameda-dev-api --query Role --output text \| cut -d/ -f2)`, then `aws iam list-attached-role-policies --role-name "$ROLE"` and `aws iam get-role-policy --role-name "$ROLE" --policy-name api-access` | No managed policies attached; one inline policy with exactly: `logs:CreateLogStream` and `logs:PutLogEvents` on the function's log group, `rds-data:ExecuteStatement` on the `dev` cluster ARN, `secretsmanager:GetSecretValue` on the `dev` secret ARN | Passed (2026-10-27): no attached policies; only `api-access`, with the three statements scoped to the log group, `alameda-dev-db`, and its `rds!cluster-…` secret |
 | Lambda errors are visible: `aws logs tail /aws/lambda/alameda-dev-api --since 1h` after a request | Request logs appear; a failed request logs `GET /businesses failed` with the error (NFR-5) | Passed (2026-10-27): `ERROR GET /businesses failed DatabaseResumingException: …` visible during the resume |
+
+### Seed data for `dev` (002-T5, spec Q-9, AC-7.3; spec 001 AC-1.2, AC-2.3, FR-5, EC-4, EC-5, EC-6)
+
+`backend/seeds/dev_businesses.sql` holds invented businesses with fixed ids. Each row covers a case:
+
+| Row | Case |
+|---|---|
+| Lavandería Burbujas | Inactive, and the newest row: it must not appear (AC-1.2) |
+| Uñas y Estilo Caro | Invalid number `0300 123`, returned as `null` (AC-2.3, EC-5) |
+| Tutorías de Matemáticas | No number, returned as `null` |
+| Distribuidora de Productos Naturales… | Very long name and location (EC-4) |
+| Arepas La Mona, Café del Río, cafe del rio | Same `created_at`; the two cafés differ only in accents and case (EC-6) |
+| Panadería Doña Rosa, Ferretería El Tornillo | Valid numbers with separators (`+57 300 123 4567`, `+57 (300) 555-0101`), returned as digits |
+| Physical store `true` and `false` | Both store types present |
+
+| Check | Expected | Result |
+|---|---|---|
+| `node backend/scripts/migrate.ts dev --seed` | Prints `No pending migrations` and `Seeded dev_businesses.sql` | Passed (2026-10-27) |
+| `curl -s "$API_URL/businesses"` | 8 businesses (no Lavandería Burbujas), in this order: Ferretería El Tornillo, Arepas La Mona, cafe del rio, Café del Río, Uñas y Estilo Caro, Tutorías de Matemáticas, Panadería Doña Rosa, Distribuidora…; `whatsappNumber` is `null` for Uñas y Estilo Caro and Tutorías de Matemáticas | Passed (2026-10-27): 8 rows in that order; the two `null` numbers as expected; separators removed (`573001234567`, `573005550101`) |
+| Run the seed again, then the same `curl` | Identical response (the upsert is idempotent) | Passed (2026-10-27): byte-identical responses |
