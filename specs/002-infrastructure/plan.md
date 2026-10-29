@@ -40,7 +40,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 | # | Decision | Reason |
 |---|---|---|
 | P-1 | Aurora Serverless v2 capacity: `dev` 0 to 1 ACU (auto-pause after 3600 s idle); `prod` 0.5 to 2 ACU (never pauses). | `dev` costs almost nothing when idle; `prod` visitors never wait for a resume (NFR-1). |
-| P-2 | Aurora PostgreSQL 17 (latest 17.x minor in `us-east-1` at deploy time, at least 17.4 for the Data API), one `db.serverless` writer, no readers | Long support; the Data API uses the writer only. |
+| P-2 | Aurora PostgreSQL 17 (latest 17.x minor in `us-east-1` at deploy time, at least 17.4 for the Data API), one `db.serverless` writer, no readers. **Chosen: 17.11** (latest 17.x in `us-east-1` on 2026-10-26 per `aws rds describe-db-engine-versions`, Serverless v2 minimum capacity 0 supported; recorded in 002-T2). | Long support; the Data API uses the writer only. |
 | P-3 | Lambda `nodejs24.x`, `arm64`, 256 MB, timeout 10 s in both environments, **not in a VPC** | No VPC networking needed with the Data API. |
 | P-4 | API Gateway HTTP API (not REST API) | Cheaper and simpler, native CORS, one route. |
 | P-5 | Network for the database only: a VPC with two private subnets in two Availability Zones (required by the DB subnet group) and a database security group with **no inbound rules**. No NAT, no internet gateway, no VPC endpoints. | The database is unreachable over the network; only the Data API reaches it (AC-3.2). |
@@ -95,7 +95,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 
 - `backend/src/db/dataApi.ts` (plan 001): the Data API wrapper of P-12, used by the repository and by `runMigrations`.
 - `backend/scripts/migrate.ts` (P-10).
-- `esbuild` is a backend dev dependency, needed by the SAM esbuild builder (spec section 9).
+- `esbuild` is a backend dev dependency (spec section 9). `backend/Makefile` runs it with `pnpm exec` for the SAM makefile builder (`BuildMethod: makefile`), so the bundle uses the versions in `pnpm-lock.yaml`. SAM's esbuild builder is not used because it runs `npm install` (changed 2026-10-27, owner decision).
 
 ## 8. Verification
 

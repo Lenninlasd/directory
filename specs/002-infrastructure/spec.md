@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-24 (RDS Proxy removed; FR-7 data migrations and FR-8 CI added; AC-2.3 and AC-5.3 clarified; database access through the RDS Data API; simplified: `prod` created at launch, no SPA fallback, fewer drills)
+- **Last updated:** 2026-10-27 (esbuild runs through the SAM makefile builder with pnpm); 2026-10-24 (RDS Proxy removed; FR-7 data migrations and FR-8 CI added; AC-2.3 and AC-5.3 clarified; database access through the RDS Data API; simplified: `prod` created at launch, no SPA fallback, fewer drills)
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
@@ -136,7 +136,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 | AWS SAM CLI | developer machine (not an npm package, not in the lockfile) | Build and deploy the template |
 | AWS CLI | developer machine | Upload the frontend to S3, invalidate CloudFront, authenticate |
 | GitHub Actions | repository (`.github/workflows/`) | CI for tests (FR-8) |
-| `esbuild` (npm, dev) | backend | Required by the SAM Node.js esbuild builder to bundle the Lambda |
+| `esbuild` (npm, dev) | backend | Bundles the Lambda, run through `pnpm exec` by the SAM makefile builder (changed 2026-10-27: SAM's esbuild builder runs `npm install`, which ignores `pnpm-lock.yaml`) |
 
 Approved by the project owner on 2026-10-24. Tooling that is not a project dependency shall be documented with its required version in the deployment documentation.
 
