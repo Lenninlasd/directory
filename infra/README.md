@@ -89,6 +89,7 @@ Permissions needed so far (extended by later tasks as resources are added):
 - 002-T2: create, update, and delete the VPC, subnets, and security group (`ec2:*Vpc*`, `ec2:*Subnet*`, `ec2:*SecurityGroup*`, `ec2:Describe*`, `ec2:CreateTags`), the DB subnet group, cluster, and instance (`rds:*` on `alameda-*` resources); the Aurora-managed master secret (`secretsmanager:CreateSecret`, `secretsmanager:TagResource`, `secretsmanager:RotateSecret`, `kms:DescribeKey` on the `aws/secretsmanager` key); and, for the Data API check, `rds-data:ExecuteStatement` on the cluster and `secretsmanager:GetSecretValue` on its secret.
 - 002-T3: `cloudformation:DescribeStacks` on `alameda-*` stacks; `rds-data:ExecuteStatement`, `rds-data:BeginTransaction`, `rds-data:CommitTransaction`, and `rds-data:RollbackTransaction` on the cluster; `secretsmanager:GetSecretValue` on its secret.
 - 002-T4: create, update, and delete the `alameda-*` Lambda function (`lambda:*Function*`, `lambda:*Permission`, `lambda:TagResource`), its role (`iam:CreateRole`, `iam:DeleteRole`, `iam:GetRole`, `iam:PutRolePolicy`, `iam:DeleteRolePolicy`, `iam:GetRolePolicy`, `iam:TagRole`, `iam:PassRole` on `alameda-*` roles), the HTTP API (`apigateway:*` on `/apis*`), and the log group (`logs:CreateLogGroup`, `logs:DeleteLogGroup`, `logs:PutRetentionPolicy`, `logs:TagResource`, `logs:DescribeLogGroups`); for the checks, `lambda:GetFunctionConfiguration`, `iam:ListAttachedRolePolicies`, and `logs:FilterLogEvents`.
+- 002-T7: create, update, and delete the frontend bucket and its policy (`s3:CreateBucket`, `s3:DeleteBucket`, `s3:PutBucket*`, `s3:GetBucket*`, `s3:PutEncryptionConfiguration`, `s3:PutBucketOwnershipControls`, `s3:PutBucketPublicAccessBlock`, `s3:PutBucketPolicy`, `s3:DeleteBucketPolicy` on `alameda-*` buckets), the CloudFront distribution and origin access control (`cloudfront:*Distribution*`, `cloudfront:*OriginAccessControl*`, `cloudfront:TagResource`); for the checks, `s3:PutObject` and `s3:ListBucket` on the frontend bucket.
 
 ## Commands
 
@@ -155,23 +156,23 @@ SECRET_ARN=$(aws cloudformation describe-stacks --stack-name alameda-dev --query
 
 | Check | Expected (`dev`) | Result |
 |---|---|---|
-| `aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].{Engine:Engine,Version:EngineVersion,Encrypted:StorageEncrypted,DataApi:HttpEndpointEnabled,Scaling:ServerlessV2ScalingConfiguration,Backups:BackupRetentionPeriod,DeletionProtection:DeletionProtection,ManagedSecret:MasterUserSecret.SecretStatus}"` | `aurora-postgresql`, `17.11`, encrypted `true`, Data API `true`, scaling 0 to 1 ACU with auto-pause after 3600 s, backups 1 day, deletion protection `false`, managed secret `active` | Passed (2026-10-26): `aurora-postgresql` `17.11`, encrypted `true`, Data API `true`, 0 to 1 ACU, auto-pause 3600 s, backups 1, deletion protection `false`, secret `active` |
-| `aws rds describe-db-instances --db-instance-identifier alameda-dev-db-writer --query "DBInstances[0].{Class:DBInstanceClass,Public:PubliclyAccessible}"` | `db.serverless`, public `false` | Passed (2026-10-26): `db.serverless`, public `false` |
-| `aws ec2 describe-security-groups --filters Name=tag:Name,Values=alameda-dev-db-sg --query "SecurityGroups[0].IpPermissions"` | `[]` (no inbound rules) | Passed (2026-10-26): `[]` |
-| `aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values=<vpc id of the cluster subnets>` | No internet gateway: the subnets are private | Passed (2026-10-26): no internet gateway; the only route is `10.0.0.0/16 local` |
-| `aws rds-data execute-statement --resource-arn "$CLUSTER_ARN" --secret-arn "$SECRET_ARN" --database alameda --sql "select 1"` | `records` is `[[{"longValue": 1}]]`. If the cluster is paused, the first call fails with `DatabaseResumingException`; retry after about 30 s (plan V-6). | Passed (2026-10-26): `[[{"longValue": 1}]]` |
-| `aws cloudformation get-template --stack-name alameda-dev --template-stage Processed` | Cluster and instance have `DeletionPolicy: Delete` in `dev` | Passed (2026-10-26): `Delete` for both |
+| `aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].{Engine:Engine,Version:EngineVersion,Encrypted:StorageEncrypted,DataApi:HttpEndpointEnabled,Scaling:ServerlessV2ScalingConfiguration,Backups:BackupRetentionPeriod,DeletionProtection:DeletionProtection,ManagedSecret:MasterUserSecret.SecretStatus}"` | `aurora-postgresql`, `17.11`, encrypted `true`, Data API `true`, scaling 0 to 1 ACU with auto-pause after 3600 s, backups 1 day, deletion protection `false`, managed secret `active` | Passed (2026-10-26) |
+| `aws rds describe-db-instances --db-instance-identifier alameda-dev-db-writer --query "DBInstances[0].{Class:DBInstanceClass,Public:PubliclyAccessible}"` | `db.serverless`, public `false` | Passed (2026-10-26) |
+| `aws rds-data execute-statement --resource-arn "$CLUSTER_ARN" --secret-arn "$SECRET_ARN" --database alameda --sql "select 1"` | `records` is `[[{"longValue": 1}]]`. If the cluster is paused, the first call fails with `DatabaseResumingException`; retry after about 30 s (plan V-6). | Passed (2026-10-26) |
+| `aws cloudformation get-template --stack-name alameda-dev --template-stage Processed` | Cluster and instance have `DeletionPolicy: Delete` in `dev` | Passed (2026-10-26) |
 | `prod` values: scaling 0.5 to 2 ACU without auto-pause, backups 7 days, deletion protection `true`, `DeletionPolicy: Retain` | Checked in 002-T10, when `prod` is created (M5) | Pending |
+
+Network isolation (no inbound rules, no internet gateway) is checked under Security checks (002-T6).
 
 ### Migration script (002-T3, spec AC-5.1, AC-5.2, AC-5.2a, EC-4)
 
 | Check | Expected | Result |
 |---|---|---|
-| `node backend/scripts/migrate.ts` with Node.js 24 and no arguments | Prints the usage and exits with code 1 (Node runs the TypeScript file directly, plan R-4) | Passed (2026-10-26): usage printed, exit 1, Node 24.22.1 |
-| `node backend/scripts/migrate.ts prod --seed` | Refused with exit code 1 before reading the stack | Passed (2026-10-26): `--seed is only allowed for dev`, exit 1 |
+| `node backend/scripts/migrate.ts` with Node.js 24 and no arguments | Prints the usage and exits with code 1 (Node runs the TypeScript file directly, plan P-10) | Passed (2026-10-26) |
+| `node backend/scripts/migrate.ts prod --seed` | Refused with exit code 1 before reading the stack | Passed (2026-10-26) |
 | `node backend/scripts/migrate.ts dev` | Prints `Applied 001_create_businesses.sql` | Passed (2026-10-26) after the cluster resumed; the first attempt hit the paused cluster and failed as documented |
 | Same command again | Prints `No pending migrations` | Passed (2026-10-26) |
-| `aws rds-data execute-statement --resource-arn "$CLUSTER_ARN" --secret-arn "$SECRET_ARN" --database alameda --sql "select name from schema_migrations"` | Lists `001_create_businesses.sql` | Passed (2026-10-26): `001_create_businesses.sql`; `businesses` exists with 0 rows |
+| `aws rds-data execute-statement --resource-arn "$CLUSTER_ARN" --secret-arn "$SECRET_ARN" --database alameda --sql "select name from schema_migrations"` | Lists `001_create_businesses.sql` | Passed (2026-10-26); `businesses` exists with 0 rows |
 | Failure cases (unknown environment, failing migration exits non-zero, stack unreadable) | Covered by `backend/test/scripts/migrate.test.ts` | Passed (2026-10-26): 12 tests, full suite 67 passed |
 
 ### API Lambda, HTTP API, CORS, and logs (002-T4, spec AC-2.1 to AC-2.5, NFR-5)
@@ -185,13 +186,14 @@ API_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "S
 | Check | Expected (`dev`) | Result |
 |---|---|---|
 | `curl -i "$API_URL/businesses"` | `200`, `content-type: application/json`, body `{"businesses":[]}` (no seed yet). If the cluster is paused, the first request returns `500 {"error":"internal_error"}`; retry after about 30 s (plan P-12). | Passed (2026-10-27): first requests returned `500 {"error":"internal_error"}` with `DatabaseResumingException` in the logs (cluster paused, as documented); after the resume `200`, `application/json`, `{"businesses":[]}` |
-| `curl -i -H "Origin: https://example.com" "$API_URL/businesses"` | No `access-control-allow-origin` header (no browser origin is allowed until 002-T7 adds the CloudFront origin) | Passed (2026-10-27): `200`, no `access-control-*` headers |
-| `aws logs describe-log-groups --log-group-name-prefix /aws/lambda/alameda-dev-api --query "logGroups[].{Name:logGroupName,Retention:retentionInDays}"` | One group `/aws/lambda/alameda-dev-api`, retention `30` | Passed (2026-10-27): one group, retention `30` |
-| `aws lambda get-function-configuration --function-name alameda-dev-api --query "{Runtime:Runtime,Arch:Architectures,Memory:MemorySize,Timeout:Timeout,Vpc:VpcConfig.SubnetIds,Log:LoggingConfig.LogGroup,Env:keys(Environment.Variables)}"` | `nodejs24.x`, `arm64`, 256 MB, 10 s, no VPC subnets, log group `/aws/lambda/alameda-dev-api`, variables `DATABASE_NAME`, `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `NODE_OPTIONS` (`--enable-source-maps`) | Passed (2026-10-27): `nodejs24.x`, `arm64`, 256, 10, VPC `null`, log group and the three variables as expected |
-| Role policies: `ROLE=$(aws lambda get-function-configuration --function-name alameda-dev-api --query Role --output text \| cut -d/ -f2)`, then `aws iam list-attached-role-policies --role-name "$ROLE"` and `aws iam get-role-policy --role-name "$ROLE" --policy-name api-access` | No managed policies attached; one inline policy with exactly: `logs:CreateLogStream` and `logs:PutLogEvents` on the function's log group, `rds-data:ExecuteStatement` on the `dev` cluster ARN, `secretsmanager:GetSecretValue` on the `dev` secret ARN | Passed (2026-10-27): no attached policies; only `api-access`, with the three statements scoped to the log group, `alameda-dev-db`, and its `rds!cluster-…` secret |
+| `curl -i -H "Origin: https://example.com" "$API_URL/businesses"` | No `access-control-allow-origin` header (no browser origin is allowed until 002-T7 adds the CloudFront origin) | Passed (2026-10-27) |
+| `aws logs describe-log-groups --log-group-name-prefix /aws/lambda/alameda-dev-api --query "logGroups[].{Name:logGroupName,Retention:retentionInDays}"` | One group `/aws/lambda/alameda-dev-api`, retention `30` | Passed (2026-10-27) |
+| `aws lambda get-function-configuration --function-name alameda-dev-api --query "{Runtime:Runtime,Arch:Architectures,Memory:MemorySize,Timeout:Timeout,Vpc:VpcConfig.SubnetIds,Log:LoggingConfig.LogGroup,Env:keys(Environment.Variables)}"` | `nodejs24.x`, `arm64`, 256 MB, 10 s, no VPC subnets, log group `/aws/lambda/alameda-dev-api`, variables `DATABASE_NAME`, `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `NODE_OPTIONS` (`--enable-source-maps`) | Passed (2026-10-27) |
 | Lambda errors are visible: `aws logs tail /aws/lambda/alameda-dev-api --since 1h` after a request | Request logs appear; a failed request logs `GET /businesses failed` with the error (NFR-5) | Passed (2026-10-27): `ERROR GET /businesses failed DatabaseResumingException: …` visible during the resume |
 
-### Seed data for `dev` (002-T5, spec Q-9, AC-7.3; spec 001 AC-1.2, AC-2.3, FR-5, EC-4, EC-5, EC-6)
+The role permissions are checked under Security checks (002-T6).
+
+### Seed data for `dev` (002-T5, spec AC-7.3; spec 001 AC-1.2, AC-2.3, FR-5, EC-4, EC-5, EC-6)
 
 `backend/seeds/dev_businesses.sql` holds invented businesses with fixed ids. Each row covers a case:
 
@@ -208,7 +210,7 @@ API_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "S
 | Check | Expected | Result |
 |---|---|---|
 | `node backend/scripts/migrate.ts dev --seed` | Prints `No pending migrations` and `Seeded dev_businesses.sql` | Passed (2026-10-27) |
-| `curl -s "$API_URL/businesses"` | 8 businesses (no Lavandería Burbujas), in this order: Ferretería El Tornillo, Arepas La Mona, cafe del rio, Café del Río, Uñas y Estilo Caro, Tutorías de Matemáticas, Panadería Doña Rosa, Distribuidora…; `whatsappNumber` is `null` for Uñas y Estilo Caro and Tutorías de Matemáticas | Passed (2026-10-27): 8 rows in that order; the two `null` numbers as expected; separators removed (`573001234567`, `573005550101`) |
+| `curl -s "$API_URL/businesses"` | 8 businesses (no Lavandería Burbujas), in this order: Ferretería El Tornillo, Arepas La Mona, cafe del rio, Café del Río, Uñas y Estilo Caro, Tutorías de Matemáticas, Panadería Doña Rosa, Distribuidora…; `whatsappNumber` is `null` for Uñas y Estilo Caro and Tutorías de Matemáticas | Passed (2026-10-27); separators removed (`573001234567`, `573005550101`) |
 | Run the seed again, then the same `curl` | Identical response (the upsert is idempotent) | Passed (2026-10-27): byte-identical responses |
 
 ### Security checks (002-T6, spec AC-2.3, AC-3.1, AC-3.2, AC-3.3, NFR-2, completion criterion 4)
@@ -219,24 +221,52 @@ The "Least privilege", "Database private", and "Encryption" checks of plan secti
 
 | Check | Expected | Result |
 |---|---|---|
-| `ROLE=$(aws lambda get-function-configuration --function-name alameda-dev-api --query Role --output text \| cut -d/ -f2)`, then `aws iam list-attached-role-policies --role-name "$ROLE"` and `aws iam list-role-policies --role-name "$ROLE"` | No managed policies; one inline policy, `api-access` | Passed (2026-10-28): `[]` attached; `["api-access"]` |
-| `aws iam get-role-policy --role-name "$ROLE" --policy-name api-access` | Exactly three statements: `logs:CreateLogStream` and `logs:PutLogEvents` on `/aws/lambda/alameda-dev-api`, `rds-data:ExecuteStatement` on the `alameda-dev-db` cluster ARN, `secretsmanager:GetSecretValue` on the stack's `SecretArn`. No `*` actions or resources | Passed (2026-10-28): the three statements, each scoped to this environment's log group, cluster, and secret (they match the stack outputs); no wildcards except the `:*` log stream suffix of the log group ARN |
-| `aws iam get-role --role-name "$ROLE" --query Role.AssumeRolePolicyDocument` | Only `lambda.amazonaws.com` can assume the role | Passed (2026-10-28): `lambda.amazonaws.com`, `sts:AssumeRole` only |
-| `aws lambda get-function-configuration --function-name alameda-dev-api --query "keys(Environment.Variables)"` | Only ARNs, the database name, and `NODE_OPTIONS`; no password or secret value (NFR-2) | Passed (2026-10-28): `DATABASE_NAME`, `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `NODE_OPTIONS` |
+| `ROLE=$(aws lambda get-function-configuration --function-name alameda-dev-api --query Role --output text \| cut -d/ -f2)`, then `aws iam list-attached-role-policies --role-name "$ROLE"` and `aws iam list-role-policies --role-name "$ROLE"` | No managed policies; one inline policy, `api-access` | Passed (2026-10-28) |
+| `aws iam get-role-policy --role-name "$ROLE" --policy-name api-access` | Exactly three statements: `logs:CreateLogStream` and `logs:PutLogEvents` on `/aws/lambda/alameda-dev-api`, `rds-data:ExecuteStatement` on the `alameda-dev-db` cluster ARN, `secretsmanager:GetSecretValue` on the stack's `SecretArn`. No `*` actions or resources | Passed (2026-10-28); the only wildcard is the `:*` log stream suffix of the log group ARN |
+| `aws iam get-role --role-name "$ROLE" --query Role.AssumeRolePolicyDocument` | Only `lambda.amazonaws.com` can assume the role | Passed (2026-10-28) |
+| `aws lambda get-function-configuration --function-name alameda-dev-api --query "keys(Environment.Variables)"` | Only ARNs, the database name, and `NODE_OPTIONS`; no password or secret value (NFR-2) | Passed (2026-10-28) |
 
 #### Database private (AC-3.1, AC-3.2, completion criterion 4)
 
 | Check | Expected | Result |
 |---|---|---|
-| `aws rds describe-db-instances --db-instance-identifier alameda-dev-db-writer --query "DBInstances[0].{Public:PubliclyAccessible,Vpc:DBSubnetGroup.VpcId}"` | Public `false` | Passed (2026-10-28): `false` |
-| `SG=$(aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].VpcSecurityGroups[0].VpcSecurityGroupId" --output text)`, then `aws ec2 describe-security-groups --group-ids "$SG" --query "SecurityGroups[0].IpPermissions"` | `[]` | Passed (2026-10-28): `[]` |
-| With `VPC` from the first check: `aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values=$VPC`, `aws ec2 describe-nat-gateways --filter Name=vpc-id,Values=$VPC`, `aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VPC` | No internet gateway, no NAT gateway; the only route is `10.0.0.0/16 local` | Passed (2026-10-28): no internet gateway, no NAT gateway, one route `10.0.0.0/16 local` |
-| `ENDPOINT=$(aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].Endpoint" --output text)`, then `dig +short "$ENDPOINT"` and `nc -z -G 5 -w 5 "$ENDPOINT" 5432` | The name resolves to a private `10.0.x.x` address; the connection from the internet fails | Passed (2026-10-28): resolves to `10.0.1.x`; TCP 5432 not reachable |
+| `aws rds describe-db-instances --db-instance-identifier alameda-dev-db-writer --query "DBInstances[0].{Public:PubliclyAccessible,Vpc:DBSubnetGroup.VpcId}"` | Public `false` | Passed (2026-10-28) |
+| `SG=$(aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].VpcSecurityGroups[0].VpcSecurityGroupId" --output text)`, then `aws ec2 describe-security-groups --group-ids "$SG" --query "SecurityGroups[0].IpPermissions"` | `[]` | Passed (2026-10-28) |
+| With `VPC` from the first check: `aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values=$VPC`, `aws ec2 describe-nat-gateways --filter Name=vpc-id,Values=$VPC`, `aws ec2 describe-route-tables --filters Name=vpc-id,Values=$VPC` | No internet gateway, no NAT gateway; the only route is `10.0.0.0/16 local` | Passed (2026-10-28) |
+| `ENDPOINT=$(aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].Endpoint" --output text)`, then `dig +short "$ENDPOINT"` and `nc -z -G 5 -w 5 "$ENDPOINT" 5432` | The name resolves to a private `10.0.x.x` address; the connection from the internet fails | Passed (2026-10-28) |
 
 #### Encryption (AC-3.3)
 
 | Check | Expected | Result |
 |---|---|---|
-| `aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].{Encrypted:StorageEncrypted,Kms:KmsKeyId}"` | `true`, with a KMS key | Passed (2026-10-28): `true`, KMS key ARN set (the default `aws/rds` key) |
-| `aws secretsmanager describe-secret --secret-id "$SECRET_ARN" --query "{Kms:KmsKeyId,Rotation:RotationEnabled}"` | Encrypted with KMS, rotation enabled (managed by Aurora). `KmsKeyId` is `null` when the default `aws/secretsmanager` key is used; Secrets Manager always encrypts | Passed (2026-10-28): `KmsKeyId` `null` (default key), rotation `true` |
+| `aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].{Encrypted:StorageEncrypted,Kms:KmsKeyId}"` | `true`, with a KMS key | Passed (2026-10-28); default `aws/rds` key |
+| `aws secretsmanager describe-secret --secret-id "$SECRET_ARN" --query "{Kms:KmsKeyId,Rotation:RotationEnabled}"` | Encrypted with KMS, rotation enabled (managed by Aurora). `KmsKeyId` is `null` when the default `aws/secretsmanager` key is used; Secrets Manager always encrypts | Passed (2026-10-28) |
 | `curl -m 8 http://rds-data.us-east-1.amazonaws.com/Execute` and `curl -m 8 "http://<api host>/businesses"` | Both fail: the Data API and the HTTP API accept HTTPS only | Passed (2026-10-28): Data API over HTTP timed out, over HTTPS answered `403` (unsigned request); HTTP API over HTTP connection refused on port 80, over HTTPS `200` |
+
+### S3 bucket and CloudFront (002-T7, spec AC-4.1, AC-4.2, AC-2.4; plan P-7)
+
+The bucket is private (all public access blocked, SSE-S3 encryption, ACLs disabled). Only the CloudFront distribution of the same stack can read it, through Origin Access Control. Cache behavior (P-7): `assets/*` (hashed file names from Vite) uses the managed `CachingOptimized` policy; everything else, in practice `index.html`, uses the managed `CachingDisabled` policy. The API CORS configuration allows only this distribution's origin.
+
+Set these variables first (stack outputs, no values are written to the repository):
+
+```
+output() { aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text; }
+FRONTEND_URL=$(output FrontendUrl); BUCKET=$(output FrontendBucketName); API_URL=$(output ApiUrl)
+```
+
+Until 002-T8 adds the deploy script, upload the frontend for the checks by hand from the repository root:
+
+```
+VITE_API_BASE_URL="$API_URL" pnpm --filter frontend build
+aws s3 sync frontend/dist "s3://$BUCKET" --delete
+```
+
+| Check | Expected (`dev`) | Result |
+|---|---|---|
+| `curl -sI "${FRONTEND_URL/https/http}/"` | `301` with `location: https://…` (AC-4.2) | Pending |
+| `curl -sI "https://$BUCKET.s3.us-east-1.amazonaws.com/index.html"` | `403` (direct bucket access denied, AC-4.1) | Pending |
+| `curl -s "$FRONTEND_URL/" \| grep -o '<title>.*</title>'` | `<title>Directorio de Alameda del Río</title>` | Pending |
+| `curl -sI "$FRONTEND_URL/" \| grep -i x-cache` and the same for one file under `assets/` (requested twice) | `index.html` is never a hit (`Miss from cloudfront`); the asset is `Hit from cloudfront` on the second request (P-7) | Pending |
+| `curl -si -H "Origin: $FRONTEND_URL" "$API_URL/businesses" \| grep -i access-control-allow-origin` | The header equals `$FRONTEND_URL` (AC-2.4) | Pending |
+| `curl -si -H "Origin: https://example.com" "$API_URL/businesses" \| grep -i access-control` | No `access-control-*` header (EC-2) | Pending |
+| Open `$FRONTEND_URL` in a browser | The list loads from the API with no CORS error in the console | Pending |

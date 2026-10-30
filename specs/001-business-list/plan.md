@@ -4,7 +4,7 @@
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Created:** 2026-10-23
 
-Scope: application code only (frontend, backend, one migration). Hosting, deployment, and infrastructure-as-code are not covered by spec 001 and need their own spec.
+Scope: application code only (frontend, backend, one migration). Hosting, deployment, and infrastructure are in spec 002.
 
 ## 1. Technical Approach
 
@@ -18,12 +18,6 @@ Browser (React + TanStack Query)
         -> businessRepository                     raw SQL, active rows only
           -> RDS Data API (HTTPS) -> Aurora PostgreSQL (businesses table)
 ```
-
-Key decisions:
-
-- Sorting and WhatsApp validation are pure functions in the service layer, so they are tested without a database (AGENTS.md testing standard).
-- The repository only filters (`is_active = true`). Sorting is done in the service (see D-2).
-- The API returns `whatsappNumber: string | null`. The frontend builds the `wa.me` link and owns all Spanish text.
 
 ## 2. Data Model
 
@@ -99,7 +93,7 @@ The service receives the repository function as an argument (plain function pass
 
 ### Business rules
 
-**WhatsApp number (AC-2.2, AC-2.3, EC-5).** Rule defined in spec AC-2.5: strip spaces, dashes, parentheses, and a leading `+`; the result is valid when it is 8 to 15 digits and does not start with `0`. Return the digits, or `null`. The team stores numbers with country code (for example `573001234567`).
+**WhatsApp number (AC-2.2, AC-2.3, EC-5).** Apply the rule of spec AC-2.5 and return the normalized digits, or `null`.
 
 **Ordering (AC-5.1, AC-5.2, EC-6).**
 
@@ -116,7 +110,7 @@ sort businesses by:
 |---|---|
 | `src/main.tsx` | Creates the single `QueryClient` from `createQueryClient()` and renders `<App />` |
 | `src/queryClient.ts` | `createQueryClient()`: the only default options are `retry: 2` and `retryDelay: 1000` (AC-6.1). Tests use the same factory. |
-| `src/api/businesses.ts` | `fetchBusinesses()`: plain `fetch` to `${VITE_API_BASE_URL}/businesses`; throws on a non-OK response. In local development `VITE_API_BASE_URL` is empty and the Vite dev server proxies `/businesses` to the `dev` API, so CORS stays strict. |
+| `src/api/businesses.ts` | `fetchBusinesses()`: plain `fetch` to `${VITE_API_BASE_URL}/businesses`; throws on a non-OK response. In local development `VITE_API_BASE_URL` is empty and the Vite dev server proxies `/businesses` to the `dev` API, so CORS stays limited to the CloudFront origin. There is no local backend server; the endpoint is covered by tests. |
 | `src/features/businesses/queryKeys.ts` | `BUSINESSES_QUERY_KEY = ['businesses'] as const` |
 | `src/features/businesses/useBusinesses.ts` | `useQuery` wrapper, the only place that calls the API function |
 | `src/features/businesses/whatsapp.ts` | `buildWhatsappUrl(number)`: `https://wa.me/<number>?text=<encoded greeting>` (AC-4.1, AC-4.2) |
@@ -129,7 +123,7 @@ sort businesses by:
 Notes:
 
 - Tailwind v4 is configured CSS-first: the Vite plugin `@tailwindcss/vite` and tokens in `@theme`, as the Tailwind docs state. There is no `tailwind.config.js`.
-- The button is a link so the browser opens WhatsApp in a new tab. The directory page therefore stays where the user left it, which is why AC-4.3 was dropped from the spec. `wa.me` opens the app when installed and WhatsApp Web otherwise (AC-4.2).
+- The button is a link so the browser opens WhatsApp in a new tab. The directory page therefore stays where the user left it. `wa.me` opens the app when installed and WhatsApp Web otherwise (AC-4.2).
 - Accessible names: the WhatsApp button reads "Contactar a {name} por WhatsApp". Its visible text is "WhatsApp", which the accessible name contains (WCAG 2.5.3; decided by the project owner in chat on 2026-10-30, 001-T13). The list is a `ul`. Loading uses `role="status"` and the error uses `role="alert"`. The "Reintentar" button is a real `button`.
 - Layout: one column at 320 px, more columns from `md`. Long text wraps (`break-words`) so cards never overflow (EC-4).
 - The "Reintentar" button calls `refetch()`. Automatic retries are handled by the query defaults, and the error screen only appears after they fail.
@@ -147,21 +141,9 @@ Notes:
 | D-7 | Apply migrations with small in-repo logic run by `scripts/migrate.ts` through the Data API (spec 002) | `node-pg-migrate` or similar: a new dependency. Running SQL by hand: forbidden ("never edit the schema manually"). |
 | D-8 | Test the endpoint by calling the Lambda handler with an API Gateway event and a fake repository | `supertest`: another dependency, and it tests Express instead of the handler contract |
 
-## 7. Dependencies Requiring Approval
+## 7. Dependencies
 
-The constitution says any dependency beyond the fixed stack needs an approved spec that justifies it. These are the minimum needed to build and test the feature. They are approved in spec 001, section 8a.
-
-| Package | Where | Why |
-|---|---|---|
-| `express`, `serverless-http` | backend | Constitution names Express on Lambda; the adapter converts API Gateway events |
-| `@aws-sdk/client-rds-data` | backend | Queries Aurora through the RDS Data API |
-| `typescript`, `eslint` with `typescript-eslint`, `vitest` | root / both | Strict typing, the `lint` script, and the test runner. A single runner is shared by both packages. |
-| `vite`, `@vitejs/plugin-react` | frontend | Build and dev server for React + TypeScript |
-| `tailwindcss`, `@tailwindcss/vite` | frontend | Allowed by AGENTS.md; v4 setup verified in the docs |
-| `@tanstack/react-query` | frontend | Allowed by AGENTS.md |
-| `jsdom`, `@testing-library/react` | frontend (dev) | Component and hook tests without a real browser |
-
-Additional packages (`react`, `react-dom`, `@types/*`, `@testing-library/user-event`, `@testing-library/jest-dom`, `eslint-plugin-react-hooks`) are approved in spec section 8a. `esbuild` is approved in spec 002 section 9.
+Every package is listed and approved in spec section 8a; `esbuild` in spec 002 section 9.
 
 ## 8. Testing Strategy
 
@@ -186,49 +168,23 @@ Documented manual checks (cannot be automated without extra tooling):
 5. **Performance (NFR-1):** measure first load on a throttled mobile connection, including a cold Lambda start.
 6. **Freshness (NFR-5):** change a row in the `dev` seed, run the seed again, and confirm the change appears on the next page load.
 
-## 9. Traceability
-
-| Requirement | Covered by |
-|---|---|
-| FR-1 (AC-1.1 to 1.3) | Sections 2, 3, 4 (repository, service), 5 (`BusinessList`, loading state) |
-| FR-2 (AC-2.1 to 2.4) | Section 3 (response fields), section 4 (`whatsappNumber`), section 5 (`BusinessCard`) |
-| FR-3 (AC-3.1, 3.2) | Section 2 (`has_physical_store`), section 5 (`strings.ts`, `BusinessCard`) |
-| FR-4 (AC-4.1, 4.2) | Section 5 (`whatsapp.ts`, `WhatsAppButton`), D-4 |
-| FR-5 (AC-5.1, 5.2) | Section 4 (ordering rule), D-2 |
-| FR-6 (AC-6.1 to 6.4) | Section 3 (500 body), section 5 (`queryClient.ts`, error state), D-6 |
-| FR-7 (AC-7.1) | Section 3 (empty array), section 5 (`BusinessList`) |
-| NFR-1 | D-3, R-1, manual check 5 |
-| NFR-2 | Section 5 (layout), manual check 3 |
-| NFR-3 | Section 5 (accessibility notes), manual check 4 |
-| NFR-4 | Section 5 (all four states always rendered by `BusinessList`) |
-| NFR-5 | D-3 (no caching layer), manual check 6 |
-| EC-1 to EC-6 | Tests in section 8, rows for service, components, and hook |
-
-## 10. Risks
+## 9. Risks
 
 | # | Risk | Mitigation |
 |---|---|---|
 | R-1 | Lambda cold start plus a Data API call may exceed the 3 s target (NFR-1) | Measure in manual check 5. If it fails, propose a spec change rather than working around it silently. |
-| R-2 | Data API result formats (timestamps, UUIDs) differ from a native driver | The repository converts explicitly and is tested with sample Data API responses (plan 002, R-1). Engine version and `gen_random_uuid()` were confirmed in plan 002 (V-2, V-3). |
-| R-3 | Connection exhaustion | Not applicable: the Data API manages connections (spec 002, I-4). |
+| R-2 | Data API result formats (timestamps, UUIDs) differ from a native driver | The repository converts explicitly and is tested with sample Data API responses (plan 002, R-1). |
 | R-4 | Returning every row grows the response and query time as businesses are added | Acceptable for hundreds of rows. Pagination is the planned future spec. |
-| R-5 | Cross-origin requests from the frontend host to API Gateway need CORS | Configured with the infrastructure (separate spec); `VITE_API_BASE_URL` keeps the API origin out of the code |
+| R-5 | Cross-origin requests from the frontend host to API Gateway need CORS | Configured in spec 002 (AC-2.4); `VITE_API_BASE_URL` keeps the API origin out of the code |
 | R-6 | JavaScript dates have millisecond precision while `TIMESTAMPTZ` has microseconds, so near-equal times may tie | The name and id tie-breaks keep the order deterministic |
 
-## 11. Open Questions
+## 10. Constitution Check
 
-All resolved on 2026-10-23:
+All six principles are met:
 
-- **Q-1.** Resolved: WhatsApp validation rule added to the spec as AC-2.5.
-- **Q-2.** Resolved: dependencies approved in spec section 8a.
-- **Q-3.** Resolved: spec `002-infrastructure` (Lambda, API Gateway, Aurora PostgreSQL cluster, frontend hosting, CORS, VPC) is written and approved before tasks for 001 start. Done.
-- **R-2.** Resolved: database access through the RDS Data API (spec 002, I-4).
-
-## 12. Constitution Check
-
-1. **Stack Simplicity:** Complies. Only the fixed stack is used (React + TypeScript, Express on Lambda behind API Gateway, Aurora PostgreSQL, Tailwind, TanStack Query). The extra packages are listed in section 7 and approved in spec section 8a.
-2. **Spec-Code Alignment:** Complies. The spec is Approved, every part of the plan traces to an FR or NFR (section 9), and nothing outside spec 001 is planned. Items the spec does not cover are raised as open questions instead of assumed.
-3. **Separation of Concerns:** Complies. Domain and service modules have no Express, Lambda, or React imports. The handler only parses input, calls the service, and responds. React components only render, and data comes through `fetchBusinesses` and `useBusinesses`.
-4. **Testing Standard:** Complies. Business rules and the endpoint have automated tests, written first, and run on every pull request by the CI workflow of spec 002 FR-8 (section 8). Behavior that cannot be automated has documented manual checks.
-5. **Data Persistence:** Complies. Versioned SQL migrations, one statement each, each run in one transaction, raw parameterized SQL, no ORM, and no manual schema edits (applied by `runMigrations` through `scripts/migrate.ts`). To be checked against the Aurora PostgreSQL documentation; the UUID function and engine version are flagged in R-2.
-6. **Language Standard:** Complies. Code, comments, identifiers, API field names, the migration, and this plan are in English. Spanish appears only as UI text, defined in `frontend/src/strings.ts`.
+1. **Stack Simplicity:** fixed stack only; extra packages approved in spec section 8a.
+2. **Spec-Code Alignment:** every part traces to an FR or NFR (see each task's **Covers** line); nothing outside spec 001.
+3. **Separation of Concerns:** domain and service modules import no framework; handlers and components hold no business rules (sections 4, 5).
+4. **Testing Standard:** tests first for business rules and the endpoint, run in CI (spec 002 FR-8); manual checks for the rest (section 8).
+5. **Data Persistence:** versioned one-statement SQL migrations, raw parameterized SQL, no ORM (section 2, D-7).
+6. **Language Standard:** English everywhere; Spanish only as UI text in `frontend/src/strings.ts`.
