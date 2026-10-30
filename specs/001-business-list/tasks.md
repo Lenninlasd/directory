@@ -98,7 +98,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first (mocked `fetch`, never the network):** calls the right URL once; returns the list; throws on `500`; throws on network failure.
   - **Done when:** tests pass.
 
-- [ ] **001-T12 Query client, query key, and hook**
+- [x] **001-T12 Query client, query key, and hook**
   - **Covers:** AC-6.1, AC-6.3, NFR-4
   - **Do:** `frontend/src/queryClient.ts` `createQueryClient()` with only `retry: 2` and `retryDelay: 1000`. `frontend/src/features/businesses/queryKeys.ts`. `frontend/src/features/businesses/useBusinesses.ts`.
   - **Tests first (fresh `QueryClient` from the factory per test, mocked API, fake timers):** success returns data; a failing API is called 3 times in total, about 1 s apart, then the hook is in error; `refetch` calls the API again.
