@@ -98,13 +98,13 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first (mocked `fetch`, never the network):** calls the right URL once; returns the list; throws on `500`; throws on network failure.
   - **Done when:** tests pass.
 
-- [ ] **001-T12 Query client, query key, and hook**
+- [x] **001-T12 Query client, query key, and hook**
   - **Covers:** AC-6.1, AC-6.3, NFR-4
   - **Do:** `frontend/src/queryClient.ts` `createQueryClient()` with only `retry: 2` and `retryDelay: 1000`. `frontend/src/features/businesses/queryKeys.ts`. `frontend/src/features/businesses/useBusinesses.ts`.
   - **Tests first (fresh `QueryClient` from the factory per test, mocked API, fake timers):** success returns data; a failing API is called 3 times in total, about 1 s apart, then the hook is in error; `refetch` calls the API again.
   - **Done when:** tests pass.
 
-- [ ] **001-T13 Business card and WhatsApp button**
+- [x] **001-T13 Business card and WhatsApp button**
   - **Covers:** AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-3.1, AC-3.2, AC-4.1, EC-4, EC-5, NFR-3
   - **Do:** `WhatsAppButton.tsx` (anchor, `target="_blank"`, `rel="noopener noreferrer"`, accessible name "Contactar a {name} por WhatsApp") and `BusinessCard.tsx` (plan section 5). Long text wraps.
   - **Tests first:** card shows name, category, and location summary; "En tienda" when `hasPhysicalStore` is true and "Solo domicilios" when false; button present with the right `href` and accessible name when a number exists; no button when the number is `null`, and the rest of the card still renders; no other business fields are rendered.

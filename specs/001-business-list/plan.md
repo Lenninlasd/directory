@@ -130,7 +130,7 @@ Notes:
 
 - Tailwind v4 is configured CSS-first: the Vite plugin `@tailwindcss/vite` and tokens in `@theme`, as the Tailwind docs state. There is no `tailwind.config.js`.
 - The button is a link so the browser opens WhatsApp in a new tab. The directory page therefore stays where the user left it, which is why AC-4.3 was dropped from the spec. `wa.me` opens the app when installed and WhatsApp Web otherwise (AC-4.2).
-- Accessible names: the WhatsApp button reads "Contactar a {name} por WhatsApp". The list is a `ul`. Loading uses `role="status"` and the error uses `role="alert"`. The "Reintentar" button is a real `button`.
+- Accessible names: the WhatsApp button reads "Contactar a {name} por WhatsApp". Its visible text is "WhatsApp", which the accessible name contains (WCAG 2.5.3; decided by the project owner in chat on 2026-10-30, 001-T13). The list is a `ul`. Loading uses `role="status"` and the error uses `role="alert"`. The "Reintentar" button is a real `button`.
 - Layout: one column at 320 px, more columns from `md`. Long text wraps (`break-words`) so cards never overflow (EC-4).
 - The "Reintentar" button calls `refetch()`. Automatic retries are handled by the query defaults, and the error screen only appears after they fail.
 
