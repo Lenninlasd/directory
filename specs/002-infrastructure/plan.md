@@ -46,7 +46,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 | P-5 | Network for the database only: a VPC with two private subnets in two Availability Zones (required by the DB subnet group) and a database security group with **no inbound rules**. No NAT, no internet gateway, no VPC endpoints. | The database is unreachable over the network; only the Data API reaches it (AC-3.2). |
 | P-6 | One database credential: the Aurora-managed master user secret, used only through the Data API. No `app_user` or `migrator` roles. | No bootstrap problem. Trade-off in R-2. |
 | P-7 | Frontend cache: hashed asset names with long cache, `index.html` not cached, CloudFront invalidation of `/index.html` on deploy | AC-4.5 |
-| P-9 | Region `us-east-1`, single AWS account; names carry the environment (for example `alameda-dev-api`) and every resource is tagged `Environment` and `Project` | Spec I-6, Q-7 |
+| P-9 | Region `us-east-1`, single AWS account; names carry the environment (for example `alameda-dev-api`) and every resource is tagged `Environment` and `Project` | Spec I-1, I-6 |
 | P-10 | Migrations and seed run from the developer's machine with `node backend/scripts/migrate.ts <env> [--seed]`, through the Data API, using the developer's AWS credentials. Node.js 24 runs TypeScript files directly by stripping types, so no extra tool is needed (to confirm in 001-T6). | No migration Lambda, no bundled `.sql` files. |
 | P-11 | Migration files hold exactly one SQL statement each. The runner runs each file in its own Data API transaction and records it in `schema_migrations` in the same transaction. | Avoids depending on multi-statement support in the Data API, and keeps every file atomic. |
 | P-12 | Data API calls go through one small wrapper that passes named parameters and supports transactions. It does **not** retry: a `DatabaseResumingException` fails the request. | Simpler code. Only `dev` pauses (P-1); its first request after a pause shows the error screen, and "Reintentar" or re-running the migration script works once the database is awake. |
@@ -64,7 +64,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 | `backend/scripts/migrate.ts` | Command line: reads stack outputs (cluster ARN, secret ARN), runs `runMigrations` (plan 001) through the Data API; `--seed` runs the seed, refused unless the environment is `dev` |
 | `backend/migrations/001_create_businesses.sql` | The `businesses` table (plan 001 section 2) |
 | `backend/migrations/NNN_*.sql` (data) | Real business rows (spec FR-7), one `INSERT` per file, written in M5 with data from the team |
-| `backend/seeds/dev_businesses.sql` | Sample rows for `dev` only, one upsert statement (spec Q-9) |
+| `backend/seeds/dev_businesses.sql` | Sample rows for `dev` only, one upsert statement (spec AC-7.3) |
 | `.github/workflows/ci.yml` | CI (P-13) |
 
 ## 5. Template Resources

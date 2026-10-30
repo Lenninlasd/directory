@@ -143,7 +143,3 @@ This feature is complete when all of the following are true:
 3. All edge cases (EC-1 to EC-6) behave as described.
 4. A user can open the directory, browse the businesses, and start a WhatsApp conversation with one of them.
 5. This spec is marked `Status: Approved` by a human before planning starts.
-
-## 10. Open Questions
-
-None.

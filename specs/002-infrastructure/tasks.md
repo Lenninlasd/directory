@@ -57,7 +57,7 @@ Prerequisite: M1 of tasks 001 is done.
   - **Done when:** checks pass in `dev`.
 
 - [x] **002-T5 Seed data for `dev`**
-  - **Covers:** spec Q-9, AC-7.3; spec 001 AC-1.2, AC-2.3, FR-5, EC-4, EC-5, EC-6
+  - **Covers:** AC-7.3; spec 001 AC-1.2, AC-2.3, FR-5, EC-4, EC-5, EC-6
   - **Do:** `backend/seeds/dev_businesses.sql`, one `INSERT ... ON CONFLICT (id) DO UPDATE` statement with fixed ids and invented businesses: at least one inactive, one invalid number, one without a number, one very long name and location, two with the same `created_at` and names differing only in accents or case, both store types.
   - **Checks first:** after `node backend/scripts/migrate.ts dev --seed`, `curl` returns only active rows in the FR-5 order with `null` for the invalid and missing numbers; running the seed twice gives the same result.
   - **Done when:** checks pass in `dev`.

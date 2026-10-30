@@ -192,7 +192,7 @@ API_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "S
 | Role policies: `ROLE=$(aws lambda get-function-configuration --function-name alameda-dev-api --query Role --output text \| cut -d/ -f2)`, then `aws iam list-attached-role-policies --role-name "$ROLE"` and `aws iam get-role-policy --role-name "$ROLE" --policy-name api-access` | No managed policies attached; one inline policy with exactly: `logs:CreateLogStream` and `logs:PutLogEvents` on the function's log group, `rds-data:ExecuteStatement` on the `dev` cluster ARN, `secretsmanager:GetSecretValue` on the `dev` secret ARN | Passed (2026-10-27): no attached policies; only `api-access`, with the three statements scoped to the log group, `alameda-dev-db`, and its `rds!cluster-…` secret |
 | Lambda errors are visible: `aws logs tail /aws/lambda/alameda-dev-api --since 1h` after a request | Request logs appear; a failed request logs `GET /businesses failed` with the error (NFR-5) | Passed (2026-10-27): `ERROR GET /businesses failed DatabaseResumingException: …` visible during the resume |
 
-### Seed data for `dev` (002-T5, spec Q-9, AC-7.3; spec 001 AC-1.2, AC-2.3, FR-5, EC-4, EC-5, EC-6)
+### Seed data for `dev` (002-T5, spec AC-7.3; spec 001 AC-1.2, AC-2.3, FR-5, EC-4, EC-5, EC-6)
 
 `backend/seeds/dev_businesses.sql` holds invented businesses with fixed ids. Each row covers a case:
 

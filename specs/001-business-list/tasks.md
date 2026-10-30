@@ -94,7 +94,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 
 - [x] **001-T11 API function**
   - **Covers:** AC-1.1, AC-6.1 (error detection)
-  - **Do:** `frontend/src/api/businesses.ts` `fetchBusinesses()`: one `fetch` to `${VITE_API_BASE_URL}/businesses`, returns `Business[]`, throws on a non-OK status or a network error. Vite dev server proxy: `/businesses` goes to the `dev` API URL read from a local, uncommitted environment file; `VITE_API_BASE_URL` is empty locally (Q-3).
+  - **Do:** `frontend/src/api/businesses.ts` `fetchBusinesses()`: one `fetch` to `${VITE_API_BASE_URL}/businesses`, returns `Business[]`, throws on a non-OK status or a network error. Vite dev server proxy: `/businesses` goes to the `dev` API URL read from a local, uncommitted environment file; `VITE_API_BASE_URL` is empty locally (plan section 5).
   - **Tests first (mocked `fetch`, never the network):** calls the right URL once; returns the list; throws on `500`; throws on network failure.
   - **Done when:** tests pass.
 
@@ -122,16 +122,6 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Covers:** plan section 8 manual checks 1 to 6; spec 001 completion criteria; spec 002 completion criterion 3
   - **Do:** after 002-T8, run the six manual checks of plan section 8 against the CloudFront URL of `dev`. Record date, device, and result of each check in a "Verification log" section at the end of this file.
   - **Done when:** all six pass, or each failure has an issue or a spec change proposal.
-
-## Open Questions
-
-All resolved by the project owner on 2026-10-23 and 2026-10-24:
-
-- **Q-1.** No local backend server; the endpoint is covered by tests, and the first real request is in M2.
-- **Q-2.** `001_create_businesses.sql` is the first migration; no database users migration (RDS Data API).
-- **Q-3.** Local frontend reaches the `dev` API through a Vite dev server proxy. CORS stays limited to the CloudFront origin.
-- **Q-4.** Migrations run through `backend/scripts/migrate.ts` and the RDS Data API.
-- **Q-5.** One branch and pull request per milestone, one commit per task.
 
 ## Verification log
 

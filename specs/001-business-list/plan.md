@@ -116,7 +116,7 @@ sort businesses by:
 |---|---|
 | `src/main.tsx` | Creates the single `QueryClient` from `createQueryClient()` and renders `<App />` |
 | `src/queryClient.ts` | `createQueryClient()`: the only default options are `retry: 2` and `retryDelay: 1000` (AC-6.1). Tests use the same factory. |
-| `src/api/businesses.ts` | `fetchBusinesses()`: plain `fetch` to `${VITE_API_BASE_URL}/businesses`; throws on a non-OK response. In local development `VITE_API_BASE_URL` is empty and the Vite dev server proxies `/businesses` to the `dev` API, so CORS stays strict. |
+| `src/api/businesses.ts` | `fetchBusinesses()`: plain `fetch` to `${VITE_API_BASE_URL}/businesses`; throws on a non-OK response. In local development `VITE_API_BASE_URL` is empty and the Vite dev server proxies `/businesses` to the `dev` API, so CORS stays limited to the CloudFront origin. There is no local backend server; the endpoint is covered by tests. |
 | `src/features/businesses/queryKeys.ts` | `BUSINESSES_QUERY_KEY = ['businesses'] as const` |
 | `src/features/businesses/useBusinesses.ts` | `useQuery` wrapper, the only place that calls the API function |
 | `src/features/businesses/whatsapp.ts` | `buildWhatsappUrl(number)`: `https://wa.me/<number>?text=<encoded greeting>` (AC-4.1, AC-4.2) |
@@ -215,16 +215,7 @@ Documented manual checks (cannot be automated without extra tooling):
 | R-5 | Cross-origin requests from the frontend host to API Gateway need CORS | Configured with the infrastructure (separate spec); `VITE_API_BASE_URL` keeps the API origin out of the code |
 | R-6 | JavaScript dates have millisecond precision while `TIMESTAMPTZ` has microseconds, so near-equal times may tie | The name and id tie-breaks keep the order deterministic |
 
-## 11. Open Questions
-
-All resolved on 2026-10-23:
-
-- **Q-1.** Resolved: WhatsApp validation rule added to the spec as AC-2.5.
-- **Q-2.** Resolved: dependencies approved in spec section 8a.
-- **Q-3.** Resolved: spec `002-infrastructure` (Lambda, API Gateway, Aurora PostgreSQL cluster, frontend hosting, CORS, VPC) is written and approved before tasks for 001 start. Done.
-- **R-2.** Resolved: database access through the RDS Data API (spec 002, I-4).
-
-## 12. Constitution Check
+## 11. Constitution Check
 
 1. **Stack Simplicity:** Complies. Only the fixed stack is used (React + TypeScript, Express on Lambda behind API Gateway, Aurora PostgreSQL, Tailwind, TanStack Query). The extra packages are listed in section 7 and approved in spec section 8a.
 2. **Spec-Code Alignment:** Complies. The spec is Approved, every part of the plan traces to an FR or NFR (section 9), and nothing outside spec 001 is planned. Items the spec does not cover are raised as open questions instead of assumed.
