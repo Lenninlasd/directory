@@ -52,7 +52,7 @@ Prerequisite: M1 of tasks 001 is done.
 
 - [x] **002-T4 API Lambda, HTTP API, CORS, and logs**
   - **Covers:** AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, NFR-5, plan P-3, P-4, P-12, R-2
-  - **Do:** `api` function (`nodejs24.x`, `arm64`, 256 MB, timeout 10 s, no VPC, environment variables `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `DATABASE_NAME`), built by the SAM makefile builder (`backend/Makefile` runs esbuild with `pnpm exec`; changed 2026-10-27 because the SAM esbuild builder runs `npm install`). `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin of the same environment (until 002-T7 exists, no browser origin is allowed; test with `curl`). Log group with 30-day retention. Role: logs, `rds-data:ExecuteStatement` on the cluster ARN, `secretsmanager:GetSecretValue` on the secret ARN, nothing else.
+  - **Do:** `api` function (`nodejs24.x`, `arm64`, 256 MB, timeout 10 s, no VPC, environment variables `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `DATABASE_NAME`), built by the SAM makefile builder (`backend/Makefile` runs esbuild with `pnpm exec`, plan section 7). `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin of the same environment (until 002-T7 exists, no browser origin is allowed; test with `curl`). Log group with 30-day retention. Role: logs, `rds-data:ExecuteStatement` on the cluster ARN, `secretsmanager:GetSecretValue` on the secret ARN, nothing else.
   - **Checks first:** `curl -i https://<api>/businesses` returns `200` and `{"businesses":[]}`; a request with a non-allowed `Origin` gets no `Access-Control-Allow-Origin`; log retention is 30 days; the role policy has exactly the three permissions.
   - **Done when:** checks pass in `dev`.
 
@@ -100,11 +100,3 @@ Prerequisite: M3 of tasks 001 is done.
   - **Do:** a data migration (next free number, one `INSERT` statement) with the real businesses provided by the team: name, category, location summary, store type, WhatsApp number with country code, active flag. Own pull request. Compatible with the deployed backend (AC-5.3).
   - **Checks first:** after deploy, `GET /businesses` in `dev` and `prod` lists them in the FR-5 order; any number returned as `null` is reported to the team for correction.
   - **Done when:** checks pass in both environments.
-
-## Decisions
-
-- Seed runs only in `dev` (`--seed` is refused otherwise).
-- Real business data arrives through data migrations (spec FR-7).
-- CI runs tests on every pull request (spec FR-8).
-- All database access goes through the RDS Data API (spec I-4): no migration Lambda, no database users, no VPC Lambda.
-- `prod` is created only at launch; no SPA fallback; failure drills and the latency check were removed (2026-10-24).

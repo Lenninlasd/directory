@@ -1,6 +1,6 @@
 # Plan 002: Hosting, Deployment, and Infrastructure
 
-- **Status:** Approved (approved by the project owner in chat on 2026-10-24, after the RDS Data API rewrite and simplifications)
+- **Status:** Approved (approved by the project owner in chat on 2026-10-24)
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Created:** 2026-10-23
 
@@ -22,7 +22,7 @@ One SAM template, `infra/template.yaml`, deployed once per environment with `sam
 
 ## 2. Verified AWS Facts (checked 2026-10-23 and 2026-10-24)
 
-Each fact was checked against the official AWS documentation. Sources are listed in section 12.
+Each fact was checked against the official AWS documentation. Sources are listed in section 11.
 
 | # | Fact | Consequence |
 |---|---|---|
@@ -46,11 +46,10 @@ Each fact was checked against the official AWS documentation. Sources are listed
 | P-5 | Network for the database only: a VPC with two private subnets in two Availability Zones (required by the DB subnet group) and a database security group with **no inbound rules**. No NAT, no internet gateway, no VPC endpoints. | The database is unreachable over the network; only the Data API reaches it (AC-3.2). |
 | P-6 | One database credential: the Aurora-managed master user secret, used only through the Data API. No `app_user` or `migrator` roles. | No bootstrap problem. Trade-off in R-2. |
 | P-7 | Frontend cache: hashed asset names with long cache, `index.html` not cached, CloudFront invalidation of `/index.html` on deploy | AC-4.5 |
-| P-8 | No SPA fallback: the directory is one page (spec section 8) | Removed 2026-10-24 |
 | P-9 | Region `us-east-1`, single AWS account; names carry the environment (for example `alameda-dev-api`) and every resource is tagged `Environment` and `Project` | Spec I-6, Q-7 |
 | P-10 | Migrations and seed run from the developer's machine with `node backend/scripts/migrate.ts <env> [--seed]`, through the Data API, using the developer's AWS credentials. Node.js 24 runs TypeScript files directly by stripping types, so no extra tool is needed (to confirm in 001-T6). | No migration Lambda, no bundled `.sql` files. |
 | P-11 | Migration files hold exactly one SQL statement each. The runner runs each file in its own Data API transaction and records it in `schema_migrations` in the same transaction. | Avoids depending on multi-statement support in the Data API, and keeps every file atomic. |
-| P-12 | Data API calls go through one small wrapper that passes named parameters and supports transactions. It does **not** retry: a `DatabaseResumingException` fails the request (changed 2026-10-24 by the owner). | Simpler code. Only `dev` pauses (P-1); its first request after a pause shows the error screen, and "Reintentar" or re-running the migration script works once the database is awake. |
+| P-12 | Data API calls go through one small wrapper that passes named parameters and supports transactions. It does **not** retry: a `DatabaseResumingException` fails the request. | Simpler code. Only `dev` pauses (P-1); its first request after a pause shows the error screen, and "Reintentar" or re-running the migration script works once the database is awake. |
 | P-13 | CI: `.github/workflows/ci.yml` on pull requests to `main`: pnpm install with the frozen lockfile, lint, typecheck, test. No AWS credentials, no deploy. | Spec FR-8, constitution 4 |
 | P-14 | Delivery: one branch and one pull request per milestone, one commit per task | Owner decision 2026-10-24 |
 
@@ -95,7 +94,7 @@ Each fact was checked against the official AWS documentation. Sources are listed
 
 - `backend/src/db/dataApi.ts` (plan 001): the Data API wrapper of P-12, used by the repository and by `runMigrations`.
 - `backend/scripts/migrate.ts` (P-10).
-- `esbuild` is a backend dev dependency (spec section 9). `backend/Makefile` runs it with `pnpm exec` for the SAM makefile builder (`BuildMethod: makefile`), so the bundle uses the versions in `pnpm-lock.yaml`. SAM's esbuild builder is not used because it runs `npm install` (changed 2026-10-27, owner decision).
+- `esbuild` is a backend dev dependency (spec section 9). `backend/Makefile` runs it with `pnpm exec` for the SAM makefile builder (`BuildMethod: makefile`), so the bundle uses the versions in `pnpm-lock.yaml`. SAM's esbuild builder is not used because it runs `npm install`, which ignores `pnpm-lock.yaml`.
 
 ## 8. Verification
 
@@ -149,15 +148,7 @@ Checks are written first and recorded in `infra/README.md`. Failure cases (EC-1,
 | R-5 | Accidental deletion of the `prod` cluster | Deletion protection, `Retain` policy, final snapshot |
 | R-6 | SAM CLI and AWS CLI versions affect the template | Record versions in `infra/README.md` |
 
-## 11. Decisions Taken
-
-- 2026-10-23: no RDS Proxy; `dev` scales to zero, `prod` 0.5 to 2 ACU; seed approved for `dev` only.
-- 2026-10-24: data migrations for real businesses (FR-7); CI for tests (FR-8); backward-compatible migrations (AC-5.3); one branch and pull request per milestone; **RDS Data API for all database access**, which removed the Lambda VPC, IAM database tokens, database users, the bootstrap step, the Secrets Manager endpoint, and the migration Lambda.
-- 2026-10-24 simplifications: `prod` is created only at launch (M5); no SPA fallback; failure and rollback drills and the region latency check removed (unit tests cover EC-1 and EC-4; rollback stays documented); no local development server.
-
-No open questions remain.
-
-## 12. Sources Used
+## 11. Sources Used
 
 - Aurora Serverless v2 auto-pause: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2-auto-pause.html>
 - Aurora PostgreSQL release calendar: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraPostgreSQLReleaseNotes/aurorapostgresql-release-calendar.html>
@@ -167,7 +158,7 @@ No open questions remain.
 - Data API access: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.access.html>
 - Lambda runtimes: <https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html>
 
-## 13. Constitution Check
+## 12. Constitution Check
 
 1. **Stack Simplicity:** Complies. Fixed stack plus approved S3, CloudFront, SAM, and GitHub Actions. The Data API is part of Aurora; its client package is approved in spec 001 section 8a.
 2. **Spec-Code Alignment:** Complies. Every part traces to an AC or NFR (section 9).

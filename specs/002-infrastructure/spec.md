@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-27 (esbuild runs through the SAM makefile builder with pnpm); 2026-10-24 (RDS Proxy removed; FR-7 data migrations and FR-8 CI added; AC-2.3 and AC-5.3 clarified; database access through the RDS Data API; simplified: `prod` created at launch, no SPA fallback, fewer drills)
+- **Last updated:** 2026-10-27
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
@@ -35,7 +35,7 @@
 | I-1 | Two environments, `dev` and `prod`, each with its own full set of resources. Only `dev` is created at first; `prod` is created from the same template when the directory launches (M5). | Safe testing before production, without paying for `prod` before it has users |
 | I-2 | IaC with AWS SAM (`template.yaml`) | Serverless-first; SAM covers Lambda, API Gateway, and plain CloudFormation resources for the rest |
 | I-3 | Frontend hosting: private S3 bucket behind CloudFront | Static hosting, HTTPS, global caching |
-| I-4 | All database access goes through the RDS Data API (HTTPS, managed by AWS). Lambda runs outside the VPC and opens no database connections. RDS Proxy is not used. (Changed 2026-10-24, was: direct IAM connection from a VPC Lambda; before that, RDS Proxy.) | Removes Lambda VPC networking, connection handling, database users, and the migration Lambda. AWS manages connections, so connection exhaustion is not a concern. |
+| I-4 | All database access goes through the RDS Data API (HTTPS, managed by AWS). Lambda runs outside the VPC and opens no database connections. RDS Proxy is not used. | Removes Lambda VPC networking, connection handling, database users, and the migration Lambda. AWS manages connections, so connection exhaustion is not a concern. |
 | I-5 | Access is controlled by IAM permissions on the Data API (`rds-data:*` actions on the cluster) plus the Aurora-managed master user secret in Secrets Manager (created and rotated by AWS), which the Data API reads on the caller's behalf. The application never reads the password. | No password in the application, the repository, or environment variables |
 | I-6 | Primary region: `us-east-1` (confirmed, Q-1) | See section 4a |
 
@@ -71,7 +71,6 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 
 - **AC-4.1.** The system shall store the built frontend in a private S3 bucket that is reachable only through CloudFront.
 - **AC-4.2.** CloudFront shall serve the site over HTTPS and redirect HTTP to HTTPS.
-- **AC-4.3.** Removed 2026-10-24 (single page, see section 8).
 - **AC-4.4.** The frontend build shall receive the API base URL of its environment (`VITE_API_BASE_URL`) at build time.
 - **AC-4.5.** Deploying a new frontend version shall make it visible to users without waiting for stale cache entries (cache invalidation or versioned asset names).
 
@@ -113,7 +112,6 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 |---|---|---|
 | EC-1 | The database is unreachable or rejects a request | The API returns `500 { "error": "internal_error" }` (spec 001 AC-6.4); details only in logs (verified by unit tests) |
 | EC-2 | A browser from a different origin calls the API | The browser blocks it (AC-2.4) |
-| EC-3 | Removed 2026-10-24 (single page) | n/a |
 | EC-4 | A migration fails halfway | The transaction rolls back (plan 001, section 2) and the release stops (verified by unit tests) |
 | EC-5 | A new frontend is deployed while users have the old one cached | New visitors get the new version (AC-4.5) |
 
@@ -136,7 +134,7 @@ Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-e
 | AWS SAM CLI | developer machine (not an npm package, not in the lockfile) | Build and deploy the template |
 | AWS CLI | developer machine | Upload the frontend to S3, invalidate CloudFront, authenticate |
 | GitHub Actions | repository (`.github/workflows/`) | CI for tests (FR-8) |
-| `esbuild` (npm, dev) | backend | Bundles the Lambda, run through `pnpm exec` by the SAM makefile builder (changed 2026-10-27: SAM's esbuild builder runs `npm install`, which ignores `pnpm-lock.yaml`) |
+| `esbuild` (npm, dev) | backend | Bundles the Lambda, run through `pnpm exec` by the SAM makefile builder (plan section 7) |
 
 Approved by the project owner on 2026-10-24. Tooling that is not a project dependency shall be documented with its required version in the deployment documentation.
 
@@ -153,13 +151,13 @@ Approved by the project owner on 2026-10-24. Tooling that is not a project depen
 
 Resolved on 2026-10-23:
 
-- **Q-1.** Region is `us-east-1` (I-6 confirmed). No separate latency measurement (decided 2026-10-24).
+- **Q-1.** Region is `us-east-1` (I-6 confirmed). No separate latency measurement.
 - **Q-2.** Aurora Serverless v2 in both environments. `dev` scales to zero when idle. `prod` keeps a minimum capacity above zero so users never wait for a resume (details in the plan).
 - **Q-3.** No custom domain for the first release (stays out of scope, section 8).
 - **Q-5.** CloudWatch log retention is 30 days. `prod` backup retention is 7 days. `dev` uses the minimum.
 - **Q-7.** One AWS account holds both environments, separated by resource names and tags.
 
-- **Q-4.** Migrations run through a script that uses the RDS Data API, invoked by the deploy command (AC-5.2a; changed 2026-10-24, was: a migration Lambda in the VPC). The same script runs the `dev` seed.
+- **Q-4.** Migrations run through a script that uses the RDS Data API, invoked by the deploy command (AC-5.2a). The same script runs the `dev` seed.
 - **Q-6.** Obsolete: RDS Proxy is not used (I-4). The only secret is the Aurora-managed master user secret, read by the Data API (I-5).
-- **Q-8.** RDS Proxy is not needed: the Data API manages connections (decided 2026-10-24).
+- **Q-8.** RDS Proxy is not needed: the Data API manages connections.
 - **Q-9.** `backend/seeds/dev_businesses.sql` (sample rows, `dev` only, never run in `prod`) is approved as a deliverable.

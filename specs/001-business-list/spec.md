@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-29 (section 8a: `@testing-library/dom` added, `eslint-plugin-react-hooks` moved to the root)
+- **Last updated:** 2026-10-29
 
 ## 1. Context and Objective
 

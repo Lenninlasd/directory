@@ -74,7 +74,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 
 - [x] **001-T8 Data API wrapper**
   - **Covers:** plan D-3; spec 002 I-4, I-5; plan 002 P-12
-  - **Do:** `backend/src/db/dataApi.ts`: reads cluster ARN, secret ARN, and database from environment variables; exposes `execute(sql, parameters)` and `inTransaction` for `runMigrations`; passes named parameters; does not retry (plan 002 P-12, simplified 2026-10-24). The Lambda handler wires it into the repository.
+  - **Do:** `backend/src/db/dataApi.ts`: reads cluster ARN, secret ARN, and database from environment variables; exposes `execute(sql, parameters)` and `inTransaction` for `runMigrations`; passes named parameters; does not retry (plan 002 P-12). The Lambda handler wires it into the repository.
   - **Tests first (mocked `RDSDataClient`):** the configured ARNs and database are sent; parameters are passed as named parameters; JSON records are parsed; errors, including `DatabaseResumingException`, are not retried; transactions commit, or roll back and rethrow; a missing environment variable fails with a clear message (in English, logged, not returned to the client).
   - **Done when:** tests pass. No credentials in code or tests.
 
@@ -127,10 +127,10 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 
 All resolved by the project owner on 2026-10-23 and 2026-10-24:
 
-- **Q-1.** No local backend server (removed 2026-10-24); the endpoint is covered by tests, and the first real request is in M2.
-- **Q-2.** No database users migration anymore (RDS Data API); `001_create_businesses.sql` is the first migration.
+- **Q-1.** No local backend server; the endpoint is covered by tests, and the first real request is in M2.
+- **Q-2.** `001_create_businesses.sql` is the first migration; no database users migration (RDS Data API).
 - **Q-3.** Local frontend reaches the `dev` API through a Vite dev server proxy. CORS stays limited to the CloudFront origin.
-- **Q-4.** Migrations run through `backend/scripts/migrate.ts` and the RDS Data API (2026-10-24; this replaced the migration Lambda).
+- **Q-4.** Migrations run through `backend/scripts/migrate.ts` and the RDS Data API.
 - **Q-5.** One branch and pull request per milestone, one commit per task.
 
 ## Verification log
