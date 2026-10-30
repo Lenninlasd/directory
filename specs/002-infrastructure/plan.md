@@ -22,7 +22,7 @@ One SAM template, `infra/template.yaml`, deployed once per environment with `sam
 
 ## 2. Verified AWS Facts (checked 2026-10-23 and 2026-10-24)
 
-Each fact was checked against the official AWS documentation. Sources are listed in section 11.
+Each fact was checked against the official AWS documentation. Sources are listed in section 10.
 
 | # | Fact | Consequence |
 |---|---|---|
@@ -47,11 +47,10 @@ Each fact was checked against the official AWS documentation. Sources are listed
 | P-6 | One database credential: the Aurora-managed master user secret, used only through the Data API. No `app_user` or `migrator` roles. | No bootstrap problem. Trade-off in R-2. |
 | P-7 | Frontend cache: hashed asset names with long cache, `index.html` not cached, CloudFront invalidation of `/index.html` on deploy | AC-4.5 |
 | P-9 | Region `us-east-1`, single AWS account; names carry the environment (for example `alameda-dev-api`) and every resource is tagged `Environment` and `Project` | Spec I-1, I-6 |
-| P-10 | Migrations and seed run from the developer's machine with `node backend/scripts/migrate.ts <env> [--seed]`, through the Data API, using the developer's AWS credentials. Node.js 24 runs TypeScript files directly by stripping types, so no extra tool is needed (to confirm in 001-T6). | No migration Lambda, no bundled `.sql` files. |
+| P-10 | Migrations and seed run from the developer's machine with `node backend/scripts/migrate.ts <env> [--seed]`, through the Data API, using the developer's AWS credentials. Node.js 24 runs TypeScript files directly by stripping types, so no extra tool is needed. | No migration Lambda, no bundled `.sql` files. |
 | P-11 | Migration files hold exactly one SQL statement each. The runner runs each file in its own Data API transaction and records it in `schema_migrations` in the same transaction. | Avoids depending on multi-statement support in the Data API, and keeps every file atomic. |
 | P-12 | Data API calls go through one small wrapper that passes named parameters and supports transactions. It does **not** retry: a `DatabaseResumingException` fails the request. | Simpler code. Only `dev` pauses (P-1); its first request after a pause shows the error screen, and "Reintentar" or re-running the migration script works once the database is awake. |
 | P-13 | CI: `.github/workflows/ci.yml` on pull requests to `main`: pnpm install with the frozen lockfile, lint, typecheck, test. No AWS credentials, no deploy. | Spec FR-8, constitution 4 |
-| P-14 | Delivery: one branch and one pull request per milestone, one commit per task | Owner decision 2026-10-24 |
 
 ## 4. Repository Layout (new files)
 
@@ -90,11 +89,9 @@ Each fact was checked against the official AWS documentation. Sources are listed
 
 **Rollback (AC-6.3).** Redeploy the previous Git commit with the same command. Migrations are forward-only; a bad migration is fixed by a new file.
 
-## 7. Backend Changes Required by This Plan
+## 7. Backend Build
 
-- `backend/src/db/dataApi.ts` (plan 001): the Data API wrapper of P-12, used by the repository and by `runMigrations`.
-- `backend/scripts/migrate.ts` (P-10).
-- `esbuild` is a backend dev dependency (spec section 9). `backend/Makefile` runs it with `pnpm exec` for the SAM makefile builder (`BuildMethod: makefile`), so the bundle uses the versions in `pnpm-lock.yaml`. SAM's esbuild builder is not used because it runs `npm install`, which ignores `pnpm-lock.yaml`.
+`esbuild` is a backend dev dependency (spec section 9). `backend/Makefile` runs it with `pnpm exec` for the SAM makefile builder (`BuildMethod: makefile`), so the bundle uses the versions in `pnpm-lock.yaml`. SAM's esbuild builder is not used because it runs `npm install`, which ignores `pnpm-lock.yaml`.
 
 ## 8. Verification
 
@@ -117,38 +114,17 @@ Checks are written first and recorded in `infra/README.md`. Failure cases (EC-1,
 | CI | A pull request with a failing test is blocked | FR-8 |
 | Data migration | A data migration adds a business; the API shows it | FR-7 |
 
-## 9. Traceability
-
-| Requirement | Covered by |
-|---|---|
-| FR-1 | Sections 4, 5, P-9, README |
-| FR-2 | Section 5 (Backend, IAM), P-3, P-4, P-12 |
-| FR-3 | Section 5 (Network, Database), P-1, P-2, P-5, P-6 |
-| FR-4 | Section 5 (Frontend), P-7, section 6 |
-| FR-5 | P-10, P-11, section 6 |
-| FR-6 | Section 6, `infra/deploy.sh`, README |
-| FR-7 | Section 4 (data migrations, seed), P-10 |
-| FR-8 | P-13 |
-| NFR-1 | P-1, P-3, P-12, check "Performance" |
-| NFR-2 | P-5, P-6, section 5 (IAM) |
-| NFR-3 | P-1, P-2, P-5 (no NAT, no endpoints) |
-| NFR-4 | Section 6, same template for both environments |
-| NFR-5 | Log group in section 5 |
-| EC-1, EC-4 | Unit tests of the endpoint (plan 001) and of `runMigrations` |
-| EC-2, EC-5 | Section 8 |
-
-## 10. Risks
+## 9. Risks
 
 | # | Risk | Mitigation |
 |---|---|---|
 | R-1 | Data API result types differ from a native driver (for example how `TIMESTAMPTZ` and `UUID` come back) | 001-T5 checks the documented formats, and the repository converts explicitly; covered by unit tests with sample responses. |
 | R-2 | The API role uses the master credential through the Data API, so a bug could in principle write data. There is no read-only database user. | The repository runs one constant `SELECT` with no user input, and the IAM policy allows only `ExecuteStatement` (no transactions). A read-only user can be added later through a spec change. |
 | R-3 | `dev` resume takes 15 to 30 s, and the first request after a pause fails | Accepted for `dev` (P-12). `prod` never pauses. |
-| R-4 | Node.js type stripping may not support every TypeScript syntax used in `migrate.ts` | Keep the script to erasable syntax; confirm in 001-T6. Fallback: run it after `tsc` compilation. |
 | R-5 | Accidental deletion of the `prod` cluster | Deletion protection, `Retain` policy, final snapshot |
 | R-6 | SAM CLI and AWS CLI versions affect the template | Record versions in `infra/README.md` |
 
-## 11. Sources Used
+## 10. Sources Used
 
 - Aurora Serverless v2 auto-pause: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2-auto-pause.html>
 - Aurora PostgreSQL release calendar: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraPostgreSQLReleaseNotes/aurorapostgresql-release-calendar.html>
@@ -158,12 +134,12 @@ Checks are written first and recorded in `infra/README.md`. Failure cases (EC-1,
 - Data API access: <https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/data-api.access.html>
 - Lambda runtimes: <https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html>
 
-## 12. Constitution Check
+## 11. Constitution Check
 
 All six principles are met:
 
 1. **Stack Simplicity:** fixed stack plus S3, CloudFront, SAM, and GitHub Actions (spec section 9); the Data API client is approved in spec 001 section 8a.
-2. **Spec-Code Alignment:** every part traces to an AC or NFR (section 9).
+2. **Spec-Code Alignment:** every part traces to an AC or NFR (see each task's **Covers** line).
 3. **Separation of Concerns:** no business rules in infrastructure; `migrate.ts` is a thin command over `runMigrations`.
 4. **Testing Standard:** unit tests in CI on every pull request (P-13); infrastructure checks in section 8.
 5. **Data Persistence:** schema and data changes are versioned one-statement SQL files; queries are parameterized.

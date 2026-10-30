@@ -14,9 +14,9 @@ Infrastructure cannot be unit tested like application code (spec section 10, cri
 2. Run them and confirm they fail (resource missing or wrong).
 3. Add the minimum template or script change.
 4. Run `sam validate --lint`, deploy to `dev`, and run the checks again. Backend code changes also need `pnpm -r lint`, `pnpm -r typecheck`, and `pnpm -r test`.
-5. Tick the checkbox and commit with the task id, for example `Add Aurora cluster to template (002-T2)`.
+5. Tick the checkbox.
 
-Work happens on one branch and pull request per milestone (plan P-14). Every pull request must pass CI (002-T0). Nothing is deployed to `prod` before M5. No account IDs or secrets in any committed file.
+Every pull request must pass CI (002-T0). Nothing is deployed to `prod` before M5.
 
 ## M1: Continuous integration
 
@@ -44,14 +44,14 @@ Prerequisite: M1 of tasks 001 is done.
   - **Done when:** checks pass in `dev`.
 
 - [x] **002-T3 Migration script**
-  - **Covers:** AC-5.1, AC-5.2, AC-5.2a, EC-4, plan P-10, P-11, R-4
+  - **Covers:** AC-5.1, AC-5.2, AC-5.2a, EC-4, plan P-10, P-11
   - **Do:** `backend/scripts/migrate.ts <env> [--seed]`: reads the cluster ARN and secret ARN from the stack outputs, runs `runMigrations` (001-T6) through `dataApi.ts` (001-T8), prints the applied files. `--seed` is refused unless the environment is `dev`. Confirm that Node.js 24 runs it directly (type stripping); otherwise compile with `tsc` first and document that.
   - **Tests first (unit, fake wrapper):** `--seed` refused for `prod`; unknown environment rejected; output lists applied files; a failing migration exits with a non-zero code.
   - **Checks first:** `node backend/scripts/migrate.ts dev` applies `001_create_businesses.sql`; a second run applies nothing; `schema_migrations` lists the file.
   - **Done when:** tests and checks pass.
 
 - [x] **002-T4 API Lambda, HTTP API, CORS, and logs**
-  - **Covers:** AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, NFR-5, plan P-3, P-4, P-12, R-2
+  - **Covers:** AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, EC-2, NFR-5, plan P-3, P-4, P-12, R-2
   - **Do:** `api` function (`nodejs24.x`, `arm64`, 256 MB, timeout 10 s, no VPC, environment variables `DATA_API_CLUSTER_ARN`, `DATA_API_SECRET_ARN`, `DATABASE_NAME`), built by the SAM makefile builder (`backend/Makefile` runs esbuild with `pnpm exec`, plan section 7). `AWS::Serverless::HttpApi` with `GET /businesses` and CORS for the CloudFront origin of the same environment (until 002-T7 exists, no browser origin is allowed; test with `curl`). Log group with 30-day retention. Role: logs, `rds-data:ExecuteStatement` on the cluster ARN, `secretsmanager:GetSecretValue` on the secret ARN, nothing else.
   - **Checks first:** `curl -i https://<api>/businesses` returns `200` and `{"businesses":[]}`; a request with a non-allowed `Origin` gets no `Access-Control-Allow-Origin`; log retention is 30 days; the role policy has exactly the three permissions.
   - **Done when:** checks pass in `dev`.

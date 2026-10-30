@@ -132,8 +132,6 @@ Approved by the project owner on 2026-10-23 and extended on 2026-10-24 and 2026-
 | `@types/node`, `@types/express`, `@types/react`, `@types/react-dom` | dev | Type definitions for strict TypeScript |
 | `eslint-plugin-react-hooks` | root (dev) | Lint rules for correct hook usage, applied to `frontend/` only. Installed at the root next to `eslint` because the shared `eslint.config.mjs` imports it (2026-10-29, 001-T9) |
 
-Exact package names are confirmed against official documentation in the first task that uses them.
-
 ## 9. Completion Criteria
 
 This feature is complete when all of the following are true:
@@ -142,4 +140,3 @@ This feature is complete when all of the following are true:
 2. The non-functional requirements are met.
 3. All edge cases (EC-1 to EC-6) behave as described.
 4. A user can open the directory, browse the businesses, and start a WhatsApp conversation with one of them.
-5. This spec is marked `Status: Approved` by a human before planning starts.

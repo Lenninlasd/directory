@@ -8,15 +8,7 @@
 
 ## How to work a task
 
-1. Read the task, its acceptance criteria, and the plan section it cites.
-2. Write the tests listed under **Tests first**. Run them and confirm they fail for the expected reason.
-3. Write the minimum code to make them pass.
-4. Run `pnpm -r lint`, `pnpm -r typecheck`, and `pnpm -r test`. All must pass.
-5. Tick the checkbox and commit with the task id, for example `Add WhatsApp number rule (001-T3)`.
-
-Work happens on one branch per milestone (for example `m1-backend`), with one commit per task and one pull request per milestone. The pull request title follows AGENTS.md, links the specs, lists the acceptance criteria covered, and must pass CI (002-T0).
-
-A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
+Follow the AGENTS.md workflow: write the **Tests first** and see them fail, write the minimum code, run lint, typecheck, and test, then tick the checkbox. Every pull request must pass CI (002-T0).
 
 ## Execution order across specs
 
@@ -67,7 +59,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Done when:** tests pass. The SQL file holds only the `CREATE TABLE` statement.
 
 - [x] **001-T7 Express app and Lambda handler (endpoint)**
-  - **Covers:** AC-1.1, AC-6.4, AC-7.1 (API side), FR-1, FR-7; plan section 3, D-8
+  - **Covers:** AC-1.1, AC-6.4, AC-7.1 (API side), FR-1, FR-7; plan section 3, D-8; spec 002 EC-1
   - **Do:** `backend/src/app.ts` `createApp(deps)` with `GET /businesses` and an error middleware. `backend/src/handlers/lambda.ts` adapts the app with `serverless-http` and wires real dependencies. Logs never include request headers or client IP addresses.
   - **Tests first (handler called with an API Gateway HTTP API event, fake repository):** `200` with the exact contract of plan section 3; `200` with `{"businesses": []}`; when the repository throws, `500` with body exactly `{"error":"internal_error"}` and no stack or database text; the error is logged without request headers or client IP; the response `Content-Type` is JSON.
   - **Done when:** tests pass. The handler contains no business rules.

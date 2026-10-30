@@ -22,11 +22,9 @@
 
 ## 3. General Constraints
 
-- Everything in the stack is fixed by `docs/constitution.md`: Lambda + API Gateway, Aurora PostgreSQL, React frontend. This spec adds hosting for the frontend (S3 + CloudFront) and the IaC tool (AWS SAM).
+- This spec adds frontend hosting (S3 + CloudFront) and the IaC tool (AWS SAM) to the stack fixed by `docs/constitution.md`.
 - No credentials, tokens, account IDs, or database passwords in the repository. Environment-specific values come from deploy-time parameters and environment variables.
 - The database is never reachable from the public internet.
-- Lambda keeps no long-lived state between invocations (AGENTS.md). It holds no database connections: every query is an HTTPS call to the RDS Data API (I-4).
-- Documentation, identifiers, and resource names are in English.
 
 ## 4. Decisions Taken
 
@@ -37,11 +35,7 @@
 | I-3 | Frontend hosting: private S3 bucket behind CloudFront | Static hosting, HTTPS, global caching |
 | I-4 | All database access goes through the RDS Data API (HTTPS, managed by AWS). Lambda runs outside the VPC and opens no database connections. RDS Proxy is not used. | Removes Lambda VPC networking, connection handling, database users, and the migration Lambda. AWS manages connections, so connection exhaustion is not a concern. |
 | I-5 | Access is controlled by IAM permissions on the Data API (`rds-data:*` actions on the cluster) plus the Aurora-managed master user secret in Secrets Manager (created and rotated by AWS), which the Data API reads on the caller's behalf. The application never reads the password. | No password in the application, the repository, or environment variables |
-| I-6 | Primary region: `us-east-1` | See section 4a |
-
-### 4a. Region rationale
-
-Candidate regions for users in Barranquilla: `us-east-1` (N. Virginia) and `sa-east-1` (São Paulo). Latency from Colombia to `us-east-1` is generally similar to or lower than to São Paulo, because international routes from the Caribbean coast mostly pass through the United States. `us-east-1` also has the widest service availability and lower prices. CloudFront serves the frontend from edge locations regardless of the origin region, so the region choice mainly affects the API and the database.
+| I-6 | Primary region: `us-east-1` | Latency from Colombia is similar to or lower than to `sa-east-1`, because routes from the Caribbean coast mostly pass through the United States; widest service availability and lower prices. CloudFront serves the frontend from the edge regardless of region. |
 
 ## 5. Functional Requirements
 
@@ -145,4 +139,3 @@ Approved by the project owner on 2026-10-24. Tooling that is not a project depen
 3. The spec 001 manual checks (inactive rows, WhatsApp, layout, accessibility, performance, freshness) pass in `dev`.
 4. The database is confirmed unreachable from the public internet.
 5. Deployment and migration have been executed at least once in `dev`, and rollback is documented.
-6. This spec is marked `Status: Approved` by a human before planning starts.

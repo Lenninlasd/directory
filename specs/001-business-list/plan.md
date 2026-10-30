@@ -4,7 +4,7 @@
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Created:** 2026-10-23
 
-Scope: application code only (frontend, backend, one migration). Hosting, deployment, and infrastructure-as-code are not covered by spec 001 and need their own spec.
+Scope: application code only (frontend, backend, one migration). Hosting, deployment, and infrastructure are in spec 002.
 
 ## 1. Technical Approach
 
@@ -18,12 +18,6 @@ Browser (React + TanStack Query)
         -> businessRepository                     raw SQL, active rows only
           -> RDS Data API (HTTPS) -> Aurora PostgreSQL (businesses table)
 ```
-
-Key decisions:
-
-- Sorting and WhatsApp validation are pure functions in the service layer, so they are tested without a database (AGENTS.md testing standard).
-- The repository only filters (`is_active = true`). Sorting is done in the service (see D-2).
-- The API returns `whatsappNumber: string | null`. The frontend builds the `wa.me` link and owns all Spanish text.
 
 ## 2. Data Model
 
@@ -99,7 +93,7 @@ The service receives the repository function as an argument (plain function pass
 
 ### Business rules
 
-**WhatsApp number (AC-2.2, AC-2.3, EC-5).** Rule defined in spec AC-2.5: strip spaces, dashes, parentheses, and a leading `+`; the result is valid when it is 8 to 15 digits and does not start with `0`. Return the digits, or `null`. The team stores numbers with country code (for example `573001234567`).
+**WhatsApp number (AC-2.2, AC-2.3, EC-5).** Apply the rule of spec AC-2.5 and return the normalized digits, or `null`.
 
 **Ordering (AC-5.1, AC-5.2, EC-6).**
 
@@ -174,41 +168,22 @@ Documented manual checks (cannot be automated without extra tooling):
 5. **Performance (NFR-1):** measure first load on a throttled mobile connection, including a cold Lambda start.
 6. **Freshness (NFR-5):** change a row in the `dev` seed, run the seed again, and confirm the change appears on the next page load.
 
-## 9. Traceability
-
-| Requirement | Covered by |
-|---|---|
-| FR-1 (AC-1.1 to 1.3) | Sections 2, 3, 4 (repository, service), 5 (`BusinessList`, loading state) |
-| FR-2 (AC-2.1 to 2.4) | Section 3 (response fields), section 4 (`whatsappNumber`), section 5 (`BusinessCard`) |
-| FR-3 (AC-3.1, 3.2) | Section 2 (`has_physical_store`), section 5 (`strings.ts`, `BusinessCard`) |
-| FR-4 (AC-4.1, 4.2) | Section 5 (`whatsapp.ts`, `WhatsAppButton`), D-4 |
-| FR-5 (AC-5.1, 5.2) | Section 4 (ordering rule), D-2 |
-| FR-6 (AC-6.1 to 6.4) | Section 3 (500 body), section 5 (`queryClient.ts`, error state), D-6 |
-| FR-7 (AC-7.1) | Section 3 (empty array), section 5 (`BusinessList`) |
-| NFR-1 | D-3, R-1, manual check 5 |
-| NFR-2 | Section 5 (layout), manual check 3 |
-| NFR-3 | Section 5 (accessibility notes), manual check 4 |
-| NFR-4 | Section 5 (all four states always rendered by `BusinessList`) |
-| NFR-5 | D-3 (no caching layer), manual check 6 |
-| EC-1 to EC-6 | Tests in section 8, rows for service, components, and hook |
-
-## 10. Risks
+## 9. Risks
 
 | # | Risk | Mitigation |
 |---|---|---|
 | R-1 | Lambda cold start plus a Data API call may exceed the 3 s target (NFR-1) | Measure in manual check 5. If it fails, propose a spec change rather than working around it silently. |
-| R-2 | Data API result formats (timestamps, UUIDs) differ from a native driver | The repository converts explicitly and is tested with sample Data API responses (plan 002, R-1). Engine version and `gen_random_uuid()` were confirmed in plan 002 (V-2, V-3). |
-| R-3 | Connection exhaustion | Not applicable: the Data API manages connections (spec 002, I-4). |
+| R-2 | Data API result formats (timestamps, UUIDs) differ from a native driver | The repository converts explicitly and is tested with sample Data API responses (plan 002, R-1). |
 | R-4 | Returning every row grows the response and query time as businesses are added | Acceptable for hundreds of rows. Pagination is the planned future spec. |
-| R-5 | Cross-origin requests from the frontend host to API Gateway need CORS | Configured with the infrastructure (separate spec); `VITE_API_BASE_URL` keeps the API origin out of the code |
+| R-5 | Cross-origin requests from the frontend host to API Gateway need CORS | Configured in spec 002 (AC-2.4); `VITE_API_BASE_URL` keeps the API origin out of the code |
 | R-6 | JavaScript dates have millisecond precision while `TIMESTAMPTZ` has microseconds, so near-equal times may tie | The name and id tie-breaks keep the order deterministic |
 
-## 11. Constitution Check
+## 10. Constitution Check
 
 All six principles are met:
 
 1. **Stack Simplicity:** fixed stack only; extra packages approved in spec section 8a.
-2. **Spec-Code Alignment:** every part traces to an FR or NFR (section 9); nothing outside spec 001.
+2. **Spec-Code Alignment:** every part traces to an FR or NFR (see each task's **Covers** line); nothing outside spec 001.
 3. **Separation of Concerns:** domain and service modules import no framework; handlers and components hold no business rules (sections 4, 5).
 4. **Testing Standard:** tests first for business rules and the endpoint, run in CI (spec 002 FR-8); manual checks for the rest (section 8).
 5. **Data Persistence:** versioned one-statement SQL migrations, raw parameterized SQL, no ORM (section 2, D-7).

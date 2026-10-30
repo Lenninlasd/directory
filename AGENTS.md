@@ -103,7 +103,7 @@ Run lint, type check, and tests before finishing any task, and fix failures befo
 
 ## Commits and pull requests
 
-- Commit messages in English, imperative mood, referencing the task, for example: `Add businesses list endpoint (001-T3)`.
+- Commit messages in English, imperative mood, referencing the task, for example: `[001-T3] Add businesses list endpoint`.
 - One branch and one pull request per milestone, one commit per task (see the milestone table in `specs/001-business-list/tasks.md`).
 - PR title format: `[001-business-list] <Short title>`.
 - PR description must link the spec and list which acceptance criteria it satisfies.
