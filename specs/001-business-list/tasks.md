@@ -110,7 +110,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first:** card shows name, category, and location summary; "En tienda" when `hasPhysicalStore` is true and "Solo domicilios" when false; button present with the right `href` and accessible name when a number exists; no button when the number is `null`, and the rest of the card still renders; no other business fields are rendered.
   - **Done when:** tests pass.
 
-- [ ] **001-T14 Business list, App, and entry point**
+- [x] **001-T14 Business list, App, and entry point**
   - **Covers:** AC-1.1, AC-1.3, AC-6.2, AC-6.3, AC-6.4, AC-7.1, NFR-2, NFR-4, EC-1, EC-2, EC-3
   - **Do:** `BusinessList.tsx` (loading with `role="status"`, error with `role="alert"` and a "Reintentar" `button` that calls `refetch`, empty message, list as `ul` with one column at 320 px and more from `md`), `App.tsx`, `main.tsx` with the single `QueryClient`.
   - **Tests first (mocked API, fresh `QueryClient`):** "Cargando…" while pending; one card per business in API order; empty message for `[]`; after retries fail, the exact error message and "Reintentar"; clicking "Reintentar" loads again and shows the list; the error view shows no technical details (no status code, no exception text).

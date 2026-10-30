@@ -89,6 +89,7 @@ Permissions needed so far (extended by later tasks as resources are added):
 - 002-T2: create, update, and delete the VPC, subnets, and security group (`ec2:*Vpc*`, `ec2:*Subnet*`, `ec2:*SecurityGroup*`, `ec2:Describe*`, `ec2:CreateTags`), the DB subnet group, cluster, and instance (`rds:*` on `alameda-*` resources); the Aurora-managed master secret (`secretsmanager:CreateSecret`, `secretsmanager:TagResource`, `secretsmanager:RotateSecret`, `kms:DescribeKey` on the `aws/secretsmanager` key); and, for the Data API check, `rds-data:ExecuteStatement` on the cluster and `secretsmanager:GetSecretValue` on its secret.
 - 002-T3: `cloudformation:DescribeStacks` on `alameda-*` stacks; `rds-data:ExecuteStatement`, `rds-data:BeginTransaction`, `rds-data:CommitTransaction`, and `rds-data:RollbackTransaction` on the cluster; `secretsmanager:GetSecretValue` on its secret.
 - 002-T4: create, update, and delete the `alameda-*` Lambda function (`lambda:*Function*`, `lambda:*Permission`, `lambda:TagResource`), its role (`iam:CreateRole`, `iam:DeleteRole`, `iam:GetRole`, `iam:PutRolePolicy`, `iam:DeleteRolePolicy`, `iam:GetRolePolicy`, `iam:TagRole`, `iam:PassRole` on `alameda-*` roles), the HTTP API (`apigateway:*` on `/apis*`), and the log group (`logs:CreateLogGroup`, `logs:DeleteLogGroup`, `logs:PutRetentionPolicy`, `logs:TagResource`, `logs:DescribeLogGroups`); for the checks, `lambda:GetFunctionConfiguration`, `iam:ListAttachedRolePolicies`, and `logs:FilterLogEvents`.
+- 002-T7: create, update, and delete the frontend bucket and its policy (`s3:CreateBucket`, `s3:DeleteBucket`, `s3:PutBucket*`, `s3:GetBucket*`, `s3:PutEncryptionConfiguration`, `s3:PutBucketOwnershipControls`, `s3:PutBucketPublicAccessBlock`, `s3:PutBucketPolicy`, `s3:DeleteBucketPolicy` on `alameda-*` buckets), the CloudFront distribution and origin access control (`cloudfront:*Distribution*`, `cloudfront:*OriginAccessControl*`, `cloudfront:TagResource`); for the checks, `s3:PutObject` and `s3:ListBucket` on the frontend bucket.
 
 ## Commands
 
@@ -240,3 +241,31 @@ The "Least privilege", "Database private", and "Encryption" checks of plan secti
 | `aws rds describe-db-clusters --db-cluster-identifier alameda-dev-db --query "DBClusters[0].{Encrypted:StorageEncrypted,Kms:KmsKeyId}"` | `true`, with a KMS key | Passed (2026-10-28): `true`, KMS key ARN set (the default `aws/rds` key) |
 | `aws secretsmanager describe-secret --secret-id "$SECRET_ARN" --query "{Kms:KmsKeyId,Rotation:RotationEnabled}"` | Encrypted with KMS, rotation enabled (managed by Aurora). `KmsKeyId` is `null` when the default `aws/secretsmanager` key is used; Secrets Manager always encrypts | Passed (2026-10-28): `KmsKeyId` `null` (default key), rotation `true` |
 | `curl -m 8 http://rds-data.us-east-1.amazonaws.com/Execute` and `curl -m 8 "http://<api host>/businesses"` | Both fail: the Data API and the HTTP API accept HTTPS only | Passed (2026-10-28): Data API over HTTP timed out, over HTTPS answered `403` (unsigned request); HTTP API over HTTP connection refused on port 80, over HTTPS `200` |
+
+### S3 bucket and CloudFront (002-T7, spec AC-4.1, AC-4.2, AC-2.4; plan P-7)
+
+The bucket is private (all public access blocked, SSE-S3 encryption, ACLs disabled). Only the CloudFront distribution of the same stack can read it, through Origin Access Control. Cache behavior (P-7): `assets/*` (hashed file names from Vite) uses the managed `CachingOptimized` policy; everything else, in practice `index.html`, uses the managed `CachingDisabled` policy. The API CORS configuration allows only this distribution's origin.
+
+Set these variables first (stack outputs, no values are written to the repository):
+
+```
+output() { aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text; }
+FRONTEND_URL=$(output FrontendUrl); BUCKET=$(output FrontendBucketName); API_URL=$(output ApiUrl)
+```
+
+Until 002-T8 adds the deploy script, upload the frontend for the checks by hand from the repository root:
+
+```
+VITE_API_BASE_URL="$API_URL" pnpm --filter frontend build
+aws s3 sync frontend/dist "s3://$BUCKET" --delete
+```
+
+| Check | Expected (`dev`) | Result |
+|---|---|---|
+| `curl -sI "${FRONTEND_URL/https/http}/"` | `301` with `location: https://…` (AC-4.2) | Pending |
+| `curl -sI "https://$BUCKET.s3.us-east-1.amazonaws.com/index.html"` | `403` (direct bucket access denied, AC-4.1) | Pending |
+| `curl -s "$FRONTEND_URL/" \| grep -o '<title>.*</title>'` | `<title>Directorio de Alameda del Río</title>` | Pending |
+| `curl -sI "$FRONTEND_URL/" \| grep -i x-cache` and the same for one file under `assets/` (requested twice) | `index.html` is never a hit (`Miss from cloudfront`); the asset is `Hit from cloudfront` on the second request (P-7) | Pending |
+| `curl -si -H "Origin: $FRONTEND_URL" "$API_URL/businesses" \| grep -i access-control-allow-origin` | The header equals `$FRONTEND_URL` (AC-2.4) | Pending |
+| `curl -si -H "Origin: https://example.com" "$API_URL/businesses" \| grep -i access-control` | No `access-control-*` header (EC-2) | Pending |
+| Open `$FRONTEND_URL` in a browser | The list loads from the API with no CORS error in the console | Pending |
