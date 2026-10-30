@@ -86,7 +86,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first:** one placeholder component test that fails until the setup works.
   - **Done when:** `pnpm --filter frontend dev` serves a page, and lint, typecheck, test, and build pass.
 
-- [ ] **001-T10 UI strings and WhatsApp link**
+- [x] **001-T10 UI strings and WhatsApp link**
   - **Covers:** AC-4.1, AC-4.2, AC-1.3, AC-3.1, AC-3.2, AC-6.2, AC-7.1 (texts)
   - **Do:** `frontend/src/strings.ts` with every Spanish text from the spec (exact wording and characters, for example the single ellipsis character `…` in "Cargando…"). `frontend/src/features/businesses/whatsapp.ts` `buildWhatsappUrl(number)`.
   - **Tests first:** URL is `https://wa.me/<number>?text=<encoded greeting>`; the decoded `text` equals the exact greeting of AC-4.1; the greeting does not contain the business name.
