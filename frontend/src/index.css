@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens (Tailwind v4, CSS-first). The default color palette is cleared so
+ * components can only use these colors. Text contrast (WCAG 2.1 AA, at least 4.5:1):
+ *   ink on canvas 16.0, ink-muted on canvas 7.0, ink-muted on surface 7.6,
+ *   brand on surface 5.5, surface on brand 5.5, surface on whatsapp 5.0,
+ *   danger on surface 6.5, danger on canvas 5.9.
+ */
+@theme {
+  --color-*: initial;
+  --color-canvas: #f5f5f4;
+  --color-surface: #ffffff;
+  --color-border: #d6d3d1;
+  --color-ink: #1c1917;
+  --color-ink-muted: #57534e;
+  --color-brand: #0f766e;
+  --color-whatsapp: #15803d;
+  --color-danger: #b91c1c;
+
+  --spacing: 0.25rem;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}

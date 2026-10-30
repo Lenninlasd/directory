@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-24 (business data loading clarified, section 8a extended, database access through the RDS Data API)
+- **Last updated:** 2026-10-29 (section 8a: `@testing-library/dom` added, `eslint-plugin-react-hooks` moved to the root)
 
 ## 1. Context and Objective
 
@@ -116,7 +116,7 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 
 ## 8a. Approved Dependencies
 
-Approved by the project owner on 2026-10-23 and extended on 2026-10-24, in addition to the fixed stack. Infrastructure-related packages are approved in spec 002 section 9. Each is the minimum needed to build and test this feature.
+Approved by the project owner on 2026-10-23 and extended on 2026-10-24 and 2026-10-29, in addition to the fixed stack. Infrastructure-related packages are approved in spec 002 section 9. Each is the minimum needed to build and test this feature.
 
 | Package | Where | Why |
 |---|---|---|
@@ -128,8 +128,9 @@ Approved by the project owner on 2026-10-23 and extended on 2026-10-24, in addit
 | `@tanstack/react-query` | frontend | Server state |
 | `react`, `react-dom` | frontend | The UI library of the fixed stack |
 | `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom` | frontend (dev) | Component and hook tests, realistic user interaction, and readable DOM assertions |
+| `@testing-library/dom` | frontend (dev) | Required peer dependency of `@testing-library/react` (added 2026-10-29, 001-T9) |
 | `@types/node`, `@types/express`, `@types/react`, `@types/react-dom` | dev | Type definitions for strict TypeScript |
-| `eslint-plugin-react-hooks` | frontend (dev) | Lint rules for correct hook usage |
+| `eslint-plugin-react-hooks` | root (dev) | Lint rules for correct hook usage, applied to `frontend/` only. Installed at the root next to `eslint` because the shared `eslint.config.mjs` imports it (2026-10-29, 001-T9) |
 
 Exact package names are confirmed against official documentation in the first task that uses them.
 
