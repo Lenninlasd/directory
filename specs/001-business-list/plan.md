@@ -147,21 +147,9 @@ Notes:
 | D-7 | Apply migrations with small in-repo logic run by `scripts/migrate.ts` through the Data API (spec 002) | `node-pg-migrate` or similar: a new dependency. Running SQL by hand: forbidden ("never edit the schema manually"). |
 | D-8 | Test the endpoint by calling the Lambda handler with an API Gateway event and a fake repository | `supertest`: another dependency, and it tests Express instead of the handler contract |
 
-## 7. Dependencies Requiring Approval
+## 7. Dependencies
 
-The constitution says any dependency beyond the fixed stack needs an approved spec that justifies it. These are the minimum needed to build and test the feature. They are approved in spec 001, section 8a.
-
-| Package | Where | Why |
-|---|---|---|
-| `express`, `serverless-http` | backend | Constitution names Express on Lambda; the adapter converts API Gateway events |
-| `@aws-sdk/client-rds-data` | backend | Queries Aurora through the RDS Data API |
-| `typescript`, `eslint` with `typescript-eslint`, `vitest` | root / both | Strict typing, the `lint` script, and the test runner. A single runner is shared by both packages. |
-| `vite`, `@vitejs/plugin-react` | frontend | Build and dev server for React + TypeScript |
-| `tailwindcss`, `@tailwindcss/vite` | frontend | Allowed by AGENTS.md; v4 setup verified in the docs |
-| `@tanstack/react-query` | frontend | Allowed by AGENTS.md |
-| `jsdom`, `@testing-library/react` | frontend (dev) | Component and hook tests without a real browser |
-
-Additional packages (`react`, `react-dom`, `@types/*`, `@testing-library/user-event`, `@testing-library/jest-dom`, `eslint-plugin-react-hooks`) are approved in spec section 8a. `esbuild` is approved in spec 002 section 9.
+Every package is listed and approved in spec section 8a; `esbuild` in spec 002 section 9.
 
 ## 8. Testing Strategy
 
@@ -217,9 +205,11 @@ Documented manual checks (cannot be automated without extra tooling):
 
 ## 11. Constitution Check
 
-1. **Stack Simplicity:** Complies. Only the fixed stack is used (React + TypeScript, Express on Lambda behind API Gateway, Aurora PostgreSQL, Tailwind, TanStack Query). The extra packages are listed in section 7 and approved in spec section 8a.
-2. **Spec-Code Alignment:** Complies. The spec is Approved, every part of the plan traces to an FR or NFR (section 9), and nothing outside spec 001 is planned. Items the spec does not cover are raised as open questions instead of assumed.
-3. **Separation of Concerns:** Complies. Domain and service modules have no Express, Lambda, or React imports. The handler only parses input, calls the service, and responds. React components only render, and data comes through `fetchBusinesses` and `useBusinesses`.
-4. **Testing Standard:** Complies. Business rules and the endpoint have automated tests, written first, and run on every pull request by the CI workflow of spec 002 FR-8 (section 8). Behavior that cannot be automated has documented manual checks.
-5. **Data Persistence:** Complies. Versioned SQL migrations, one statement each, each run in one transaction, raw parameterized SQL, no ORM, and no manual schema edits (applied by `runMigrations` through `scripts/migrate.ts`). To be checked against the Aurora PostgreSQL documentation; the UUID function and engine version are flagged in R-2.
-6. **Language Standard:** Complies. Code, comments, identifiers, API field names, the migration, and this plan are in English. Spanish appears only as UI text, defined in `frontend/src/strings.ts`.
+All six principles are met:
+
+1. **Stack Simplicity:** fixed stack only; extra packages approved in spec section 8a.
+2. **Spec-Code Alignment:** every part traces to an FR or NFR (section 9); nothing outside spec 001.
+3. **Separation of Concerns:** domain and service modules import no framework; handlers and components hold no business rules (sections 4, 5).
+4. **Testing Standard:** tests first for business rules and the endpoint, run in CI (spec 002 FR-8); manual checks for the rest (section 8).
+5. **Data Persistence:** versioned one-statement SQL migrations, raw parameterized SQL, no ORM (section 2, D-7).
+6. **Language Standard:** English everywhere; Spanish only as UI text in `frontend/src/strings.ts`.

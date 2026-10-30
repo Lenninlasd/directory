@@ -160,9 +160,11 @@ Checks are written first and recorded in `infra/README.md`. Failure cases (EC-1,
 
 ## 12. Constitution Check
 
-1. **Stack Simplicity:** Complies. Fixed stack plus approved S3, CloudFront, SAM, and GitHub Actions. The Data API is part of Aurora; its client package is approved in spec 001 section 8a.
-2. **Spec-Code Alignment:** Complies. Every part traces to an AC or NFR (section 9).
-3. **Separation of Concerns:** Complies. Infrastructure holds no business rules; the migration script is a thin command over `runMigrations`.
-4. **Testing Standard:** Complies. Unit tests run in CI on every pull request (P-13); infrastructure checks are documented in section 8.
-5. **Data Persistence:** Complies. Schema and data changes are versioned SQL files, one statement each, applied by `runMigrations`. Queries are parameterized through the Data API.
-6. **Language Standard:** Complies. Everything is in English.
+All six principles are met:
+
+1. **Stack Simplicity:** fixed stack plus S3, CloudFront, SAM, and GitHub Actions (spec section 9); the Data API client is approved in spec 001 section 8a.
+2. **Spec-Code Alignment:** every part traces to an AC or NFR (section 9).
+3. **Separation of Concerns:** no business rules in infrastructure; `migrate.ts` is a thin command over `runMigrations`.
+4. **Testing Standard:** unit tests in CI on every pull request (P-13); infrastructure checks in section 8.
+5. **Data Persistence:** schema and data changes are versioned one-statement SQL files; queries are parameterized.
+6. **Language Standard:** everything is in English.
