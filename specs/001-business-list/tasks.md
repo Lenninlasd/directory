@@ -92,7 +92,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first:** URL is `https://wa.me/<number>?text=<encoded greeting>`; the decoded `text` equals the exact greeting of AC-4.1; the greeting does not contain the business name.
   - **Done when:** tests pass.
 
-- [ ] **001-T11 API function**
+- [x] **001-T11 API function**
   - **Covers:** AC-1.1, AC-6.1 (error detection)
   - **Do:** `frontend/src/api/businesses.ts` `fetchBusinesses()`: one `fetch` to `${VITE_API_BASE_URL}/businesses`, returns `Business[]`, throws on a non-OK status or a network error. Vite dev server proxy: `/businesses` goes to the `dev` API URL read from a local, uncommitted environment file; `VITE_API_BASE_URL` is empty locally (Q-3).
   - **Tests first (mocked `fetch`, never the network):** calls the right URL once; returns the list; throws on `500`; throws on network failure.
