@@ -80,7 +80,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 
 ## M3: Frontend
 
-- [ ] **001-T9 Frontend scaffolding**
+- [x] **001-T9 Frontend scaffolding**
   - **Covers:** enabler; plan section 5 notes (Tailwind v4)
   - **Do:** `frontend/` with Vite, React, TypeScript strict, `@tailwindcss/vite`, `src/index.css` with `@import "tailwindcss";` and an `@theme` block of design tokens (colors, spacing, fonts) that meet WCAG AA contrast. Vitest with `jsdom` and Testing Library. Scripts `dev`, `lint`, `typecheck`, `test`, `build`. Verify the current Tailwind v4 and Vite setup in their official documentation first.
   - **Tests first:** one placeholder component test that fails until the setup works.
