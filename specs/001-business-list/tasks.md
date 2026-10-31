@@ -8,15 +8,7 @@
 
 ## How to work a task
 
-1. Read the task, its acceptance criteria, and the plan section it cites.
-2. Write the tests listed under **Tests first**. Run them and confirm they fail for the expected reason.
-3. Write the minimum code to make them pass.
-4. Run `pnpm -r lint`, `pnpm -r typecheck`, and `pnpm -r test`. All must pass.
-5. Tick the checkbox and commit with the task id, for example `Add WhatsApp number rule (001-T3)`.
-
-Work happens on one branch per milestone (for example `m1-backend`), with one commit per task and one pull request per milestone. The pull request title follows AGENTS.md, links the specs, lists the acceptance criteria covered, and must pass CI (002-T0).
-
-A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
+Follow the AGENTS.md workflow: write the **Tests first** and see them fail, write the minimum code, run lint, typecheck, and test, then tick the checkbox. Every pull request must pass CI (002-T0).
 
 ## Execution order across specs
 
@@ -67,14 +59,14 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Done when:** tests pass. The SQL file holds only the `CREATE TABLE` statement.
 
 - [x] **001-T7 Express app and Lambda handler (endpoint)**
-  - **Covers:** AC-1.1, AC-6.4, AC-7.1 (API side), FR-1, FR-7; plan section 3, D-8
+  - **Covers:** AC-1.1, AC-6.4, AC-7.1 (API side), FR-1, FR-7; plan section 3, D-8; spec 002 EC-1
   - **Do:** `backend/src/app.ts` `createApp(deps)` with `GET /businesses` and an error middleware. `backend/src/handlers/lambda.ts` adapts the app with `serverless-http` and wires real dependencies. Logs never include request headers or client IP addresses.
   - **Tests first (handler called with an API Gateway HTTP API event, fake repository):** `200` with the exact contract of plan section 3; `200` with `{"businesses": []}`; when the repository throws, `500` with body exactly `{"error":"internal_error"}` and no stack or database text; the error is logged without request headers or client IP; the response `Content-Type` is JSON.
   - **Done when:** tests pass. The handler contains no business rules.
 
 - [x] **001-T8 Data API wrapper**
   - **Covers:** plan D-3; spec 002 I-4, I-5; plan 002 P-12
-  - **Do:** `backend/src/db/dataApi.ts`: reads cluster ARN, secret ARN, and database from environment variables; exposes `execute(sql, parameters)` and `inTransaction` for `runMigrations`; passes named parameters; does not retry (plan 002 P-12, simplified 2026-10-24). The Lambda handler wires it into the repository.
+  - **Do:** `backend/src/db/dataApi.ts`: reads cluster ARN, secret ARN, and database from environment variables; exposes `execute(sql, parameters)` and `inTransaction` for `runMigrations`; passes named parameters; does not retry (plan 002 P-12). The Lambda handler wires it into the repository.
   - **Tests first (mocked `RDSDataClient`):** the configured ARNs and database are sent; parameters are passed as named parameters; JSON records are parsed; errors, including `DatabaseResumingException`, are not retried; transactions commit, or roll back and rethrow; a missing environment variable fails with a clear message (in English, logged, not returned to the client).
   - **Done when:** tests pass. No credentials in code or tests.
 
@@ -94,7 +86,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
 
 - [x] **001-T11 API function**
   - **Covers:** AC-1.1, AC-6.1 (error detection)
-  - **Do:** `frontend/src/api/businesses.ts` `fetchBusinesses()`: one `fetch` to `${VITE_API_BASE_URL}/businesses`, returns `Business[]`, throws on a non-OK status or a network error. Vite dev server proxy: `/businesses` goes to the `dev` API URL read from a local, uncommitted environment file; `VITE_API_BASE_URL` is empty locally (Q-3).
+  - **Do:** `frontend/src/api/businesses.ts` `fetchBusinesses()`: one `fetch` to `${VITE_API_BASE_URL}/businesses`, returns `Business[]`, throws on a non-OK status or a network error. Vite dev server proxy: `/businesses` goes to the `dev` API URL read from a local, uncommitted environment file; `VITE_API_BASE_URL` is empty locally (plan section 5).
   - **Tests first (mocked `fetch`, never the network):** calls the right URL once; returns the list; throws on `500`; throws on network failure.
   - **Done when:** tests pass.
 
@@ -110,7 +102,7 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Tests first:** card shows name, category, and location summary; "En tienda" when `hasPhysicalStore` is true and "Solo domicilios" when false; button present with the right `href` and accessible name when a number exists; no button when the number is `null`, and the rest of the card still renders; no other business fields are rendered.
   - **Done when:** tests pass.
 
-- [ ] **001-T14 Business list, App, and entry point**
+- [x] **001-T14 Business list, App, and entry point**
   - **Covers:** AC-1.1, AC-1.3, AC-6.2, AC-6.3, AC-6.4, AC-7.1, NFR-2, NFR-4, EC-1, EC-2, EC-3
   - **Do:** `BusinessList.tsx` (loading with `role="status"`, error with `role="alert"` and a "Reintentar" `button` that calls `refetch`, empty message, list as `ul` with one column at 320 px and more from `md`), `App.tsx`, `main.tsx` with the single `QueryClient`.
   - **Tests first (mocked API, fresh `QueryClient`):** "Cargando…" while pending; one card per business in API order; empty message for `[]`; after retries fail, the exact error message and "Reintentar"; clicking "Reintentar" loads again and shows the list; the error view shows no technical details (no status code, no exception text).
@@ -122,16 +114,6 @@ A task is not done if a test was skipped, deleted, or weakened (AGENTS.md).
   - **Covers:** plan section 8 manual checks 1 to 6; spec 001 completion criteria; spec 002 completion criterion 3
   - **Do:** after 002-T8, run the six manual checks of plan section 8 against the CloudFront URL of `dev`. Record date, device, and result of each check in a "Verification log" section at the end of this file.
   - **Done when:** all six pass, or each failure has an issue or a spec change proposal.
-
-## Open Questions
-
-All resolved by the project owner on 2026-10-23 and 2026-10-24:
-
-- **Q-1.** No local backend server (removed 2026-10-24); the endpoint is covered by tests, and the first real request is in M2.
-- **Q-2.** No database users migration anymore (RDS Data API); `001_create_businesses.sql` is the first migration.
-- **Q-3.** Local frontend reaches the `dev` API through a Vite dev server proxy. CORS stays limited to the CloudFront origin.
-- **Q-4.** Migrations run through `backend/scripts/migrate.ts` and the RDS Data API (2026-10-24; this replaced the migration Lambda).
-- **Q-5.** One branch and pull request per milestone, one commit per task.
 
 ## Verification log
 
