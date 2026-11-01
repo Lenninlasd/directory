@@ -20,6 +20,7 @@ The binding rules live in `docs/constitution.md`. If this file and the constitut
 - `frontend/` — React + TypeScript app (Tailwind CSS, TanStack Query).
 - `backend/` — Lambda/Express handlers, services (business logic), repositories (SQL).
 - `backend/migrations/` — versioned, explicit SQL migrations.
+- `playground/` — design sandbox outside the SDD workflow (see "Playground" below).
 - `pnpm-workspace.yaml` and `pnpm-lock.yaml` at the repository root. Always commit the lockfile.
 
 ## Hard boundaries (never violate)
@@ -116,16 +117,9 @@ Run lint, type check, and tests before finishing any task, and fix failures befo
 - When a task is done, the agent stops and reports: the files changed, the checks it ran, and a suggested commit message (English, imperative, with the task id, for example `[001-T3] Add WhatsApp number rule`).
 - The human reviews the diff (`git diff --staged`) and commits.
 
-## Playground exception
+## Playground
 
-`frontend/playground/` is a local-only sandbox for trying UI ideas quickly. It is gitignored and never committed.
-
-- Inside `frontend/playground/` the Spec -> Plan -> Tasks -> Test workflow, the testing standard, and the architecture and styling rules do not apply.
-- It reuses the dependencies already installed in `frontend/`. Never add a dependency for the playground; that still needs an approved spec.
-- These rules still apply: never commit secrets, pnpm only, English code with Spanish UI text.
-- Imports go one way: the playground may import from `frontend/src/`, but nothing in `frontend/src/` or `backend/` may import from the playground.
-- A design moves to the real app only through a spec change in `specs/` and the normal workflow. Code is never copied over directly.
-- Run it from `frontend/` with `pnpm exec vite --config playground/vite.config.ts`. It proxies to the `dev` API through `DEV_API_URL` in `.env.development.local`.
+`playground/` is a design sandbox and a black box for this file: the SDD workflow and the rules above do not apply inside it, except the security rules (never commit secrets). Its own rules and instructions are in `playground/README.md`.
 
 ## When in doubt
 

@@ -5,7 +5,8 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 export default defineConfig(
   {
-    ignores: ['**/dist/**', '**/.aws-sam/**', '**/node_modules/**', 'frontend/playground/**'],
+    // The playground is a separate pnpm project outside the SDD workflow (AGENTS.md "Playground").
+    ignores: ['**/dist/**', '**/.aws-sam/**', '**/node_modules/**', 'playground/**'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],
