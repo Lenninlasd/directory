@@ -4,3 +4,6 @@ coverage/
 .aws-sam/
 .env*.local
 .DS_Store
+
+# Local-only UI playground, exempt from SDD (AGENTS.md "Playground exception")
+frontend/playground/

@@ -5,7 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 export default defineConfig(
   {
-    ignores: ['**/dist/**', '**/.aws-sam/**', '**/node_modules/**'],
+    ignores: ['**/dist/**', '**/.aws-sam/**', '**/node_modules/**', 'frontend/playground/**'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

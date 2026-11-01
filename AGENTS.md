@@ -116,6 +116,17 @@ Run lint, type check, and tests before finishing any task, and fix failures befo
 - When a task is done, the agent stops and reports: the files changed, the checks it ran, and a suggested commit message (English, imperative, with the task id, for example `[001-T3] Add WhatsApp number rule`).
 - The human reviews the diff (`git diff --staged`) and commits.
 
+## Playground exception
+
+`frontend/playground/` is a local-only sandbox for trying UI ideas quickly. It is gitignored and never committed.
+
+- Inside `frontend/playground/` the Spec -> Plan -> Tasks -> Test workflow, the testing standard, and the architecture and styling rules do not apply.
+- It reuses the dependencies already installed in `frontend/`. Never add a dependency for the playground; that still needs an approved spec.
+- These rules still apply: never commit secrets, pnpm only, English code with Spanish UI text.
+- Imports go one way: the playground may import from `frontend/src/`, but nothing in `frontend/src/` or `backend/` may import from the playground.
+- A design moves to the real app only through a spec change in `specs/` and the normal workflow. Code is never copied over directly.
+- Run it from `frontend/` with `pnpm exec vite --config playground/vite.config.ts`. It proxies to the `dev` API through `DEV_API_URL` in `.env.development.local`.
+
 ## When in doubt
 
 Stop and ask. Ambiguity belongs in the spec, not in the code.
