@@ -119,7 +119,7 @@ Run lint, type check, and tests before finishing any task, and fix failures befo
 
 ## Playground
 
-`playground/` is a design sandbox and a black box for this file: the SDD workflow and the rules above do not apply inside it, except the security rules (never commit secrets). Its own rules and instructions are in `playground/README.md`.
+`playground/` is a design sandbox and a black box for this file: the SDD workflow and the rules above do not apply inside it, except the security rules (never commit secrets). Its own rules are in `playground/AGENTS.md`.
 
 ## When in doubt
 

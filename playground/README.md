@@ -24,14 +24,14 @@ It is its own pnpm project, separate from the repository workspace.
 
 Before pushing, run `pnpm typecheck`. There is no lint, test, or build script.
 
-## Rules
+## Working on it
 
-- **Self-contained.** Never import from `frontend/` or `backend/`, and nothing imports from here. `src/api`, `src/features`, `strings.ts`, and `queryClient.ts` are copies from `frontend/src/` and may drift.
-- **Same packages as the frontend.** Keep `package.json` dependencies and version ranges identical to `frontend/package.json`. Never add a package only for the playground.
-- **No secrets.** Example data uses `example.com` sites and invalid WhatsApp numbers (prefix `570`), so nothing reaches a real site or person.
-- **Separate pull requests**, titled `[playground] <Short title>`.
-- **Spanish UI text, English code.**
-- **Moving a design to the product** happens only through a spec in `specs/`, which can reference files here. Code is rebuilt in `frontend/`, never copied.
+- Never import from `frontend/` or `backend/`. `src/api`, `src/features`, `strings.ts`, and `queryClient.ts` are copies from `frontend/src/` and may drift.
+- Keep `package.json` identical to the frontend's dependencies. Never add a package only for the playground.
+- Open changes in their own pull request, titled `[playground] <Short title>`.
+- A design reaches the product only through a spec in `specs/`, which can reference files here.
+
+Rules for AI agents are in `AGENTS.md`.
 
 ## Add a view
 
