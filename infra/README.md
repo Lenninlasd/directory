@@ -313,7 +313,7 @@ pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-dev 
 |---|---|---|
 | `infra/deploy.sh` and `infra/deploy.sh test` | Prints the usage line and exits non-zero; nothing runs | Passed (2026-11-02) |
 | `touch deploy-check.tmp && infra/deploy.sh dev; rm deploy-check.tmp` | Refuses (uncommitted or untracked files) before any AWS or Cloudflare call | Passed (2026-11-02) |
-| `infra/deploy.sh prod`, then type `no` | Prints that nothing was changed and exits non-zero before any AWS or Cloudflare call (AC-6.2) | Pending |
-| `infra/deploy.sh dev` on a clean working tree | Runs every step without the pnpm build question, and ends by printing `https://alameda-dev.pages.dev` (AC-6.1) | Pending |
-| After that run: `curl -s "$FRONTEND_URL/" \| grep -o 'assets/[^"]*'` compared with `ls frontend/dist/assets` | The live `index.html` loads the files of the build that was just uploaded (AC-4.4, AC-4.5, EC-5) | Pending |
-| After that run: open `$FRONTEND_URL` in a browser | The list loads from the API with no CORS error | Pending |
+| `infra/deploy.sh prod`, then type `no` | Prints that nothing was changed and exits non-zero before any AWS or Cloudflare call (AC-6.2) | Passed (2026-11-02) |
+| `infra/deploy.sh dev` on a clean working tree | Runs every step without the pnpm build question, and ends by printing `https://alameda-dev.pages.dev` (AC-6.1) | Passed (2026-11-02) |
+| After that run: `curl -s "$FRONTEND_URL/" \| grep -o 'assets/[^"]*'` compared with `ls frontend/dist/assets` | The live `index.html` loads the files of the build that was just uploaded (AC-4.4, AC-4.5, EC-5) | Passed (2026-11-02) |
+| After that run: open `$FRONTEND_URL` in a browser | The list loads from the API with no CORS error | Passed (2026-11-02) |
