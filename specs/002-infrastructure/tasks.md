@@ -80,8 +80,8 @@ Prerequisite: M3 of tasks 001 is done.
 
 - [ ] **002-T8 Deploy script**
   - **Covers:** AC-4.4, AC-4.5, AC-5.3, AC-6.1, AC-6.2, EC-5, plan section 6
-  - **Do:** `infra/deploy.sh <env>`: `sam build`, `sam deploy`, `node backend/scripts/migrate.ts <env>` (stop on error), frontend build with `VITE_API_BASE_URL` from the stack output, `pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-<env> --branch main`, print the URL. Typed confirmation for `prod`. Reads no secrets.
-  - **Checks first:** a full `dev` run ends with a working URL; a changed frontend is visible after reload; `prod` without confirmation aborts before any change.
+  - **Do:** `infra/deploy.sh <env>`: `sam build`, `sam deploy`, `node backend/scripts/migrate.ts <env>` (stop on error), frontend build with `VITE_API_BASE_URL` from the stack output, `pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-<env> --branch main`, print the URL. Typed confirmation for `prod`. Refuses to run with uncommitted or untracked files, so a deploy always matches a commit. Reads no secrets.
+  - **Checks first:** a full `dev` run ends with a working URL; a changed frontend is visible after reload; `prod` without confirmation aborts before any change; a dirty working tree aborts before any change.
   - **Done when:** checks pass in `dev`.
 
 - [ ] **002-T9 Rollback documentation, performance, and freshness**

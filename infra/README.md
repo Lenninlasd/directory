@@ -113,6 +113,17 @@ sam deploy --config-env dev
 
 `sam deploy` asks for confirmation of the change set (`confirm_changeset = true`) before changing anything.
 
+### Deploy an environment (002-T8)
+
+From the repository root, with a clean working tree (everything committed):
+
+```
+infra/deploy.sh dev
+infra/deploy.sh prod    # asks you to type prod
+```
+
+`sam deploy` still shows the change set and waits for `y`. See "Deploy script" under Verification for what each step does.
+
 ### Migrations and seed (002-T3)
 
 Run from the repository root with Node.js 24 (it runs the TypeScript file directly, no build step):
@@ -293,3 +304,16 @@ pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-dev 
 | `curl -si -H "Origin: $FRONTEND_URL" "$API_URL/businesses" \| grep -i access-control-allow-origin` | The header equals `$FRONTEND_URL` (AC-2.4) | Passed (2026-11-02) |
 | `curl -si -H "Origin: https://example.com" "$API_URL/businesses" \| grep -i access-control` | No `access-control-*` header (EC-2) | Passed (2026-11-02) |
 | Open `$FRONTEND_URL` in a browser | The list loads from the API with no CORS error in the console | Passed (2026-11-02) |
+
+### Deploy script (002-T8, spec AC-4.4, AC-4.5, AC-5.3, AC-6.1, AC-6.2, EC-5; plan section 6)
+
+`infra/deploy.sh <env>` runs, in this order: `sam build` and `sam deploy`, migrations, the frontend build with `VITE_API_BASE_URL` from the stack output, and the Pages upload. It stops at the first error. It refuses to run when the working tree has uncommitted or untracked files, so what is deployed always matches a commit. `prod` asks you to type `prod` before anything changes.
+
+| Check | Expected | Result |
+|---|---|---|
+| `infra/deploy.sh` and `infra/deploy.sh test` | Prints the usage line and exits non-zero; nothing runs | Passed (2026-11-02) |
+| `touch deploy-check.tmp && infra/deploy.sh dev; rm deploy-check.tmp` | Refuses (uncommitted or untracked files) before any AWS or Cloudflare call | Passed (2026-11-02) |
+| `infra/deploy.sh prod`, then type `no` | Prints that nothing was changed and exits non-zero before any AWS or Cloudflare call (AC-6.2) | Pending |
+| `infra/deploy.sh dev` on a clean working tree | Runs every step without the pnpm build question, and ends by printing `https://alameda-dev.pages.dev` (AC-6.1) | Pending |
+| After that run: `curl -s "$FRONTEND_URL/" \| grep -o 'assets/[^"]*'` compared with `ls frontend/dist/assets` | The live `index.html` loads the files of the build that was just uploaded (AC-4.4, AC-4.5, EC-5) | Pending |
+| After that run: open `$FRONTEND_URL` in a browser | The list loads from the API with no CORS error | Pending |
