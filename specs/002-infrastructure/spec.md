@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-27
+- **Last updated:** 2026-11-02
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
@@ -22,7 +22,8 @@
 
 ## 3. General Constraints
 
-- This spec adds frontend hosting (S3 + CloudFront) and the IaC tool (AWS SAM) to the stack fixed by `docs/constitution.md`.
+- This spec adds frontend hosting (Cloudflare Pages) and the IaC tool (AWS SAM) to the stack fixed by `docs/constitution.md`.
+- The developer authenticates to Cloudflare with `wrangler login`. No Cloudflare key is stored in files or environment variables.
 - No credentials, tokens, account IDs, or database passwords in the repository. Environment-specific values come from deploy-time parameters and environment variables.
 - The database is never reachable from the public internet.
 
@@ -32,10 +33,10 @@
 |---|---|---|
 | I-1 | Two environments, `dev` and `prod`, each with its own full set of resources. Only `dev` is created at first; `prod` is created from the same template when the directory launches (M5). Both live in one AWS account, separated by resource names and tags. | Safe testing before production, without paying for `prod` before it has users |
 | I-2 | IaC with AWS SAM (`template.yaml`) | Serverless-first; SAM covers Lambda, API Gateway, and plain CloudFormation resources for the rest |
-| I-3 | Frontend hosting: private S3 bucket behind CloudFront | Static hosting, HTTPS, global caching |
+| I-3 | Frontend hosting: Cloudflare Pages, one Pages project per environment, deployed by Direct Upload (Wrangler CLI) from the developer's machine. No Git integration. | Static hosting, HTTPS, global CDN, and rollback to earlier deployments on the free plan |
 | I-4 | All database access goes through the RDS Data API (HTTPS, managed by AWS). Lambda runs outside the VPC and opens no database connections. RDS Proxy is not used. | Removes Lambda VPC networking, connection handling, database users, and the migration Lambda. AWS manages connections, so connection exhaustion is not a concern. |
 | I-5 | Access is controlled by IAM permissions on the Data API (`rds-data:*` actions on the cluster) plus the Aurora-managed master user secret in Secrets Manager (created and rotated by AWS), which the Data API reads on the caller's behalf. The application never reads the password. | No password in the application, the repository, or environment variables |
-| I-6 | Primary region: `us-east-1` | Latency from Colombia is similar to or lower than to `sa-east-1`, because routes from the Caribbean coast mostly pass through the United States; widest service availability and lower prices. CloudFront serves the frontend from the edge regardless of region. |
+| I-6 | Primary region: `us-east-1` | Latency from Colombia is similar to or lower than to `sa-east-1`, because routes from the Caribbean coast mostly pass through the United States; widest service availability and lower prices. The frontend is served from Cloudflare's edge regardless of the AWS region. |
 
 ## 5. Functional Requirements
 
@@ -44,6 +45,7 @@
 - **AC-1.1.** The system shall define all AWS resources of both environments in a SAM template stored in the repository.
 - **AC-1.2.** The same template shall be deployable to `dev` and `prod`, differing only by parameters (for example environment name, allowed origin, database capacity).
 - **AC-1.3.** The system shall not require resources to be created or changed manually in the AWS console. If something must be done manually (for example a one-time account setup), it shall be listed in the deployment documentation.
+- **AC-1.3a.** The Cloudflare Pages project of each environment is created once with Wrangler, outside SAM, and that step is listed in the deployment documentation.
 
 ### FR-2: Backend deployment
 
@@ -63,8 +65,8 @@
 
 ### FR-4: Frontend hosting
 
-- **AC-4.1.** The system shall store the built frontend in a private S3 bucket that is reachable only through CloudFront.
-- **AC-4.2.** CloudFront shall serve the site over HTTPS and redirect HTTP to HTTPS.
+- **AC-4.1.** The system shall host the built frontend as static files on Cloudflare Pages, in one Pages project per environment. No AWS resource stores or serves the frontend.
+- **AC-4.2.** The site shall be served over HTTPS, and HTTP requests shall be redirected to HTTPS.
 - **AC-4.4.** The frontend build shall receive the API base URL of its environment (`VITE_API_BASE_URL`) at build time.
 - **AC-4.5.** Deploying a new frontend version shall make it visible to users without waiting for stale cache entries (cache invalidation or versioned asset names).
 
@@ -111,8 +113,8 @@
 
 ## 8. Out of Scope
 
-- A custom domain name and TLS certificate (the default CloudFront and API Gateway URLs are used until a later spec).
-- Routing for more than one page (the directory is a single page; unknown paths are not redirected to it).
+- A custom domain name and TLS certificate (the default `pages.dev` and API Gateway URLs are used until a later spec).
+- Routing for more than one page (the directory is a single page).
 - Continuous deployment. Deployment is run by a human from a terminal in this MVP. (CI for tests is in scope, FR-8.)
 - Alerting, dashboards, and distributed tracing.
 - Web Application Firewall, rate limiting, and DDoS-specific configuration beyond AWS defaults.
@@ -126,11 +128,13 @@
 | Tool | Where | Why |
 |---|---|---|
 | AWS SAM CLI | developer machine (not an npm package, not in the lockfile) | Build and deploy the template |
-| AWS CLI | developer machine | Upload the frontend to S3, invalidate CloudFront, authenticate |
+| AWS CLI | developer machine | Authenticate, read stack outputs, Data API checks |
 | GitHub Actions | repository (`.github/workflows/`) | CI for tests (FR-8) |
 | `esbuild` (npm, dev) | backend | Bundles the Lambda, run through `pnpm exec` by the SAM makefile builder (plan section 7) |
+| Cloudflare account (free plan) | external service | Hosts the frontend (I-3) |
+| Wrangler CLI `4.151.1` (npm) | developer machine, run as `pnpm dlx wrangler@4.151.1`, not in `package.json` or the lockfile | Create the Pages project and deploy the built frontend (I-3) |
 
-Approved by the project owner on 2026-10-24. Tooling that is not a project dependency shall be documented with its required version in the deployment documentation.
+Approved by the project owner on 2026-10-24; Cloudflare account and Wrangler CLI approved on 2026-11-02. Tooling that is not a project dependency shall be documented with its required version in the deployment documentation.
 
 ## 10. Completion Criteria
 
