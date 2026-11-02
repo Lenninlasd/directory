@@ -1,6 +1,6 @@
 # Spec 002: Hosting, Deployment, and Infrastructure
 
-- **Status:** Approved (the amendment of 2026-11-02 is pending approval)
+- **Status:** Approved
 - **Created:** 2026-10-23
 - **Last updated:** 2026-11-02
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
@@ -23,7 +23,7 @@
 ## 3. General Constraints
 
 - This spec adds frontend hosting (Cloudflare Pages) and the IaC tool (AWS SAM) to the stack fixed by `docs/constitution.md`.
-- Cloudflare credentials come only from `wrangler login` on the developer's machine or the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` environment variables, never from the repository.
+- The developer authenticates to Cloudflare with `wrangler login`. No Cloudflare key is stored in files or environment variables.
 - No credentials, tokens, account IDs, or database passwords in the repository. Environment-specific values come from deploy-time parameters and environment variables.
 - The database is never reachable from the public internet.
 
@@ -45,6 +45,7 @@
 - **AC-1.1.** The system shall define all AWS resources of both environments in a SAM template stored in the repository.
 - **AC-1.2.** The same template shall be deployable to `dev` and `prod`, differing only by parameters (for example environment name, allowed origin, database capacity).
 - **AC-1.3.** The system shall not require resources to be created or changed manually in the AWS console. If something must be done manually (for example a one-time account setup), it shall be listed in the deployment documentation.
+- **AC-1.3a.** The Cloudflare Pages project of each environment is created once with Wrangler, outside SAM, and that step is listed in the deployment documentation.
 
 ### FR-2: Backend deployment
 
@@ -113,7 +114,7 @@
 ## 8. Out of Scope
 
 - A custom domain name and TLS certificate (the default `pages.dev` and API Gateway URLs are used until a later spec).
-- Routing for more than one page (the directory is a single page; unknown paths are not redirected to it).
+- Routing for more than one page (the directory is a single page).
 - Continuous deployment. Deployment is run by a human from a terminal in this MVP. (CI for tests is in scope, FR-8.)
 - Alerting, dashboards, and distributed tracing.
 - Web Application Firewall, rate limiting, and DDoS-specific configuration beyond AWS defaults.
@@ -130,10 +131,10 @@
 | AWS CLI | developer machine | Authenticate, read stack outputs, Data API checks |
 | GitHub Actions | repository (`.github/workflows/`) | CI for tests (FR-8) |
 | `esbuild` (npm, dev) | backend | Bundles the Lambda, run through `pnpm exec` by the SAM makefile builder (plan section 7) |
-| Cloudflare account (free plan) | external service | Hosts the frontend (I-3). Pending approval. |
-| Wrangler CLI `4.151.1` (npm) | developer machine, run as `pnpm dlx wrangler@4.151.1`, not in `package.json` or the lockfile | Create the Pages project and deploy the built frontend (I-3). Pending approval. |
+| Cloudflare account (free plan) | external service | Hosts the frontend (I-3) |
+| Wrangler CLI `4.151.1` (npm) | developer machine, run as `pnpm dlx wrangler@4.151.1`, not in `package.json` or the lockfile | Create the Pages project and deploy the built frontend (I-3) |
 
-Approved by the project owner on 2026-10-24. Tooling that is not a project dependency shall be documented with its required version in the deployment documentation.
+Approved by the project owner on 2026-10-24; Cloudflare account and Wrangler CLI approved on 2026-11-02. Tooling that is not a project dependency shall be documented with its required version in the deployment documentation.
 
 ## 10. Completion Criteria
 

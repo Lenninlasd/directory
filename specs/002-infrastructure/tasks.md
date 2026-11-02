@@ -1,10 +1,11 @@
 # Tasks 002: Hosting, Deployment, and Infrastructure
 
-- **Status:** Approved (approved by the project owner in chat on 2026-10-24)
+- **Status:** Approved (approved by the project owner in chat on 2026-10-24); changes of 2026-11-02 pending approval
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Plan:** [plan.md](./plan.md) (Approved)
 - **Related:** [Tasks 001](../001-business-list/tasks.md) (application; milestones are shared, see the execution order there)
 - **Created:** 2026-10-23
+- **Last updated:** 2026-11-02 (002-T7 to 002-T10 changed for Cloudflare Pages hosting)
 
 ## How to work a task
 
@@ -71,28 +72,28 @@ Prerequisite: M1 of tasks 001 is done.
 
 Prerequisite: M3 of tasks 001 is done.
 
-- [ ] **002-T7 S3 bucket and CloudFront**
-  - **Covers:** AC-4.1, AC-4.2, plan P-7
-  - **Do:** private bucket (block public access, encrypted), CloudFront with Origin Access Control, HTTP to HTTPS redirect, cache behavior per P-7. The API CORS now allows the CloudFront domain.
-  - **Checks first:** `curl -I http://<cloudfront>` redirects; direct bucket URL returns `403`; `https://<cloudfront>/` returns the app HTML; CORS allows the CloudFront origin.
-  - **Done when:** checks pass in `dev`.
+- [ ] **002-T7 Cloudflare Pages project and CORS origin**
+  - **Covers:** AC-1.3a, AC-2.4, AC-4.1, AC-4.2, plan P-7, P-14, R-8
+  - **Do:** remove `FrontendBucket`, `FrontendOriginAccessControl`, `FrontendDistribution`, and `FrontendBucketPolicy` from the template, with their outputs. Add the `FrontendOrigin` parameter (pattern `https://[a-z0-9.-]+`), use it as the only CORS origin, and output it as `FrontendUrl`. Create the `alameda-dev` Pages project once (`pnpm dlx wrangler@4.151.1 pages project create`, production branch `main`) and set its URL in the `dev` section of `infra/samconfig.toml`. Add `frontend/public/_headers` (P-7). In `infra/README.md`: Wrangler in the prerequisites, `wrangler login`, the one-time project creation (AC-1.3a), the architecture diagram, and remove the S3 and CloudFront permissions.
+  - **Checks first:** `curl -sI http://<pages-url>/` redirects to `https://`; `https://<pages-url>/` returns the app HTML title; a file under `assets/` has `cache-control` with `immutable` and `index.html` has `max-age=0`; `curl` with `Origin: <pages-url>` gets `access-control-allow-origin` equal to it, another origin gets none; the list loads in a browser with no CORS error. Upload by hand for the checks (`pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-dev --branch main`) until 002-T8 exists.
+  - **Done when:** checks pass in `dev`. If the HTTP redirect check fails, stop and propose a spec change (R-8).
 
 - [ ] **002-T8 Deploy script**
   - **Covers:** AC-4.4, AC-4.5, AC-5.3, AC-6.1, AC-6.2, EC-5, plan section 6
-  - **Do:** `infra/deploy.sh <env>`: `sam build`, `sam deploy`, `node backend/scripts/migrate.ts <env>` (stop on error), frontend build with `VITE_API_BASE_URL` from the stack output, `aws s3 sync`, invalidate `/index.html`, print the URL. Typed confirmation for `prod`. Reads no secrets.
+  - **Do:** `infra/deploy.sh <env>`: `sam build`, `sam deploy`, `node backend/scripts/migrate.ts <env>` (stop on error), frontend build with `VITE_API_BASE_URL` from the stack output, `pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-<env> --branch main`, print the URL. Typed confirmation for `prod`. Reads no secrets.
   - **Checks first:** a full `dev` run ends with a working URL; a changed frontend is visible after reload; `prod` without confirmation aborts before any change.
   - **Done when:** checks pass in `dev`.
 
 - [ ] **002-T9 Rollback documentation, performance, and freshness**
   - **Covers:** AC-6.3, NFR-1, spec 001 NFR-5
-  - **Do:** write the rollback section of `infra/README.md` (no drill). Run the "Performance" check of plan section 8 once in `dev` (warm request, and the first request after a pause). Freshness: change a seed row, re-run the seed, reload, see the change.
+  - **Do:** write the rollback section of `infra/README.md` (no drill): backend by redeploying the previous commit, frontend from the Pages dashboard (plan C-5) or by redeploying the previous commit. Run the "Performance" check of plan section 8 once in `dev` (warm request, and the first request after a pause). Freshness: change a seed row, re-run the seed, reload, see the change.
   - **Done when:** results are recorded; a missed performance target leads to a spec change proposal.
 
 ## M5: Production (only when the directory launches, spec I-1)
 
 - [ ] **002-T10 Production deploy**
   - **Covers:** spec completion criteria 2, 4, 5; AC-1.2, AC-6.2, NFR-4
-  - **Do:** `infra/deploy.sh prod` (confirmation required). Never seed. Re-run the 002-T6 checks and the HTTPS checks of 002-T7 against `prod`. Run spec 001 manual check 5 against `prod`.
+  - **Do:** create the `alameda-prod` Pages project once and set its URL in the `prod` section of `infra/samconfig.toml`. Then `infra/deploy.sh prod` (confirmation required). Never seed. Re-run the 002-T6 checks and the HTTPS checks of 002-T7 against `prod`. Run spec 001 manual check 5 against `prod`.
   - **Done when:** `prod` serves the directory over HTTPS, the database is not reachable over the network, deletion protection is on, and results are recorded.
 
 - [ ] **002-T11 Initial business data**
