@@ -2,7 +2,7 @@
 
 - **Status:** Draft
 - **Created:** 2026-10-31
-- **Last updated:** 2026-11-01
+- **Last updated:** 2026-11-02
 - **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
@@ -49,9 +49,10 @@ Acceptance criteria use EARS notation. All quoted Spanish text is listed in sect
 
 ### FR-1: Screen layout
 
-- **AC-1.1.** The system shall display a header with the directory title and a search field (FR-2). On phones the header shall stay visible at the top while the user scrolls.
-- **AC-1.2.** While the list is loaded and not empty, the system shall display, in this order: the category filter (FR-3), the featured section (FR-6, pending Q-2), and the full list (FR-7).
-- **AC-1.3.** While the list is loading, fails, or is empty, the system shall display the corresponding state from spec 001 (FR-1, FR-6, FR-7) in place of the category filter and the sections.
+- **AC-1.1.** The system shall display a header with the directory title. While the list is loaded and not empty, the header shall also contain the search field (FR-2). The header shall stay visible at the top of the screen while the user scrolls.
+- **AC-1.2.** While the list is loaded and not empty, the system shall display, below the header and in this order: the category filter (FR-3), the featured section (FR-6, pending Q-2), and the full list (FR-7).
+- **AC-1.3.** While the list is loading, fails, or is empty, the system shall display the header title and the corresponding state from spec 001 (FR-1, FR-6, FR-7), without the search field, the category filter, or the sections.
+- **AC-1.4.** The directory title shall be the page's main heading, section titles shall be second-level headings, and business names on tiles shall be third-level headings. The content below the header shall be the page's main landmark.
 
 ### FR-2: Search (US-1)
 
@@ -59,14 +60,15 @@ Acceptance criteria use EARS notation. All quoted Spanish text is listed in sect
 - **AC-2.2.** The search shall ignore letter case, accents, and leading and trailing spaces. For example, "cafe" matches "Café del Río".
 - **AC-2.3.** The system shall filter the list already loaded in the browser and shall not send a request to the API while the user types.
 - **AC-2.4.** While the search field is empty, the system shall not filter by text.
-- **AC-2.5.** The search field shall have an accessible name and a way to clear its content.
+- **AC-2.5.** The search field shall have the accessible name "Buscar negocios". While it has text, it shall show a button "Borrar búsqueda" that empties it. The browser's built-in clear control is not enough, since some browsers do not show one.
 
 ### FR-3: Category filter (US-2)
 
-- **AC-3.1.** The system shall display one filter option per distinct category among the loaded businesses, preceded by the option "Todos".
+- **AC-3.1.** The system shall display one filter option per category among the loaded businesses, preceded by the option "Todos". Categories that differ only in letter case, accents, or leading and trailing spaces count as one category (the same rule as AC-4.2), pending Q-8.
 - **AC-3.2.** The system shall order category options alphabetically using Spanish rules (accents and case), pending Q-5.
 - **AC-3.3.** When the user opens the directory, "Todos" shall be selected.
 - **AC-3.4.** When the user selects a category option, the system shall show only businesses of that category and mark that option as selected.
+- **AC-3.11.** An option's label shall be the category name from section 7 for a supported category, and otherwise the spelling used by the first business of that category in list order. Labels shall be shown in full, never cut with an ellipsis. Long labels may wrap to two lines.
 - **AC-3.5.** When the user selects the option that is already selected, or selects "Todos", the system shall show businesses of every category.
 - **AC-3.6.** Only one option shall be selected at a time.
 - **AC-3.7.** While a category is selected and the search field has text, the system shall show only businesses that match both.
@@ -94,8 +96,8 @@ Acceptance criteria use EARS notation. All quoted Spanish text is listed in sect
 
 ### FR-6: Featured section (US-5, pending Q-2)
 
-- **AC-6.1.** While at least one business shown by the current search and category filter has a physical store, the system shall display the section "Visítalos en su tienda" with those businesses as tiles in a horizontal row.
-- **AC-6.2.** If no business shown by the current filters has a physical store, then the system shall hide the featured section.
+- **AC-6.1.** While "Todos" is selected, the search field is empty, and at least one loaded business has a physical store, the system shall display the section "Visítalos en su tienda" with those businesses as tiles in a horizontal row.
+- **AC-6.2.** While a category is selected or the search field has text, the system shall hide the featured section, so filtered results are not shown twice.
 - **AC-6.3.** The featured section shall keep the order of spec 001 FR-5.
 
 ### FR-7: Full list
@@ -132,6 +134,7 @@ All new Spanish text, pending Q-7. Text reused from spec 001 keeps its exact wor
 | Header title | "Negocios en Alameda del Río" (pending Q-1) |
 | Search field placeholder | "Buscar negocios o categorías" |
 | Search field accessible name | "Buscar negocios" |
+| Search clear button accessible name | "Borrar búsqueda" |
 | Category filter accessible name | "Categorías" |
 | "All categories" option | "Todos" |
 | Featured section title and subtitle | "Visítalos en su tienda" / "Negocios con local físico" |
@@ -147,7 +150,7 @@ All new Spanish text, pending Q-7. Text reused from spec 001 keeps its exact wor
 
 ## 7. Supported Categories
 
-Pending Q-4. Category names are matched as described in AC-4.2. Each color becomes a design token, and the exact values are set in the plan with checked contrast (NFR-6).
+Pending Q-4. Category names are matched as described in AC-4.2. As in the reference, each category uses two shades of its color family: a strong one for the tile and dialog cover, and a light one behind the icon of its filter option. Each shade becomes a design token, and the exact values are set in the plan with checked contrast (NFR-6). The plan also decides whether covers are a gradient, as in the reference, or a solid color.
 
 | Category | Icon | Color family |
 |---|---|---|
@@ -184,13 +187,14 @@ Spec 001 NFR-1 to NFR-5 still apply. In addition:
 | EC-1 | The search matches no business | No-results message, filters stay visible (AC-7.5) |
 | EC-2 | A category is selected and the search matches nothing in it | No-results message, the category stays selected (AC-7.5) |
 | EC-3 | A business category is not in section 7 | Fallback icon and color, still listed and filterable (AC-4.3) |
-| EC-4 | Two businesses spell the same category differently (for example "Cafeteria" and "Cafetería") | Both get the same icon and color (AC-4.2). They appear as two filter options, since options use the exact text. Keeping category text consistent is part of reviewing the SQL data migrations. |
+| EC-4 | Two businesses spell the same category differently (for example "Cafeteria" and "Cafetería") | One filter option, one icon and color (AC-3.1, AC-4.2). The label follows AC-3.11. Each tile still shows its own spelling. |
 | EC-5 | A very long business name or location summary | Shortened with an ellipsis on the tile (AC-5.5), shown in full and wrapped in the dialog |
 | EC-6 | A business has no valid WhatsApp number | No button on the tile (AC-5.4), message in the dialog (AC-8.2) |
 | EC-7 | Many categories | Filter options scroll horizontally (AC-3.9) |
 | EC-8 | The list is loaded again while a category that no longer exists is selected | "Todos" is selected (AC-3.10) |
 | EC-9 | The dialog is closed in any way | No overlay is left and focus returns to the tile (AC-8.7) |
 | EC-10 | Only one business is loaded | Featured section (if it has a store), one filter option plus "Todos", "1 negocio" |
+| EC-11 | A category name is long (for example "Floristería") | The filter option shows it in full, wrapping to two lines if needed (AC-3.11) |
 
 ## 10. Visual Reference
 
@@ -200,7 +204,25 @@ The visual reference is the playground view "App de domicilios", opened at `#del
 - [`playground/src/BusinessDetailDialog.tsx`](../../playground/src/BusinessDetailDialog.tsx): detail dialog
 - [`playground/src/categories.ts`](../../playground/src/categories.ts) and [`playground/src/icons.tsx`](../../playground/src/icons.tsx): category icons and colors
 
-Plan 003 uses these files as the reference for layout, spacing, and styling. Per AGENTS.md "Playground", the code is rebuilt in `frontend/src/` through the normal workflow and is never copied over. Where the playground and this spec differ, this spec wins. The playground's example data (extra businesses, descriptions, photos, websites) and its leaving-the-site dialog are not part of this spec (section 11).
+Plan 003 uses these files as the reference for layout, spacing, and styling. Per `playground/README.md`, the design reaches `frontend/src/` through the normal workflow and the code is never copied over. Where the playground and this spec differ, this spec wins. The playground's example data (extra businesses, descriptions, photos, websites, the photo gallery) and its leaving-the-site dialog are not part of this spec (section 11).
+
+Known differences between the reference and this spec, as of 2026-11-02:
+
+| Area | Reference | This spec |
+|---|---|---|
+| Header | "Entregar en Alameda del Río" as a button with an arrow that does nothing | Plain title (AC-1.1, Q-1) |
+| Header during loading, error, or empty | The whole view is replaced by the state | Title stays, search is hidden (AC-1.3) |
+| Headings and landmarks | No main heading, no main landmark | AC-1.4 |
+| Search field | No accessible name. Clear control only in browsers that provide one. | AC-2.5 |
+| Category option order | Order of first appearance | Alphabetical (AC-3.2, Q-5) |
+| Category option labels | Cut with an ellipsis when long | Full text (AC-3.11) |
+| Category spelling variants | Exact text, for both options and icon lookup | Normalized (AC-3.1, AC-4.2, Q-8) |
+| Unknown or missing category after reload | Selection kept, shows "no results" | Resets to "Todos" (AC-3.10) |
+| Featured section | Shown with any filter. Subtitle "Negocios con local en el conjunto". | Only while browsing all (AC-6.1, AC-6.2, Q-2). Subtitle "Negocios con local físico". |
+| Tile without WhatsApp | Shows the text "Sin WhatsApp" | Shows nothing (AC-5.4, Q-3) |
+| Result count | Not announced to screen readers | Announced (AC-7.3) |
+| Dialog WhatsApp button | Accessible name "Contactar a {nombre} por WhatsApp", which does not contain the visible text | Accessible name equals the visible text (section 6) |
+| Motion | Hover zoom and transitions always on | Off with reduced motion (NFR-9) |
 
 ## 11. Out of Scope
 
@@ -222,19 +244,20 @@ None. This spec adds no package (NFR-7).
 Each question has a proposal. The project owner decides before approval, and the answer is folded into the spec body.
 
 - **Q-1 Header title.** The playground says "Entregar en Alameda del Río", which suggests ordering and delivery, but this is a directory. **Proposal:** "Negocios en Alameda del Río", as plain text, not a button.
-- **Q-2 Featured section.** It repeats businesses that also appear in the full list. Options: (a) keep it as is, (b) keep it and leave its businesses out of the full list, (c) drop it and show the store type badge only. **Proposal:** (a), and hide it while a search is active so results are not shown twice.
-- **Q-3 WhatsApp button on the tile.** The playground uses a generic chat icon, which may not read as WhatsApp. Options: (a) generic chat icon, (b) the official WhatsApp glyph, following WhatsApp's brand guidelines, (c) a small button with the text "WhatsApp", as in spec 001. **Proposal:** (b), with the accessible name from AC-5.3.
+- **Q-2 Featured section.** It repeats businesses that also appear in the full list. Options: (a) show it with any filter, as the reference does, (b) show it only while browsing all businesses with no search, (c) keep it and leave its businesses out of the full list, (d) drop it and show the store type badge only. **Proposal:** (b), as written in AC-6.1 and AC-6.2. With a category or a search, the same tiles would otherwise appear twice, one above the other.
+- **Q-3 WhatsApp button on the tile.** The playground uses a generic chat icon, which may not read as WhatsApp. Options: (a) generic chat icon, (b) the official WhatsApp glyph, following WhatsApp's brand guidelines, (c) a small button with the text "WhatsApp", as in spec 001. Also, the reference shows "Sin WhatsApp" on tiles without a number. **Proposal:** (b), with the accessible name from AC-5.3, and no "Sin WhatsApp" text on the tile (the dialog explains it, AC-8.2).
 - **Q-4 Supported categories.** Section 7 lists the 7 categories in the `dev` data plus 8 likely ones. Production data may use other names. **Proposal:** approve the table as is and add categories through a small spec change when new ones appear.
 - **Q-5 Category option order.** Options: alphabetical, by number of businesses, or the fixed order of section 7. **Proposal:** alphabetical (AC-3.2).
 - **Q-6 Search fields.** Name and category only, or also the location summary (for example "Torre 4" or "Local 7")? **Proposal:** name and category only. Searching by location can match many unrelated businesses in the same building.
 - **Q-7 UI text.** Confirm or adjust each text in section 6.
+- **Q-8 Category spelling variants.** Categories are free text (plan 001), so "Cafeteria" and "Cafetería" can both exist. Options: (a) one filter option for both, using the same matching as icons and colors (AC-4.2), (b) one option per exact spelling, relying on review of the SQL data migrations to keep spelling consistent. **Proposal:** (a), as written in AC-3.1 and AC-3.11, so the filter and the icons follow the same rule.
 
 ## 14. Completion Criteria
 
 This feature is complete when all of the following are true:
 
 1. Every functional requirement (FR-1 to FR-8) has its acceptance criteria verified by an automated test or a documented manual check.
-2. Spec 001 requirements that still apply keep passing their existing tests.
+2. Tests for spec 001 requirements that still apply keep passing unchanged. Tests for the parts this spec replaces (spec 001 FR-2 card layout and the FR-3 label presentation, section 2) are replaced by tests for FR-5 in this spec's tasks. That is a planned replacement, not a weakened test.
 3. The non-functional requirements are met, including a contrast check of every category color.
-4. All edge cases (EC-1 to EC-10) behave as described.
+4. All edge cases (EC-1 to EC-11) behave as described.
 5. A user can search or pick a category, open a business, and start a WhatsApp conversation from the dialog.
