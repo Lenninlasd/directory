@@ -97,7 +97,7 @@ Notes:
 
 ## 5. Category Design Tokens
 
-Three tokens per category in the `@theme` block of `src/index.css`: `--color-category-<slug>-from` and `-to` for the cover gradient, and `-tint` for the background of the filter option icon. The filter option icon uses the `-to` color. Values are the hex of these Tailwind default palette shades, taken from the reference `playground/src/categories.ts`:
+Three tokens per category in the `@theme` block of `src/index.css`: `--color-category-<slug>-from` and `-to` for the cover gradient, and `-tint` for the background of the filter option icon. The filter option icon uses the `-to` color. Values are these Tailwind default palette shades, taken from the reference `playground/src/categories.ts` and copied as OKLCH from the installed `tailwindcss/theme.css`, since Tailwind v4 defines its palette in OKLCH:
 
 | Category | Slug | From | To | Tint |
 |---|---|---|---|---|
@@ -133,7 +133,7 @@ Contrast (NFR-6): no text is drawn on a category color. Cover and option icons a
 | D-7 | Categories are matched by a normalized key. Supported names live in a pure module, and appearance is a `Record` over the supported keys, so TypeScript reports a missing entry. | A lookup by exact text: breaks AC-4.2. Appearance in the pure module: puts React icons and Tailwind classes in business logic. |
 | D-8 | Matching removes diacritics, so "n" also matches "ñ" ("pena" finds "Peña") | Keeping "ñ" distinct: stricter, but people without a "ñ" key could not find those businesses |
 | D-9 | Tile: a stretched `button` under the content, with the WhatsApp link stacked above it | The whole tile as a `button`: a link cannot be nested inside a button. The tile as a link: there is no URL to go to (spec section 11). |
-| D-10 | The WhatsApp glyph is an inline SVG taken from WhatsApp's official brand resources, unmodified, in white on `whatsapp` or `whatsapp` on `surface` | An icon library: NFR-7 |
+| D-10 | The WhatsApp glyph is an inline SVG of the official white glyph from WhatsApp's brand resources, unmodified, always on a `whatsapp` background (5.0:1). The brand guidelines forbid changing the glyph's colors, so it is never recolored. | An icon library: NFR-7. The official green glyph on `surface`: about 2:1, too low for a control's only visual cue. |
 | D-11 | Component tests use `fireEvent` from Testing Library, like the existing tests | `@testing-library/user-event`: listed in spec 001 section 8a but not installed, and not needed for these interactions |
 
 ## 7. Dependencies

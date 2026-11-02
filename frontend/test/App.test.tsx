@@ -24,4 +24,18 @@ describe('App', () => {
     expect(screen.getByRole('main')).toBeInTheDocument();
     expect(await screen.findByText('Aún no hay negocios disponibles')).toBeInTheDocument();
   });
+
+  it('shows the directory title as the main heading, outside the main landmark (spec 003 AC-1.4)', () => {
+    vi.mocked(fetchBusinesses).mockReturnValue(new Promise(() => {}));
+
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <App />
+      </QueryClientProvider>,
+    );
+
+    const heading = screen.getByRole('heading', { level: 1, name: 'Negocios en Alameda del Río' });
+    expect(screen.getByRole('banner')).toContainElement(heading);
+    expect(screen.getByRole('main')).not.toContainElement(heading);
+  });
 });

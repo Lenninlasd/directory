@@ -20,13 +20,13 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
 
 ## M6: Directory redesign
 
-- [ ] **003-T1 Dialog stand-ins for tests**
+- [x] **003-T1 Dialog stand-ins for tests**
   - **Covers:** enabler for FR-8 tests; plan D-4, R-1
   - **Do:** in `frontend/test/setup.ts`, define `HTMLDialogElement.prototype.showModal()` (sets `open`) and `close()` (clears `open` and fires one `close` event, does nothing if already closed), only when jsdom does not provide them. Comment points to plan R-1.
   - **Tests first:** `frontend/test/dialogStandIns.test.ts`: `showModal()` opens the dialog; `close()` closes it and fires `close` exactly once; `close()` on a closed dialog fires nothing.
   - **Done when:** tests pass and the existing suite still passes.
 
-- [ ] **003-T2 Category rules**
+- [x] **003-T2 Category rules**
   - **Covers:** AC-3.1, AC-3.2, AC-3.10, AC-3.11 (labels), AC-4.2, EC-4, EC-8; plan section 3, D-7, D-8
   - **Do:** `src/features/businesses/supportedCategories.ts` with the 15 names of spec section 7 and their keys. In `src/features/businesses/directory.ts`: `normalizeForMatching`, `listCategoryOptions`, `resolveSelectedCategory`. The only imports are the `Business` type and `supportedCategories.ts`.
   - **Tests first:**
@@ -39,7 +39,7 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
     - `resolveSelectedCategory`: a present key is kept; an absent key gives `null`; `null` stays `null`.
   - **Done when:** tests pass. The module has no React import.
 
-- [ ] **003-T3 Search and featured rules**
+- [x] **003-T3 Search and featured rules**
   - **Covers:** AC-2.1 to AC-2.4, AC-3.4, AC-3.7, AC-6.1, AC-6.2, AC-7.1, EC-1, EC-2
   - **Do:** `filterBusinesses` and `featuredBusinesses` in `directory.ts` (plan section 3).
   - **Tests first:**
@@ -55,11 +55,11 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
       - It returns `[]` when a category is selected, and `[]` when the search has text.
   - **Done when:** tests pass.
 
-- [ ] **003-T4 UI texts, category appearance, icons, and tokens**
+- [x] **003-T4 UI texts, category appearance, icons, and tokens**
   - **Covers:** spec section 6, AC-4.1, AC-4.3, AC-4.4, EC-3, NFR-6, NFR-7; plan section 5, D-7, R-4, R-5, R-7
   - **Do:**
     - **Texts:** add every text of spec section 6 to `src/strings.ts` with exact wording, including `resultCount(n)` and `viewDetailsLabel(name)`.
-    - **Tokens:** add the 48 category tokens of plan section 5 to `src/index.css`, as the hex values of the listed Tailwind palette shades. Check the hex values and the v4 `@theme` syntax against the official Tailwind documentation. Add the contrast note to the header comment, and `scrollbar-gutter: stable` on `html`.
+    - **Tokens:** add the 48 category tokens of plan section 5 to `src/index.css`, as the OKLCH values of the listed Tailwind palette shades (plan section 5). Check the values and the v4 `@theme` syntax against the official Tailwind documentation. Add the contrast note to the header comment, and `scrollbar-gutter: stable` on `html`.
     - **Icons:** `src/features/businesses/icons.tsx` with the category icons, the fallback, and the search, close, store, delivery, and "Todos" icons, all `aria-hidden`. The WhatsApp glyph comes in 003-T5.
     - **Appearance:** `src/features/businesses/categoryAppearance.ts` with full literal class names.
   - **Tests first:**
@@ -69,7 +69,7 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
     - Every class of an appearance names that category's tokens, for example it contains `category-ferreteria-`.
   - **Done when:** tests pass, and `pnpm --filter frontend build` produces CSS that contains a category class used by `categoryAppearance.ts`.
 
-- [ ] **003-T5 Business tile and WhatsApp icon link**
+- [x] **003-T5 Business tile and WhatsApp icon link**
   - **Covers:** AC-5.1 to AC-5.8, AC-4.4, EC-5, EC-6, NFR-9; plan D-9, D-10, R-3
   - **Do:**
     - **Glyph:** before writing code, get the WhatsApp glyph from WhatsApp's official brand resources and read its usage guidelines. If they do not allow this use, stop and report (plan R-3). Add the glyph to `icons.tsx` unmodified, with a comment naming the source.
@@ -84,7 +84,7 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
     - The button "Ver detalles de {nombre}" calls `onOpen` with that button; clicking the WhatsApp link does not call `onOpen`.
   - **Done when:** tests pass, and `BusinessCard.test.tsx` still passes (it is removed in 003-T8).
 
-- [ ] **003-T6 Search field and category filter**
+- [x] **003-T6 Search field and category filter**
   - **Covers:** AC-2.5, AC-3.3 to AC-3.9, AC-3.11, EC-7, EC-11
   - **Do:** `SearchInput.tsx` and `CategoryFilter.tsx` (plan section 4), as controlled components with no state of their own.
   - **Tests first:**
@@ -99,7 +99,7 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
       - Exactly one option is pressed.
   - **Done when:** tests pass.
 
-- [ ] **003-T7 Featured section, results, and no results**
+- [x] **003-T7 Featured section, results, and no results**
   - **Covers:** FR-6 (display), AC-7.1 to AC-7.5, EC-1, EC-10
   - **Do:** `FeaturedSection.tsx`, `BusinessResults.tsx`, `NoResults.tsx` (plan section 4).
   - **Tests first:**
@@ -111,13 +111,13 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
       - An empty list shows "No encontramos negocios" and "Prueba con otra búsqueda o categoría.".
   - **Done when:** tests pass.
 
-- [ ] **003-T8 Directory page and App**
+- [x] **003-T8 Directory page and App**
   - **Covers:** AC-1.1 to AC-1.4, AC-3.10, FR-2, FR-3, FR-6, and FR-7 together, EC-1, EC-2, EC-8, EC-10; spec 001 FR-1, FR-6, FR-7; spec 003 completion criterion 2
   - **Do:**
     - **New and changed files:** `DirectoryHeader.tsx` and `Directory.tsx` (plan section 4, D-1 to D-3). The loading, error, and empty markup moves unchanged from `BusinessList.tsx`. `App.tsx` renders `<Directory />`.
     - **Tests moved:** `BusinessList.test.tsx` becomes `Directory.test.tsx`, keeping its assertions.
     - **Removed:** `BusinessList.tsx`, `BusinessCard.tsx`, and `BusinessCard.test.tsx` (replaced in 003-T5).
-    - **Opening tiles:** tiles get an `onOpen` that stores the open business id and the opener. The dialog itself comes in 003-T9, in the same pull request.
+    - **Opening tiles:** tiles get an `onOpen` that does nothing yet. Storing the open business and the opener comes with the dialog in 003-T9, in the same pull request.
   - **Tests first (mocked API, fresh `QueryClient`):**
     - **Moved from spec 001:** the existing tests, changed only where "card" becomes "tile inside the results section" (plan section 8).
     - **Header:** the `h1` "Negocios en Alameda del Río" shows in every state. The search field is absent while loading, on error, and when empty.
@@ -130,12 +130,13 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
     - **`App.test.tsx`:** the `main` landmark and the `h1`.
   - **Done when:** tests pass, and the page works in the browser against the `dev` API through the Vite proxy.
 
-- [ ] **003-T9 Business detail dialog**
+- [x] **003-T9 Business detail dialog**
   - **Covers:** AC-8.1 to AC-8.9, EC-6, EC-9; plan D-4, D-5, R-2, R-5
   - **Do:**
     - **WhatsApp button:** change `WhatsAppButton` into the dialog variant: glyph plus "Escribir por WhatsApp", no `aria-label`.
     - **Dialog:** `BusinessDetailDialog.tsx` (plan section 4).
     - **In `Directory.tsx`:**
+      - Keep the open business id and the opener (plan D-2, D-5).
       - Look up the open business by id in the query data.
       - Add `overflow-hidden` to `html` while the dialog is open.
       - Focus the opener when it closes.
