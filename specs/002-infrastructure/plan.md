@@ -103,7 +103,7 @@ The documentation does not state that `pages.dev` redirects HTTP to HTTPS. 002-T
 4. `pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-<env> --branch main` (P-14).
 5. Print the frontend URL.
 
-`prod` requires a typed confirmation (AC-6.2). The developer's AWS credentials need permission to deploy the stack and to call the Data API for the migration step; the README lists them. The developer runs `wrangler login` once before the first deploy.
+`prod` requires a typed confirmation (AC-6.2). The script refuses to run with uncommitted or untracked files, so every deploy matches a commit. The developer's AWS credentials need permission to deploy the stack and to call the Data API for the migration step; the README lists them. The developer runs `wrangler login` once before the first deploy.
 
 **Rollback (AC-6.3).** Redeploy the previous Git commit with the same command. The frontend can also be restored alone from the Pages dashboard (C-5). Migrations are forward-only; a bad migration is fixed by a new file.
 
