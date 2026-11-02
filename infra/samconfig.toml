@@ -2,6 +2,7 @@ version = 0.1
 
 # Run SAM commands from the infra/ directory. Choose the environment with --config-env dev|prod.
 # No account IDs or secrets belong in this file (spec 002 section 3).
+# FrontendOrigin is the URL printed when the Pages project was created (infra/README.md). The prod URL is confirmed in 002-T10.
 
 [dev.build.parameters]
 # Build in backend/ itself so the makefile build finds the pnpm node_modules.
@@ -13,7 +14,7 @@ region = "us-east-1"
 capabilities = "CAPABILITY_IAM"
 resolve_s3 = true
 confirm_changeset = true
-parameter_overrides = "Environment=\"dev\""
+parameter_overrides = "Environment=\"dev\" FrontendOrigin=\"https://alameda-dev.pages.dev\""
 tags = "Project=\"alameda\" Environment=\"dev\""
 
 [prod.build.parameters]
@@ -26,5 +27,5 @@ region = "us-east-1"
 capabilities = "CAPABILITY_IAM"
 resolve_s3 = true
 confirm_changeset = true
-parameter_overrides = "Environment=\"prod\""
+parameter_overrides = "Environment=\"prod\" FrontendOrigin=\"https://alameda-prod.pages.dev\""
 tags = "Project=\"alameda\" Environment=\"prod\""

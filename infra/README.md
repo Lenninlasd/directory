@@ -4,7 +4,7 @@ Deployment guide for spec 002. Sections are added as the tasks in `specs/002-inf
 
 ## Architecture
 
-Solid boxes exist in `dev` today. Boxes marked `(planned)` come with task 002-T7.
+The frontend is on Cloudflare Pages (002-T7); everything else is in one AWS stack per environment.
 
 ```
                           +-----------------------+
@@ -15,15 +15,16 @@ Solid boxes exist in `dev` today. Boxes marked `(planned)` come with task 002-T7
               | static files                                 | GET /businesses (CORS)
               v                                              v
    +----------------------+                      +--------------------------+
-   | CloudFront (OAC)     |                      | API Gateway HTTP API     |
-   | (planned, T7)        |                      | GET /businesses          |
-   +----------+-----------+                      +------------+-------------+
-              v                                               v
-   +----------------------+                      +--------------------------+
-   | S3 bucket (private)  |                      | Lambda `api` (no VPC)    |
-   | React + Tailwind     |                      | nodejs24.x, arm64        |
-   | (planned, T7)        |                      | 256 MB, timeout 10 s     |
-   +----------------------+                      +------------+-------------+
+   | Cloudflare Pages     |                      | API Gateway HTTP API     |
+   | alameda-<env>        |                      | GET /businesses          |
+   | .pages.dev           |                      | CORS: FrontendOrigin     |
+   | React + Tailwind     |                      +------------+-------------+
+   +----------------------+                                   v
+                                                 +--------------------------+
+                                                 | Lambda `api` (no VPC)    |
+                                                 | nodejs24.x, arm64        |
+                                                 | 256 MB, timeout 10 s     |
+                                                 +------------+-------------+
                                                               | AWS SDK, IAM role:
                                                               | rds-data:ExecuteStatement
                                                               | secretsmanager:GetSecretValue
@@ -51,6 +52,7 @@ Solid boxes exist in `dev` today. Boxes marked `(planned)` come with task 002-T7
                          +----------------+-----------------+
                          | Developer machine                |
                          | node backend/scripts/migrate.ts  |
+                         | wrangler pages deploy (Pages)    |
                          +----------------------------------+
 ```
 
@@ -70,13 +72,14 @@ Why two subnets: an RDS DB subnet group must span at least two Availability Zone
 
 ## Prerequisites
 
-These tools run on the developer machine. They are not npm packages and are not in the lockfile (spec 002 section 9). Record the versions you use here.
+These tools run on the developer machine. They are not in `package.json` or the lockfile (spec 002 section 9). Record the versions you use here.
 
 | Tool | Used for | Install | Version used |
 |---|---|---|---|
 | Node.js 24 and pnpm | Build and tests | See the root `package.json` (`packageManager`) | Node 24.22.1, pnpm 12.15.0 |
-| AWS CLI v2 | Credentials, Data API checks, S3 upload, CloudFront invalidation | [AWS CLI install guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), macOS package installer | 2.38.5 |
+| AWS CLI v2 | Credentials, stack outputs, Data API checks | [AWS CLI install guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), macOS package installer | 2.38.5 |
 | AWS SAM CLI | Validate, build, and deploy the template | [SAM CLI install guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html), macOS package installer (needs macOS 13 or newer) | 1.170.0 |
+| Wrangler (Cloudflare CLI) | Create the Pages project and deploy the frontend | Nothing to install: always run as `pnpm dlx wrangler@4.151.1` (pinned, plan P-14) | 4.151.1 |
 
 ### AWS credentials
 
@@ -89,7 +92,13 @@ Permissions needed so far (extended by later tasks as resources are added):
 - 002-T2: create, update, and delete the VPC, subnets, and security group (`ec2:*Vpc*`, `ec2:*Subnet*`, `ec2:*SecurityGroup*`, `ec2:Describe*`, `ec2:CreateTags`), the DB subnet group, cluster, and instance (`rds:*` on `alameda-*` resources); the Aurora-managed master secret (`secretsmanager:CreateSecret`, `secretsmanager:TagResource`, `secretsmanager:RotateSecret`, `kms:DescribeKey` on the `aws/secretsmanager` key); and, for the Data API check, `rds-data:ExecuteStatement` on the cluster and `secretsmanager:GetSecretValue` on its secret.
 - 002-T3: `cloudformation:DescribeStacks` on `alameda-*` stacks; `rds-data:ExecuteStatement`, `rds-data:BeginTransaction`, `rds-data:CommitTransaction`, and `rds-data:RollbackTransaction` on the cluster; `secretsmanager:GetSecretValue` on its secret.
 - 002-T4: create, update, and delete the `alameda-*` Lambda function (`lambda:*Function*`, `lambda:*Permission`, `lambda:TagResource`), its role (`iam:CreateRole`, `iam:DeleteRole`, `iam:GetRole`, `iam:PutRolePolicy`, `iam:DeleteRolePolicy`, `iam:GetRolePolicy`, `iam:TagRole`, `iam:PassRole` on `alameda-*` roles), the HTTP API (`apigateway:*` on `/apis*`), and the log group (`logs:CreateLogGroup`, `logs:DeleteLogGroup`, `logs:PutRetentionPolicy`, `logs:TagResource`, `logs:DescribeLogGroups`); for the checks, `lambda:GetFunctionConfiguration`, `iam:ListAttachedRolePolicies`, and `logs:FilterLogEvents`.
-- 002-T7: create, update, and delete the frontend bucket and its policy (`s3:CreateBucket`, `s3:DeleteBucket`, `s3:PutBucket*`, `s3:GetBucket*`, `s3:PutEncryptionConfiguration`, `s3:PutBucketOwnershipControls`, `s3:PutBucketPublicAccessBlock`, `s3:PutBucketPolicy`, `s3:DeleteBucketPolicy` on `alameda-*` buckets), the CloudFront distribution and origin access control (`cloudfront:*Distribution*`, `cloudfront:*OriginAccessControl*`, `cloudfront:TagResource`); for the checks, `s3:PutObject` and `s3:ListBucket` on the frontend bucket.
+- 002-T7: no new AWS permissions (the frontend is on Cloudflare Pages).
+
+### Cloudflare login
+
+1. Create a free Cloudflare account if you do not have one.
+2. Run `pnpm dlx wrangler@4.151.1 login`. It opens the browser, you sign in and allow access, and Wrangler keeps the login on your machine (spec 002 section 3). No Cloudflare key goes into any file in this repository.
+3. Check it with `pnpm dlx wrangler@4.151.1 whoami`.
 
 ## Commands
 
@@ -123,6 +132,18 @@ CI runs on every pull request to `main` (`.github/workflows/ci.yml`). To make a 
 
 1. GitHub repository → **Settings** → **Branches** (or **Rules** → **Rulesets**).
 2. Add a rule for `main`: require a pull request before merging, and require the status check **`test`** (the CI job) to pass.
+
+### Cloudflare Pages project per environment (002-T7, spec AC-1.3a)
+
+SAM cannot create Cloudflare resources, so each environment's Pages project is created once by hand, after the Cloudflare login:
+
+```
+pnpm dlx wrangler@4.151.1 pages project create alameda-dev --production-branch main
+```
+
+1. Note the URL it prints (`https://alameda-dev.pages.dev`, or with a suffix if the name was taken).
+2. Put that URL in `FrontendOrigin` in the `dev` section of `infra/samconfig.toml` (`parameter_overrides`), then run `sam deploy --config-env dev` so the API allows it (CORS).
+3. For `prod`, do the same with `alameda-prod` when the directory launches (002-T10).
 
 ## Verification
 
@@ -243,30 +264,32 @@ The "Least privilege", "Database private", and "Encryption" checks of plan secti
 | `aws secretsmanager describe-secret --secret-id "$SECRET_ARN" --query "{Kms:KmsKeyId,Rotation:RotationEnabled}"` | Encrypted with KMS, rotation enabled (managed by Aurora). `KmsKeyId` is `null` when the default `aws/secretsmanager` key is used; Secrets Manager always encrypts | Passed (2026-10-28) |
 | `curl -m 8 http://rds-data.us-east-1.amazonaws.com/Execute` and `curl -m 8 "http://<api host>/businesses"` | Both fail: the Data API and the HTTP API accept HTTPS only | Passed (2026-10-28): Data API over HTTP timed out, over HTTPS answered `403` (unsigned request); HTTP API over HTTP connection refused on port 80, over HTTPS `200` |
 
-### S3 bucket and CloudFront (002-T7, spec AC-4.1, AC-4.2, AC-2.4; plan P-7)
+### Cloudflare Pages and CORS origin (002-T7, spec AC-1.3a, AC-2.4, AC-4.1, AC-4.2; plan P-7, P-14)
 
-The bucket is private (all public access blocked, SSE-S3 encryption, ACLs disabled). Only the CloudFront distribution of the same stack can read it, through Origin Access Control. Cache behavior (P-7): `assets/*` (hashed file names from Vite) uses the managed `CachingOptimized` policy; everything else, in practice `index.html`, uses the managed `CachingDisabled` policy. The API CORS configuration allows only this distribution's origin.
+The frontend is a static site on Cloudflare Pages, one project per environment (`alameda-dev`, `alameda-prod`). Nothing on AWS stores or serves it. The template parameter `FrontendOrigin` holds the project's URL (set in `samconfig.toml`), and the API CORS configuration allows only that origin. Cache headers (P-7): `frontend/public/_headers` gives files under `assets/` (hashed names from Vite) a one-year `immutable` cache; `index.html` keeps the Pages default `max-age=0, must-revalidate`, so a new deploy is visible on reload.
 
 Set these variables first (stack outputs, no values are written to the repository):
 
 ```
 output() { aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text; }
-FRONTEND_URL=$(output FrontendUrl); BUCKET=$(output FrontendBucketName); API_URL=$(output ApiUrl)
+FRONTEND_URL=$(output FrontendUrl); API_URL=$(output ApiUrl)
 ```
 
 Until 002-T8 adds the deploy script, upload the frontend for the checks by hand from the repository root:
 
 ```
 VITE_API_BASE_URL="$API_URL" pnpm --filter frontend build
-aws s3 sync frontend/dist "s3://$BUCKET" --delete
+pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-dev --branch main
 ```
+
+`pages deploy` also prints a per-deployment URL such as `https://<hash>.alameda-dev.pages.dev`. Use `$FRONTEND_URL` instead: the API allows only that origin, so the per-deployment URL shows a CORS error by design.
 
 | Check | Expected (`dev`) | Result |
 |---|---|---|
-| `curl -sI "${FRONTEND_URL/https/http}/"` | `301` with `location: https://…` (AC-4.2) | Pending |
-| `curl -sI "https://$BUCKET.s3.us-east-1.amazonaws.com/index.html"` | `403` (direct bucket access denied, AC-4.1) | Pending |
-| `curl -s "$FRONTEND_URL/" \| grep -o '<title>.*</title>'` | `<title>Directorio de Alameda del Río</title>` | Pending |
-| `curl -sI "$FRONTEND_URL/" \| grep -i x-cache` and the same for one file under `assets/` (requested twice) | `index.html` is never a hit (`Miss from cloudfront`); the asset is `Hit from cloudfront` on the second request (P-7) | Pending |
-| `curl -si -H "Origin: $FRONTEND_URL" "$API_URL/businesses" \| grep -i access-control-allow-origin` | The header equals `$FRONTEND_URL` (AC-2.4) | Pending |
-| `curl -si -H "Origin: https://example.com" "$API_URL/businesses" \| grep -i access-control` | No `access-control-*` header (EC-2) | Pending |
-| Open `$FRONTEND_URL` in a browser | The list loads from the API with no CORS error in the console | Pending |
+| `curl -sI "${FRONTEND_URL/https/http}/"` | A `3xx` redirect with `location: https://…` (AC-4.2, plan R-8) | Passed (2026-11-02): `301` to `https://alameda-dev.pages.dev/` |
+| `curl -s "$FRONTEND_URL/" \| grep -o '<title>.*</title>'` | `<title>Directorio de Alameda del Río</title>` (AC-4.1) | Passed (2026-11-02) |
+| `curl -sI "$FRONTEND_URL/" \| grep -i cache-control` | `max-age=0, must-revalidate` (P-7) | Passed (2026-11-02) |
+| `curl -sI "$FRONTEND_URL/assets/<file from frontend/dist/assets>" \| grep -i cache-control` | `max-age=31536000, immutable` (P-7) | Passed (2026-11-02) |
+| `curl -si -H "Origin: $FRONTEND_URL" "$API_URL/businesses" \| grep -i access-control-allow-origin` | The header equals `$FRONTEND_URL` (AC-2.4) | Passed (2026-11-02) |
+| `curl -si -H "Origin: https://example.com" "$API_URL/businesses" \| grep -i access-control` | No `access-control-*` header (EC-2) | Passed (2026-11-02) |
+| Open `$FRONTEND_URL` in a browser | The list loads from the API with no CORS error in the console | Passed (2026-11-02) |

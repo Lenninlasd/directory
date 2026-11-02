@@ -1,6 +1,6 @@
 # Tasks 002: Hosting, Deployment, and Infrastructure
 
-- **Status:** Approved (approved by the project owner in chat on 2026-10-24); changes of 2026-11-02 pending approval
+- **Status:** Approved 2026-11-02
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Plan:** [plan.md](./plan.md) (Approved)
 - **Related:** [Tasks 001](../001-business-list/tasks.md) (application; milestones are shared, see the execution order there)
@@ -72,7 +72,7 @@ Prerequisite: M1 of tasks 001 is done.
 
 Prerequisite: M3 of tasks 001 is done.
 
-- [ ] **002-T7 Cloudflare Pages project and CORS origin**
+- [x] **002-T7 Cloudflare Pages project and CORS origin**
   - **Covers:** AC-1.3a, AC-2.4, AC-4.1, AC-4.2, plan P-7, P-14, R-8
   - **Do:** remove `FrontendBucket`, `FrontendOriginAccessControl`, `FrontendDistribution`, and `FrontendBucketPolicy` from the template, with their outputs. Add the `FrontendOrigin` parameter (pattern `https://[a-z0-9.-]+`), use it as the only CORS origin, and output it as `FrontendUrl`. Create the `alameda-dev` Pages project once (`pnpm dlx wrangler@4.151.1 pages project create`, production branch `main`) and set its URL in the `dev` section of `infra/samconfig.toml`. Add `frontend/public/_headers` (P-7). In `infra/README.md`: Wrangler in the prerequisites, `wrangler login`, the one-time project creation (AC-1.3a), the architecture diagram, and remove the S3 and CloudFront permissions.
   - **Checks first:** `curl -sI http://<pages-url>/` redirects to `https://`; `https://<pages-url>/` returns the app HTML title; a file under `assets/` has `cache-control` with `immutable` and `index.html` has `max-age=0`; `curl` with `Origin: <pages-url>` gets `access-control-allow-origin` equal to it, another origin gets none; the list loads in a browser with no CORS error. Upload by hand for the checks (`pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-dev --branch main`) until 002-T8 exists.
