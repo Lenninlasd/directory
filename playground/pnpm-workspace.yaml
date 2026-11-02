@@ -1,0 +1,4 @@
+# Makes the playground its own pnpm root, separate from the repository workspace (AGENTS.md "Playground").
+# Same build setting as the root pnpm-workspace.yaml.
+allowBuilds:
+  esbuild: false

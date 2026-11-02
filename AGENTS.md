@@ -20,6 +20,7 @@ The binding rules live in `docs/constitution.md`. If this file and the constitut
 - `frontend/` — React + TypeScript app (Tailwind CSS, TanStack Query).
 - `backend/` — Lambda/Express handlers, services (business logic), repositories (SQL).
 - `backend/migrations/` — versioned, explicit SQL migrations.
+- `playground/` — design sandbox outside the SDD workflow (see "Playground" below).
 - `pnpm-workspace.yaml` and `pnpm-lock.yaml` at the repository root. Always commit the lockfile.
 
 ## Hard boundaries (never violate)
@@ -115,6 +116,10 @@ Run lint, type check, and tests before finishing any task, and fix failures befo
 - The agent never runs `git commit`, `git push`, `git merge`, `git rebase`, or `git reset`. The project settings (`.claude/settings.json`) also block these commands.
 - When a task is done, the agent stops and reports: the files changed, the checks it ran, and a suggested commit message (English, imperative, with the task id, for example `[001-T3] Add WhatsApp number rule`).
 - The human reviews the diff (`git diff --staged`) and commits.
+
+## Playground
+
+`playground/` is a design sandbox and a black box for this file: the SDD workflow and the rules above do not apply inside it, except the security rules (never commit secrets). Its own rules are in `playground/AGENTS.md`.
 
 ## When in doubt
 
