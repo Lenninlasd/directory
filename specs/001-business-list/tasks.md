@@ -19,6 +19,7 @@ Follow the AGENTS.md workflow: write the **Tests first** and see them fail, writ
 | **M3** | Frontend works locally against the `dev` API | 001-T9 to 001-T14 |
 | **M4** | Frontend hosted in `dev`, end-to-end checks | 002-T7 to 002-T9, then 001-T15 |
 | **M5** | `prod`, only at launch | 002-T10, 002-T11 |
+| **M6** | Directory redesign ([spec 003](../003-directory-redesign/spec.md)), independent of M4 and M5 | 003-T1 to 003-T10 |
 
 ## M1: Backend
 

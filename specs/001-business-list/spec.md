@@ -2,7 +2,7 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-10-29
+- **Last updated:** 2026-11-02
 
 ## 1. Context and Objective
 
@@ -49,6 +49,8 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 
 ### FR-2: Business card content (US-1, US-3)
 
+> The card layout is replaced by the business tile of [spec 003](../003-directory-redesign/spec.md) FR-5. The attribute rules below still apply.
+
 - **AC-2.1.** The system shall display, for each business, a card with its name, category, short location summary, and store type indicator.
 - **AC-2.2.** While a business has a valid WhatsApp number, the system shall display a WhatsApp contact button on its card.
 - **AC-2.3.** If a business has an invalid WhatsApp number, then the system shall not display the WhatsApp contact button on its card and shall still display the rest of the card.
@@ -56,6 +58,8 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 - **AC-2.5.** A WhatsApp number is valid when, after removing spaces, dashes, parentheses, and a leading `+`, it has 8 to 15 digits and does not start with `0`. Numbers are stored with the country code (for example `573001234567`).
 
 ### FR-3: Store type indicator (US-3)
+
+> The labels stay; [spec 003](../003-directory-redesign/spec.md) AC-5.2 shows them as a badge with an icon.
 
 - **AC-3.1.** While a business operates from a physical store, the system shall display the label "En tienda" on its card.
 - **AC-3.2.** While a business does not operate from a physical store, the system shall display the label "Solo domicilios" on its card.
@@ -103,9 +107,9 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 ## 8. Out of Scope
 
 - Pagination, "load more", and infinite scroll. The directory returns all active businesses in one request. This will be revisited when the number of businesses makes it necessary.
-- Search by name or any other text.
-- Filters, including by category, and any sort option other than the fixed order.
-- A detail page for each business.
+- Search by name or any other text. Now in scope through [spec 003](../003-directory-redesign/spec.md) FR-2.
+- Filters, including by category, and any sort option other than the fixed order. The category filter is now in scope through [spec 003](../003-directory-redesign/spec.md) FR-3.
+- A detail page for each business. A detail dialog is now in scope through [spec 003](../003-directory-redesign/spec.md) FR-8.
 - Extended business attributes: description, logo, cover image, exact address, coordinates, email, Instagram, catalog link, opening hours, home delivery flag, payment methods, and verification status.
 - Creating, editing, or removing businesses through the product. The team loads and changes businesses through reviewed, versioned SQL data migrations applied by the deployment process (spec 002 FR-7), not through the product.
 - Business owner accounts and ownership claims.
