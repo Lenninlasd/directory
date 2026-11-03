@@ -84,7 +84,7 @@ Prerequisite: M3 of tasks 001 is done.
   - **Checks first:** a full `dev` run ends with a working URL; a changed frontend is visible after reload; `prod` without confirmation aborts before any change; a dirty working tree aborts before any change.
   - **Done when:** checks pass in `dev`.
 
-- [ ] **002-T9 Rollback documentation, performance, and freshness**
+- [x] **002-T9 Rollback documentation, performance, and freshness**
   - **Covers:** AC-6.3, NFR-1, spec 001 NFR-5
   - **Do:** write the rollback section of `infra/README.md` (no drill): backend by redeploying the previous commit, frontend from the Pages dashboard (plan C-5) or by redeploying the previous commit. Run the "Performance" check of plan section 8 once in `dev` (warm request, and the first request after a pause). Freshness: change a seed row, re-run the seed, reload, see the change.
   - **Done when:** results are recorded; a missed performance target leads to a spec change proposal.
