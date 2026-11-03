@@ -135,6 +135,33 @@ node backend/scripts/migrate.ts dev --seed    # also run backend/seeds/dev_busin
 
 The script reads the cluster ARN, secret ARN, and database name from the `alameda-<env>` stack with the AWS CLI, then calls the Data API with your credentials. It prints each applied file and exits with a non-zero code if a migration fails (that file is rolled back and later files are not run). `--seed` is refused for `prod`. If the `dev` cluster is paused, the first run fails with `DatabaseResumingException`; run it again after about 30 seconds.
 
+## Rollback (002-T9, spec AC-6.3)
+
+A rollback puts the previous version back. It never undoes a migration.
+
+### Frontend only (fastest)
+
+Cloudflare keeps every deployment (plan C-5). In the Cloudflare dashboard, open the `alameda-<env>` Pages project → **Deployments** → **All deployments** → the three-dot menu on the previous production deployment → **Rollback to this deployment**. It is live in seconds and nothing is rebuilt. The next `infra/deploy.sh` replaces it again.
+
+### Backend, or frontend and backend together
+
+Redeploy the previous commit with the normal deploy script:
+
+```
+git log --oneline -5                 # find the last good commit
+git switch --detach <commit>
+infra/deploy.sh <env>                # same steps as a normal release; prod asks for confirmation
+git switch -                         # go back to your branch afterwards
+```
+
+- SAM puts the previous Lambda code and stack settings back.
+- Migrations already applied stay applied; the previous code works with them because every migration is compatible with the previous and the new backend (spec AC-5.3).
+- If `sam deploy` itself fails, CloudFormation rolls the stack back to its last working state automatically; check it with `aws cloudformation describe-stacks --stack-name alameda-<env> --query "Stacks[0].StackStatus"` (`UPDATE_ROLLBACK_COMPLETE`).
+
+### Database
+
+Migrations are forward-only. A bad migration is fixed by a new migration file, released like any other change. Restoring data from automated backups is not part of a release rollback.
+
 ## One-time manual setup
 
 ### Branch protection for `main` (002-T0)
@@ -317,3 +344,14 @@ pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-dev 
 | `infra/deploy.sh dev` on a clean working tree | Runs every step without the pnpm build question, and ends by printing `https://alameda-dev.pages.dev` (AC-6.1) | Passed (2026-11-02) |
 | After that run: `curl -s "$FRONTEND_URL/" \| grep -o 'assets/[^"]*'` compared with `ls frontend/dist/assets` | The live `index.html` loads the files of the build that was just uploaded (AC-4.4, AC-4.5, EC-5) | Passed (2026-11-02) |
 | After that run: open `$FRONTEND_URL` in a browser | The list loads from the API with no CORS error | Passed (2026-11-02) |
+
+### Performance and freshness (002-T9, spec NFR-1; spec 001 NFR-1, NFR-5)
+
+Performance target (spec 001 NFR-1): on a typical mobile connection, the list is visible within about 3 seconds. Measured once in `dev`.
+
+| Check | Expected | Result |
+|---|---|---|
+| `curl -s -o /dev/null -w "%{time_total}\n" "$API_URL/businesses"`, three times in a row | Warm API answers well under 3 s | Passed (2026-11-02): 0.43 to 0.52 s warm; the first call after deploy took 1.9 s (Lambda cold start) |
+| Browser, private window, DevTools → Network → throttling **Fast 4G**, cache disabled, open `$FRONTEND_URL` | The list is visible within about 3 s (warm API) | Passed (2026-11-02): load in 2.5 s on Fast 4G |
+| Same, after the `dev` database has been idle for more than one hour (auto-pause, plan P-1) | The first load shows the error screen (`DatabaseResumingException`, plan P-12, R-3); **Reintentar** after about 30 s shows the list. Accepted for `dev` only; `prod` never pauses | Passed (2026-11-03): the error screen appeared after about 10 s; one **Reintentar** showed the list 2 to 3 s later. The logs show four `DatabaseResumingException` failures between 15:48:41 and 15:48:50 UTC (no timeouts): the first request and the 2 automatic retries of spec 001 AC-6.1, each taking 2 to 3 s, then the first **Reintentar**; the list loaded about 11 s after the first request |
+| Freshness: change one row in `backend/seeds/dev_businesses.sql`, run `node backend/scripts/migrate.ts dev --seed`, reload `$FRONTEND_URL`; then revert the file and run the seed again | The change appears on the next load with no deploy (spec 001 NFR-5); after the revert the original row is back | Passed (2026-11-02): "Panadería Doña Rosa (prueba T9)" appeared on reload; after the revert the API returns the original name |
