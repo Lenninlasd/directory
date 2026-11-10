@@ -20,7 +20,7 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
 
 ## M6: Directory redesign
 
-- [ ] **003-T1 Dialog stand-ins for tests**
+- [x] **003-T1 Dialog stand-ins for tests**
   - **Covers:** enabler for FR-8 tests; plan D-4, R-1
   - **Do:** in `frontend/test/setup.ts`, define `HTMLDialogElement.prototype.showModal()` (sets `open`) and `close()` (clears `open` and fires one `close` event, does nothing if already closed), only when jsdom does not provide them. Comment points to plan R-1.
   - **Tests first:** `frontend/test/dialogStandIns.test.ts`: `showModal()` opens the dialog; `close()` closes it and fires `close` exactly once; `close()` on a closed dialog fires nothing.
