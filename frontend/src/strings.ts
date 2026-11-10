@@ -6,7 +6,6 @@ export const strings = {
   empty: 'Aún no hay negocios disponibles',
   inStore: 'En tienda',
   deliveryOnly: 'Solo domicilios',
-  whatsappButtonText: 'WhatsApp',
   whatsappGreeting:'Hola, te encontré en el directorio de Alameda del Río',
   whatsappButtonLabel: (businessName: string): string => `Contactar a ${businessName} por WhatsApp`,
 

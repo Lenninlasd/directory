@@ -4,7 +4,7 @@ import type { ComponentType, ReactNode, SVGProps } from 'react';
 // assistive technology; the text next to them carries the meaning (AC-4.4). Size and color come
 // from className, for example "size-5 text-ink".
 
-export type IconProps = SVGProps<SVGSVGElement>;
+type IconProps = SVGProps<SVGSVGElement>;
 export type IconComponent = ComponentType<IconProps>;
 
 function StrokeIcon({ children, ...props }: IconProps & { children: ReactNode }) {

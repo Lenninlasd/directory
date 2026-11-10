@@ -2,14 +2,18 @@ import { strings } from '../../strings.ts';
 import { WhatsAppGlyph } from './icons.tsx';
 import { buildWhatsappUrl } from './whatsapp.ts';
 
-interface WhatsAppButtonProps {
+interface WhatsAppIconLinkProps {
   businessName: string;
+  whatsappNumber: string;
+}
+
+interface WhatsAppButtonProps {
   whatsappNumber: string;
 }
 
 // Tile variant: the official glyph alone on a round green button, so the accessible name
 // comes from aria-label (spec 003 AC-5.3, plan D-10). It sits above the tile's stretched button.
-export function WhatsAppIconLink({ businessName, whatsappNumber }: WhatsAppButtonProps) {
+export function WhatsAppIconLink({ businessName, whatsappNumber }: WhatsAppIconLinkProps) {
   return (
     <a
       href={buildWhatsappUrl(whatsappNumber)}
@@ -27,7 +31,7 @@ export function WhatsAppIconLink({ businessName, whatsappNumber }: WhatsAppButto
 // aria-label, so the accessible name equals the visible text (spec 003 AC-8.2, WCAG 2.5.3). The
 // glyph is a separate element and never replaces the word (plan D-10). WhatsApp opens in a new
 // tab and the directory stays open (plan 001 section 5).
-export function WhatsAppButton({ whatsappNumber }: Pick<WhatsAppButtonProps, 'whatsappNumber'>) {
+export function WhatsAppButton({ whatsappNumber }: WhatsAppButtonProps) {
   return (
     <a
       href={buildWhatsappUrl(whatsappNumber)}

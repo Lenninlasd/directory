@@ -19,7 +19,7 @@
 
 This spec changes only the frontend. The API contract, data model, and business rules of spec 001 do not change. Where the two specs differ, this spec takes precedence for the directory screen:
 
-| Spec 001 item | Change in this spec |
+| Spec 001 item (wording before 2026-11-10) | Change in this spec |
 |---|---|
 | FR-2 (business card) | The card is replaced by the business tile (FR-5). The tile shows the same attributes, and AC-2.4 still holds. |
 | FR-3 (store type label) | Same labels, now shown as a badge with an icon (AC-5.2). |
@@ -29,7 +29,7 @@ This spec changes only the frontend. The API contract, data model, and business 
 
 Everything else in spec 001 still applies: active businesses only, one request, ordering (FR-5), WhatsApp rules and greeting (FR-4, AC-2.5), loading, error, and empty states (FR-1, FR-6, FR-7), and NFR-1 to NFR-5.
 
-When this spec is approved, each affected section of spec 001 gets a one-line pointer to this spec.
+The affected sections of spec 001 are rewritten to describe the current behavior, with links to this spec (AGENTS.md, "When a spec changes earlier behavior"; done on 2026-11-10).
 
 ## 3. Users
 

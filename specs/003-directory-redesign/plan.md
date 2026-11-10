@@ -83,14 +83,14 @@ resolveSelectedCategory(options, categoryKey) -> key or null  AC-3.10
 | `src/features/businesses/categoryAppearance.ts` | New | `Record<supported key, { icon, coverClass, tintClass, iconOnTintClass }>` plus the fallback. Class names are full literals so Tailwind detects them (R-4). |
 | `src/features/businesses/icons.tsx` | New | Inline SVG icons: the 15 category icons and the fallback tag, plus search, close, store, delivery, "Todos" grid, and the official WhatsApp glyph (NFR-7, D-10). |
 | `src/features/businesses/directory.ts`, `supportedCategories.ts` | New | Section 3. |
-| `src/strings.ts` | Changed | Adds every text of spec section 6. `resultCount(n)` and `viewDetailsLabel(name)` are functions, like `whatsappButtonLabel`. Existing strings stay. |
+| `src/strings.ts` | Changed | Adds every text of spec section 6. `resultCount(n)` and `viewDetailsLabel(name)` are functions, like `whatsappButtonLabel`. Existing strings stay, except `whatsappButtonText`: it was removed on 2026-11-10 because no button shows the text "WhatsApp" alone any more. |
 | `src/index.css` | Changed | Category tokens (section 5), the `whatsapp-glyph` token (D-10), and `scrollbar-gutter: stable` on `html` (R-5). Existing tokens stay. |
 | `test/setup.ts` | Changed | `showModal()` and `close()` stand-ins for jsdom (D-4, R-1). |
 
 Notes:
 
 - The header is `sticky top-0` on every screen size, with `bg-surface` and a bottom border.
-- Business data is never copied into state. The dialog receives the id and reads the business from `useBusinesses()` data. If a reload removes the business, the dialog closes (AC-8.7).
+- If a reload removes the open business, its id is no longer found in the query data (D-2) and the dialog closes (AC-8.7).
 - While the dialog is open, `Directory` adds the `overflow-hidden` class to the `html` element and removes it on close (AC-8.8).
 - Motion uses `motion-safe:` variants only (tile hover zoom, color transitions), so reduced motion turns it off (NFR-9). The dialog has no open or close animation.
 - Neutral colors use the existing tokens: `surface`, `canvas`, `border`, `ink`, `ink-muted`, `whatsapp`. The reference's `stone-*` colors map to them.
