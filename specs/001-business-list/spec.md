@@ -2,7 +2,8 @@
 
 - **Status:** Approved
 - **Created:** 2026-10-23
-- **Last updated:** 2026-11-02
+- **Last updated:** 2026-11-10
+- **Changed by:** [Spec 003](../003-directory-redesign/spec.md) (FR-2, FR-3, EC-4, EC-5, section 8). The sections below describe the current behavior.
 
 ## 1. Context and Objective
 
@@ -32,7 +33,7 @@ The primary device is a mobile phone; desktop browsers are supported as a second
 ## 4. User Stories
 
 - **US-1.** As a resident, I want to see a list of businesses in my area, so that I can discover options I did not know about.
-- **US-2.** As a visitor, I want to contact a business through WhatsApp from its card, so that I can ask questions or place an order quickly.
+- **US-2.** As a visitor, I want to contact a business through WhatsApp from the directory, so that I can ask questions or place an order quickly.
 - **US-3.** As a user, I want to tell whether a business is in-store or delivery only, so that I know what to expect before contacting it.
 - **US-4.** As a user, I want to see the newest businesses first, so that I notice recent additions.
 - **US-5.** As a user, I want clear feedback and a way to retry when something fails, so that I am not left with a blank or broken screen.
@@ -47,22 +48,22 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 - **AC-1.2.** The system shall never display businesses that are marked as inactive.
 - **AC-1.3.** While the list is loading, the system shall display a loading indicator with the text "Cargando…".
 
-### FR-2: Business card content (US-1, US-3)
+### FR-2: Business content (US-1, US-3)
 
-> The card layout is replaced by the business tile of [spec 003](../003-directory-redesign/spec.md) FR-5. The attribute rules below still apply.
+Each business is shown as a tile, and opens in a detail dialog. Layout and behavior are in [spec 003](../003-directory-redesign/spec.md) FR-5 (tile) and FR-8 (dialog).
 
-- **AC-2.1.** The system shall display, for each business, a card with its name, category, short location summary, and store type indicator.
-- **AC-2.2.** While a business has a valid WhatsApp number, the system shall display a WhatsApp contact button on its card.
-- **AC-2.3.** If a business has an invalid WhatsApp number, then the system shall not display the WhatsApp contact button on its card and shall still display the rest of the card.
-- **AC-2.4.** The system shall not display any other business attribute on the card in this MVP.
+- **AC-2.1.** The system shall display, for each business, its name, category, short location summary, and store type indicator.
+- **AC-2.2.** While a business has a valid WhatsApp number, the system shall display a WhatsApp contact button for it (spec 003 AC-5.3, AC-8.2).
+- **AC-2.3.** If a business has an invalid WhatsApp number, then the system shall not display the WhatsApp contact button and shall still display the rest of the business (spec 003 AC-5.4, AC-8.2).
+- **AC-2.4.** The system shall not display any other business attribute in this MVP (spec 003 AC-5.8, AC-8.3).
 - **AC-2.5.** A WhatsApp number is valid when, after removing spaces, dashes, parentheses, and a leading `+`, it has 8 to 15 digits and does not start with `0`. Numbers are stored with the country code (for example `573001234567`).
 
 ### FR-3: Store type indicator (US-3)
 
-> The labels stay; [spec 003](../003-directory-redesign/spec.md) AC-5.2 shows them as a badge with an icon.
+The label is shown as a badge with an icon on the tile and in the dialog ([spec 003](../003-directory-redesign/spec.md) AC-5.2, AC-8.1).
 
-- **AC-3.1.** While a business operates from a physical store, the system shall display the label "En tienda" on its card.
-- **AC-3.2.** While a business does not operate from a physical store, the system shall display the label "Solo domicilios" on its card.
+- **AC-3.1.** While a business operates from a physical store, the system shall display the label "En tienda".
+- **AC-3.2.** While a business does not operate from a physical store, the system shall display the label "Solo domicilios".
 
 ### FR-4: Contact through WhatsApp (US-2)
 
@@ -100,16 +101,14 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 | EC-1 | There are no active businesses | Empty state message (FR-7) |
 | EC-2 | The load fails | Two automatic retries, then error with "Reintentar" (FR-6) |
 | EC-3 | The user loses connection while loading | Treated as a loading failure (FR-6) |
-| EC-4 | A business name or location summary is very long | The card stays readable and does not break the layout |
-| EC-5 | A business has an invalid WhatsApp number | The card is shown without the WhatsApp button (AC-2.3) |
+| EC-4 | A business name or location summary is very long | The layout does not break. The tile shortens it, and the dialog shows it in full (spec 003 EC-5). |
+| EC-5 | A business has an invalid WhatsApp number | No WhatsApp button; the dialog says so (AC-2.3, spec 003 EC-6) |
 | EC-6 | Two businesses have the same creation time | Alphabetical by name, then by id (AC-5.2) |
 
 ## 8. Out of Scope
 
 - Pagination, "load more", and infinite scroll. The directory returns all active businesses in one request. This will be revisited when the number of businesses makes it necessary.
-- Search by name or any other text. Now in scope through [spec 003](../003-directory-redesign/spec.md) FR-2.
-- Filters, including by category, and any sort option other than the fixed order. The category filter is now in scope through [spec 003](../003-directory-redesign/spec.md) FR-3.
-- A detail page for each business. A detail dialog is now in scope through [spec 003](../003-directory-redesign/spec.md) FR-8.
+- Filters other than the category filter of [spec 003](../003-directory-redesign/spec.md) FR-3, and any sort option other than the fixed order. Search (spec 003 FR-2) and a detail dialog (spec 003 FR-8) are in scope; a separate page per business is not.
 - Extended business attributes: description, logo, cover image, exact address, coordinates, email, Instagram, catalog link, opening hours, home delivery flag, payment methods, and verification status.
 - Creating, editing, or removing businesses through the product. The team loads and changes businesses through reviewed, versioned SQL data migrations applied by the deployment process (spec 002 FR-7), not through the product.
 - Business owner accounts and ownership claims.

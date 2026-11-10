@@ -1,6 +1,7 @@
 # Tasks 001: Business Directory Listing
 
 - **Status:** Approved (approved by the project owner in chat on 2026-10-24)
+- **Superseded:** the files built in 001-T13 and 001-T14 (`BusinessCard.tsx`, `BusinessList.tsx`, and their tests) were replaced in [tasks 003](../003-directory-redesign/tasks.md) 003-T5 and 003-T8. 001-T15 still applies.
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Plan:** [plan.md](./plan.md) (Approved)
 - **Related:** [Tasks 002](../002-infrastructure/tasks.md) (infrastructure; milestones are shared)
