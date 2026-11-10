@@ -155,11 +155,23 @@ M6 changes only `frontend/` and does not depend on M4 or M5. It is one branch an
       - A reload that removes the business closes the dialog.
   - **Done when:** tests pass, and opening and closing works in the browser against the `dev` API.
 
-- [ ] **003-T10 Manual checks**
+- [x] **003-T10 Manual checks**
   - **Covers:** plan section 8 manual checks 1 to 7; spec 003 completion criteria
   - **Do:** run the seven manual checks of plan section 8 with `pnpm --filter frontend dev` against the `dev` API, and again on the `dev` URL once 002-T8 has deployed it. Record the date, browser, device, and result of each check in the "Verification log" section below.
   - **Done when:** all seven pass, or each failure has an issue or a spec change proposal.
 
 ## Verification log
 
-(Filled in by 003-T10.)
+Local run with `pnpm --filter frontend dev` against the `dev` API, reported by the project owner in chat on 2026-11-10. Browser and device were not recorded.
+
+| # | Check (plan section 8) | Date | Result |
+|---|---|---|---|
+| 1 | Dialog | 2026-11-10 | Pass |
+| 2 | 320 px | 2026-11-10 | Pass |
+| 3 | Header and filter | 2026-11-10 | Pass |
+| 4 | Screen reader | 2026-11-10 | Pass |
+| 5 | Reduced motion | 2026-11-10 | Pass |
+| 6 | Instant filtering (about 300 businesses) | 2026-11-10 | Pass. No visible delay while typing, reported by the project owner. |
+| 7 | Contrast | 2026-11-10 | Pass |
+
+The seven checks were also run on the `dev` URL and passed, reported by the project owner in chat on 2026-11-10.
