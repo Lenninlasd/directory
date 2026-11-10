@@ -84,7 +84,7 @@ resolveSelectedCategory(options, categoryKey) -> key or null  AC-3.10
 | `src/features/businesses/icons.tsx` | New | Inline SVG icons: the 15 category icons and the fallback tag, plus search, close, store, delivery, "Todos" grid, and the official WhatsApp glyph (NFR-7, D-10). |
 | `src/features/businesses/directory.ts`, `supportedCategories.ts` | New | Section 3. |
 | `src/strings.ts` | Changed | Adds every text of spec section 6. `resultCount(n)` and `viewDetailsLabel(name)` are functions, like `whatsappButtonLabel`. Existing strings stay. |
-| `src/index.css` | Changed | Category tokens (section 5) and `scrollbar-gutter: stable` on `html` (R-5). Existing tokens stay. |
+| `src/index.css` | Changed | Category tokens (section 5), the `whatsapp-glyph` token (D-10), and `scrollbar-gutter: stable` on `html` (R-5). Existing tokens stay. |
 | `test/setup.ts` | Changed | `showModal()` and `close()` stand-ins for jsdom (D-4, R-1). |
 
 Notes:
@@ -133,7 +133,7 @@ Contrast (NFR-6): no text is drawn on a category color. Cover and option icons a
 | D-7 | Categories are matched by a normalized key. Supported names live in a pure module, and appearance is a `Record` over the supported keys, so TypeScript reports a missing entry. | A lookup by exact text: breaks AC-4.2. Appearance in the pure module: puts React icons and Tailwind classes in business logic. |
 | D-8 | Matching removes diacritics, so "n" also matches "ñ" ("pena" finds "Peña") | Keeping "ñ" distinct: stricter, but people without a "ñ" key could not find those businesses |
 | D-9 | Tile: a stretched `button` under the content, with the WhatsApp link stacked above it | The whole tile as a `button`: a link cannot be nested inside a button. The tile as a link: there is no URL to go to (spec section 11). |
-| D-10 | The WhatsApp glyph is an inline SVG taken from WhatsApp's official brand resources, unmodified, in white on `whatsapp` or `whatsapp` on `surface` | An icon library: NFR-7 |
+| D-10 | The WhatsApp glyph is an inline SVG of `Digital_Glyph_White_RGB_2026.svg` from the WhatsApp Brand Resource Center logo pack (meta.com, downloaded 2026-11-10), with its paths and white fill unmodified. It is always shown on a `whatsapp` background (5.0:1): a round button on the tile and the dialog button. Its fill is the token `whatsapp-glyph` (`#ffffff`, the brand's white, never changed). In the dialog it is a separate element next to "Escribir por WhatsApp" and never replaces the word. Changed 2026-11-10, approved by the project owner in chat. | An icon library: NFR-7. A hand-drawn or third-party copy: the guidelines allow only the official files. A recolored glyph (the earlier "`whatsapp` on `surface`" option): the guidelines say "You shouldn't modify any colors in our logos". The official Green glyph on white: about 2.0:1, below the WCAG 1.4.11 minimum of 3:1. |
 | D-11 | Component tests use `fireEvent` from Testing Library, like the existing tests | `@testing-library/user-event`: listed in spec 001 section 8a but not installed, and not needed for these interactions |
 
 ## 7. Dependencies
@@ -181,7 +181,7 @@ Documented manual checks, in Chrome, Safari, and Firefox, on a phone and on desk
 |---|---|---|
 | R-1 | jsdom 30 has `HTMLDialogElement` but no `showModal()` or `close()` (checked 2026-11-02), so dialog tests cannot run as is | Stand-ins in `test/setup.ts` that set `open` and fire `close`. Native behavior (Escape, focus trap, backdrop) is covered by manual check 1. |
 | R-2 | Focus does not return to the tile in Safari | D-5, with a test and manual check 1 |
-| R-3 | WhatsApp's brand guidelines limit how the glyph can be shown | Use the official file unmodified (D-10). If the guidelines rule out a use, stop and propose a spec change. |
+| R-3 | WhatsApp's brand guidelines limit how the glyph can be shown | Checked 2026-11-10 on the meta.com WhatsApp brand page: only official files, no color changes, no combining with other words, never more prominent than the content. The owner downloaded the logo pack and accepted its terms. Use the official White glyph unmodified (D-10). If the guidelines rule out a use, stop and propose a spec change. |
 | R-4 | Tailwind only generates classes it finds as full text, so built class names would silently have no style | `categoryAppearance.ts` lists every class as a full literal. Its test checks that every supported key has one. |
 | R-5 | Adding `overflow-hidden` to `html` removes the scrollbar on desktop and shifts the page sideways | `scrollbar-gutter: stable` on `html` in `index.css` |
 | R-6 | The count is announced on every keystroke | `role="status"` is polite, so screen readers wait for a pause. Manual check 4. |
