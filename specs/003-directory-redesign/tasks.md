@@ -1,6 +1,6 @@
 # Tasks 003: Directory Redesign
 
-- **Status:** Draft
+- **Status:** Approved
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Plan:** [plan.md](./plan.md) (Approved)
 - **Related:** [Tasks 001](../001-business-list/tasks.md) (milestone table shared across specs)

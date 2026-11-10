@@ -1,0 +1,95 @@
+import { useId, useLayoutEffect, useRef } from 'react';
+import type { Business } from '../../api/businesses.ts';
+import { strings } from '../../strings.ts';
+import { CategoryCover } from './CategoryCover.tsx';
+import { CloseIcon } from './icons.tsx';
+import { StoreTypeBadge } from './StoreTypeBadge.tsx';
+import { WhatsAppButton } from './WhatsAppButton.tsx';
+
+interface BusinessDetailDialogProps {
+  /** The open business, looked up in the query data by Directory, or null when closed. */
+  business: Business | null;
+  /** Called once the dialog has closed, by any means. */
+  onClose: () => void;
+}
+
+// Native modal dialog (spec 003 FR-8, plan D-4): the browser provides the focus trap, the inert
+// page, and Escape. Bottom sheet on phones, centered from `sm` (AC-8.4). No animation (NFR-9).
+export function BusinessDetailDialog({ business, onClose }: BusinessDetailDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+
+  // Layout effect, so the dialog opens or closes in the same frame as its content changes.
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog === null) {
+      return;
+    }
+    if (business !== null && !dialog.open) {
+      dialog.showModal();
+    } else if (business === null && dialog.open) {
+      // A reload removed the open business (AC-8.7).
+      dialog.close();
+    }
+  }, [business]);
+
+  const close = () => dialogRef.current?.close();
+
+  return (
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={titleId}
+      // React passes `close` events up through the component tree, so only act on this dialog's own (D-4).
+      onClose={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+      // The dialog element itself is only hit outside its content, on the backdrop (AC-8.6).
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          close();
+        }
+      }}
+      className="mx-auto mt-auto mb-0 max-h-[92dvh] w-full max-w-lg overflow-hidden rounded-t-3xl bg-surface p-0 text-ink shadow-2xl backdrop:bg-ink/50 sm:m-auto sm:rounded-3xl"
+    >
+      {business !== null && (
+        <div className="relative flex max-h-[92dvh] flex-col">
+          {/* First in the DOM, so showModal() focuses "Cerrar" rather than the WhatsApp link. */}
+          <button
+            type="button"
+            onClick={close}
+            aria-label={strings.closeDialogLabel}
+            className="absolute top-3 right-3 z-10 grid size-11 place-items-center rounded-full bg-surface text-ink shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            <CloseIcon className="size-5" />
+          </button>
+          <div className="overflow-y-auto">
+            {/* Wide and short, so on a 320 px screen the location and WhatsApp stay visible (AC-8.5). */}
+            <CategoryCover category={business.category} className="aspect-[2/1] max-h-36 w-full sm:max-h-52" />
+            <div className="flex flex-col gap-5 p-5">
+              <div className="flex flex-col items-start gap-1">
+                <p className="text-sm font-medium text-ink-muted">{business.category}</p>
+                <h2 id={titleId} className="text-2xl font-bold tracking-tight break-words">
+                  {business.name}
+                </h2>
+                <StoreTypeBadge hasPhysicalStore={business.hasPhysicalStore} className="mt-1 bg-canvas" />
+              </div>
+              <dl className="rounded-2xl border border-border p-4 text-sm">
+                <dt className="font-medium text-ink">{strings.locationLabel}</dt>
+                <dd className="break-words text-ink-muted">{business.locationSummary}</dd>
+              </dl>
+            </div>
+          </div>
+          <div className="flex border-t border-border p-4">
+            {business.whatsappNumber !== null ? (
+              <WhatsAppButton whatsappNumber={business.whatsappNumber} />
+            ) : (
+              <p className="flex-1 py-3 text-center text-sm text-ink-muted">{strings.noWhatsapp}</p>
+            )}
+          </div>
+        </div>
+      )}
+    </dialog>
+  );
+}

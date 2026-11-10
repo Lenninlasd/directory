@@ -6,6 +6,10 @@
  *   ink on canvas 16.0, ink-muted on canvas 7.0, ink-muted on surface 7.6,
  *   brand on surface 5.5, surface on brand 5.5, surface on whatsapp 5.0,
  *   danger on surface 6.5, danger on canvas 5.9.
+ *
+ * Category colors (spec 003 NFR-6, plan 003 section 5) carry no text. Cover and filter icons
+ * are decorative and always sit next to the category name as text (AC-4.4). The only text on a
+ * cover is the store type badge, drawn in ink on a surface pill (ink on surface above 16.0).
  */
 @theme {
   --color-*: initial;
@@ -16,9 +20,72 @@
   --color-ink-muted: #57534e;
   --color-brand: #0f766e;
   --color-whatsapp: #15803d;
+  /* The brand's own white from the official WhatsApp glyph file. Never change it (plan 003 D-10). */
+  --color-whatsapp-glyph: #ffffff;
   --color-danger: #b91c1c;
+
+  /*
+   * Category tokens, ordered as plan 003 section 5: -from and -to make the cover gradient,
+   * -tint is the background of the filter option icon. Each value is the sRGB hex of the
+   * Tailwind 4.3 default palette shade named in the comment (theme.css OKLCH, clamped to sRGB).
+   */
+  --color-category-alimentos-from: #7ccf00; /* lime-500 */
+  --color-category-alimentos-to: #007a55; /* emerald-700 */
+  --color-category-alimentos-tint: #ecfcca; /* lime-100 */
+  --color-category-belleza-from: #fb64b6; /* pink-400 */
+  --color-category-belleza-to: #c800de; /* fuchsia-600 */
+  --color-category-belleza-tint: #fce7f3; /* pink-100 */
+  --color-category-cafeteria-from: #e17100; /* amber-600 */
+  --color-category-cafeteria-to: #7b3306; /* amber-900 */
+  --color-category-cafeteria-tint: #fef3c6; /* amber-100 */
+  --color-category-comida-from: #ff8904; /* orange-400 */
+  --color-category-comida-to: #fb2c36; /* red-500 */
+  --color-category-comida-tint: #ffedd4; /* orange-100 */
+  --color-category-deportes-from: #00d492; /* emerald-400 */
+  --color-category-deportes-to: #00786f; /* teal-700 */
+  --color-category-deportes-tint: #d0fae5; /* emerald-100 */
+  --color-category-educacion-from: #00bcff; /* sky-400 */
+  --color-category-educacion-to: #4f39f6; /* indigo-600 */
+  --color-category-educacion-tint: #dff2fe; /* sky-100 */
+  --color-category-farmacia-from: #ff6467; /* red-400 */
+  --color-category-farmacia-to: #ec003f; /* rose-600 */
+  --color-category-farmacia-tint: #ffe2e2; /* red-100 */
+  --color-category-ferreteria-from: #62748e; /* slate-500 */
+  --color-category-ferreteria-to: #314158; /* slate-700 */
+  --color-category-ferreteria-tint: #f1f5f9; /* slate-100 */
+  --color-category-floristeria-from: #f4a8ff; /* fuchsia-300 */
+  --color-category-floristeria-to: #ff2056; /* rose-500 */
+  --color-category-floristeria-tint: #fae8ff; /* fuchsia-100 */
+  --color-category-lavanderia-from: #00d3f2; /* cyan-400 */
+  --color-category-lavanderia-to: #155dfc; /* blue-600 */
+  --color-category-lavanderia-tint: #cefafe; /* cyan-100 */
+  --color-category-mascotas-from: #a684ff; /* violet-400 */
+  --color-category-mascotas-to: #9810fa; /* purple-600 */
+  --color-category-mascotas-tint: #ede9fe; /* violet-100 */
+  --color-category-mercado-from: #00c950; /* green-500 */
+  --color-category-mercado-to: #016630; /* green-800 */
+  --color-category-mercado-tint: #dcfce7; /* green-100 */
+  --color-category-panaderia-from: #fdc700; /* yellow-400 */
+  --color-category-panaderia-to: #ff6900; /* orange-500 */
+  --color-category-panaderia-tint: #fef9c2; /* yellow-100 */
+  --color-category-postres-from: #ffa1ad; /* rose-300 */
+  --color-category-postres-to: #f6339a; /* pink-500 */
+  --color-category-postres-tint: #ffe4e6; /* rose-100 */
+  --color-category-tecnologia-from: #52525c; /* zinc-600 */
+  --color-category-tecnologia-to: #18181b; /* zinc-900 */
+  --color-category-tecnologia-tint: #f4f4f5; /* zinc-100 */
+  --color-category-other-from: #00bba7; /* teal-500 */
+  --color-category-other-to: #00786f; /* teal-700 */
+  --color-category-other-tint: #cbfbf1; /* teal-100 */
 
   --spacing: 0.25rem;
 
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Keeps the scrollbar space while the dialog sets overflow-hidden on html (plan 003 R-5). */
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
 }
