@@ -78,13 +78,13 @@ Prerequisite: M3 of tasks 001 is done.
   - **Checks first:** `curl -sI http://<pages-url>/` redirects to `https://`; `https://<pages-url>/` returns the app HTML title; a file under `assets/` has `cache-control` with `immutable` and `index.html` has `max-age=0`; `curl` with `Origin: <pages-url>` gets `access-control-allow-origin` equal to it, another origin gets none; the list loads in a browser with no CORS error. Upload by hand for the checks (`pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-dev --branch main`) until 002-T8 exists.
   - **Done when:** checks pass in `dev`. If the HTTP redirect check fails, stop and propose a spec change (R-8).
 
-- [ ] **002-T8 Deploy script**
+- [x] **002-T8 Deploy script**
   - **Covers:** AC-4.4, AC-4.5, AC-5.3, AC-6.1, AC-6.2, EC-5, plan section 6
-  - **Do:** `infra/deploy.sh <env>`: `sam build`, `sam deploy`, `node backend/scripts/migrate.ts <env>` (stop on error), frontend build with `VITE_API_BASE_URL` from the stack output, `pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-<env> --branch main`, print the URL. Typed confirmation for `prod`. Reads no secrets.
-  - **Checks first:** a full `dev` run ends with a working URL; a changed frontend is visible after reload; `prod` without confirmation aborts before any change.
+  - **Do:** `infra/deploy.sh <env>`: `sam build`, `sam deploy`, `node backend/scripts/migrate.ts <env>` (stop on error), frontend build with `VITE_API_BASE_URL` from the stack output, `pnpm dlx wrangler@4.151.1 pages deploy frontend/dist --project-name alameda-<env> --branch main`, print the URL. Typed confirmation for `prod`. Refuses to run with uncommitted or untracked files, so a deploy always matches a commit. Reads no secrets.
+  - **Checks first:** a full `dev` run ends with a working URL; a changed frontend is visible after reload; `prod` without confirmation aborts before any change; a dirty working tree aborts before any change.
   - **Done when:** checks pass in `dev`.
 
-- [ ] **002-T9 Rollback documentation, performance, and freshness**
+- [x] **002-T9 Rollback documentation, performance, and freshness**
   - **Covers:** AC-6.3, NFR-1, spec 001 NFR-5
   - **Do:** write the rollback section of `infra/README.md` (no drill): backend by redeploying the previous commit, frontend from the Pages dashboard (plan C-5) or by redeploying the previous commit. Run the "Performance" check of plan section 8 once in `dev` (warm request, and the first request after a pause). Freshness: change a seed row, re-run the seed, reload, see the change.
   - **Done when:** results are recorded; a missed performance target leads to a spec change proposal.
