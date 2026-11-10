@@ -48,6 +48,14 @@ Follow these steps in order. Do not skip ahead, and stop at each approval gate.
 
 Every PR must link to its spec, and each commit should reference a task.
 
+### When a spec changes earlier behavior
+
+`spec.md` files describe the current behavior. `plan.md` and `tasks.md` files are a record of how a feature was built.
+
+- **Specs stay current.** When a new spec changes or replaces behavior defined in an earlier spec, the same PR updates the earlier spec. Rewrite the affected sections to state the current behavior, or replace them with a short summary that links to the newer spec. Keep requirement ids (`AC-2.4`, `EC-5`) stable, since tests and other specs refer to them. Update the earlier spec's `Last updated` date.
+- **Plans and tasks are frozen.** Do not rewrite an earlier plan or task list. Add a `Superseded` line under its status that names the parts replaced and links to the newer plan or spec.
+- **Read the newest source.** Before acting on a spec, plan, or task list, check its header for a `Superseded` line and follow the link. Never restore behavior from a superseded section.
+
 ## Architecture rules
 
 - Keep business logic in framework-agnostic modules with no React, Express, or Lambda imports.

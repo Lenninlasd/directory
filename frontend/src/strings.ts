@@ -1,4 +1,4 @@
-// All Spanish UI text (spec 001, plan D-5). Wording and characters must match the spec exactly.
+// All Spanish UI text (spec 001 plan D-5, spec 003 section 6). Wording and characters must match the specs exactly.
 export const strings = {
   loading: 'Cargando…',
   loadError: 'No pudimos cargar los negocios. Inténtalo de nuevo.',
@@ -6,7 +6,24 @@ export const strings = {
   empty: 'Aún no hay negocios disponibles',
   inStore: 'En tienda',
   deliveryOnly: 'Solo domicilios',
-  whatsappButtonText: 'WhatsApp',
   whatsappGreeting:'Hola, te encontré en el directorio de Alameda del Río',
   whatsappButtonLabel: (businessName: string): string => `Contactar a ${businessName} por WhatsApp`,
+
+  directoryTitle: 'Negocios en Alameda del Río',
+  searchPlaceholder: 'Buscar negocios o categorías',
+  searchLabel: 'Buscar negocios',
+  clearSearchLabel: 'Borrar búsqueda',
+  categoryFilterLabel: 'Categorías',
+  allCategories: 'Todos',
+  featuredTitle: 'Visítalos en su tienda',
+  featuredSubtitle: 'Negocios con local físico',
+  allBusinessesTitle: 'Todos los negocios',
+  resultCount: (count: number): string => `${count} ${count === 1 ? 'negocio' : 'negocios'}`,
+  noResultsTitle: 'No encontramos negocios',
+  noResultsHint: 'Prueba con otra búsqueda o categoría.',
+  viewDetailsLabel: (businessName: string): string => `Ver detalles de ${businessName}`,
+  closeDialogLabel: 'Cerrar',
+  locationLabel: 'Ubicación',
+  dialogWhatsappButtonText: 'Escribir por WhatsApp',
+  noWhatsapp: 'Este negocio no tiene WhatsApp registrado',
 } as const;

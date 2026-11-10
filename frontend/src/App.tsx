@@ -1,9 +1,6 @@
-import { BusinessList } from './features/businesses/BusinessList.tsx';
+import { Directory } from './features/businesses/Directory.tsx';
 
+// The main landmark lives in Directory, since the sticky header sits outside it (spec 003 AC-1.4).
 export function App() {
-  return (
-    <main className="mx-auto max-w-5xl p-4">
-      <BusinessList />
-    </main>
-  );
+  return <Directory />;
 }

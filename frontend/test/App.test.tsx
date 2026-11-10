@@ -24,4 +24,16 @@ describe('App', () => {
     expect(screen.getByRole('main')).toBeInTheDocument();
     expect(await screen.findByText('Aún no hay negocios disponibles')).toBeInTheDocument();
   });
+
+  it('shows the directory title as the page main heading (spec 003 AC-1.4)', () => {
+    vi.mocked(fetchBusinesses).mockReturnValue(new Promise(() => {}));
+
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <App />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Negocios en Alameda del Río' })).toBeInTheDocument();
+  });
 });
