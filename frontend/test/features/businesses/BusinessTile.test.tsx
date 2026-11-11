@@ -13,6 +13,8 @@ const bakery: Business = {
   locationSummary: 'Centro Comercial Plaza, local 12',
   hasPhysicalStore: true,
   whatsappNumber: '573001234567',
+  websiteUrl: null,
+  openingHours: [],
 };
 
 const desserts: Business = {
@@ -22,6 +24,8 @@ const desserts: Business = {
   locationSummary: 'Alameda del Río, home delivery',
   hasPhysicalStore: false,
   whatsappNumber: null,
+  websiteUrl: null,
+  openingHours: [],
 };
 
 describe('BusinessTile', () => {

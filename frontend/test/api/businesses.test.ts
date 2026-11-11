@@ -9,6 +9,8 @@ const businesses: Business[] = [
     locationSummary: 'Centro Comercial Plaza, local 12',
     hasPhysicalStore: true,
     whatsappNumber: '573001234567',
+    websiteUrl: null,
+    openingHours: [],
   },
   {
     id: '7c1d0f35-2b8e-4e57-a1a4-5f0e3b9c6d22',
@@ -17,6 +19,8 @@ const businesses: Business[] = [
     locationSummary: 'Alameda del Río, home delivery',
     hasPhysicalStore: false,
     whatsappNumber: null,
+    websiteUrl: null,
+    openingHours: [],
   },
 ];
 

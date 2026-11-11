@@ -26,4 +26,17 @@ export const strings = {
   locationLabel: 'Ubicación',
   dialogWhatsappButtonText: 'Escribir por WhatsApp',
   noWhatsapp: 'Este negocio no tiene WhatsApp registrado',
+
+  // Directory spec, "Interface text" and "Opening hours display" (add-business-hours-and-website).
+  openingHoursLabel: 'Horario',
+  websiteLabel: 'Página web',
+  /** Monday to Sunday, in the order of `dayOfWeek` 1 to 7. */
+  dayNames: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+  closedDay: 'Cerrado',
+  beforeNoon: 'a. m.',
+  afterNoon: 'p. m.',
+  /** Joins two days or several ranges: "Sábado y domingo". */
+  and: 'y',
+  /** Joins the first and last day of a group: "Lunes a viernes". */
+  through: 'a',
 } as const;

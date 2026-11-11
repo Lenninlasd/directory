@@ -20,6 +20,8 @@ const cafe: Business = {
   locationSummary: 'Torre 1, apartamento 101, entrada por la portería norte',
   hasPhysicalStore: true,
   whatsappNumber: '573001111111',
+  websiteUrl: null,
+  openingHours: [],
 };
 
 const desserts: Business = {
@@ -29,6 +31,8 @@ const desserts: Business = {
   locationSummary: 'Torre 3',
   hasPhysicalStore: false,
   whatsappNumber: null,
+  websiteUrl: null,
+  openingHours: [],
 };
 
 async function renderDirectory(queryClient: QueryClient = createQueryClient()) {

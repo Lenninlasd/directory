@@ -18,6 +18,8 @@ const businesses: Business[] = [
     locationSummary: 'Centro Comercial Plaza, local 12',
     hasPhysicalStore: true,
     whatsappNumber: '573001234567',
+    websiteUrl: null,
+    openingHours: [],
   },
 ];
 

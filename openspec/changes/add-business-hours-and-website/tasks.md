@@ -32,7 +32,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 ## 3. Frontend
 
-- [ ] 3.1 Add the types, the texts, and the two pure functions (design D-6).
+- [x] 3.1 Add the types, the texts, and the two pure functions (design D-6).
   - Add `websiteUrl` and `openingHours` to `Business` in `frontend/src/api/businesses.ts`.
   - Add the new rows of "Interface text" to `frontend/src/strings.ts`.
   - Add `formatOpeningHours` in `features/businesses/openingHours.ts` and `websiteLinkText` in `features/businesses/website.ts`.

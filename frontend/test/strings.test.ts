@@ -32,4 +32,13 @@ describe('strings', () => {
       noWhatsapp: 'Este negocio no tiene WhatsApp registrado',
     });
   });
+
+  it('has the exact texts of the opening hours and website rows (directory spec, "Interface text")', () => {
+    expect(strings).toMatchObject({
+      openingHoursLabel: 'Horario',
+      websiteLabel: 'Página web',
+      dayNames: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+      closedDay: 'Cerrado',
+    });
+  });
 });
