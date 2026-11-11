@@ -10,6 +10,8 @@ function row(overrides: Partial<BusinessRow> & Pick<BusinessRow, 'id'>): Busines
     hasPhysicalStore: true,
     whatsappNumber: '573001234567',
     createdAt: new Date('2026-10-01T12:00:00Z'),
+    websiteUrl: null,
+    openingHours: null,
     ...overrides,
   };
 }
@@ -75,7 +77,42 @@ describe('listActiveBusinesses', () => {
     expect(result.map((business) => business.whatsappNumber)).toEqual(['573001234567', null, null]);
   });
 
-  it('returns exactly the six API fields (AC-2.4)', async () => {
+  it('returns a validated website, or null when it is not https (directory spec, "Website validity")', async () => {
+    const rows = [
+      row({ id: 'a', name: 'A', websiteUrl: 'https://example.com/panaderia' }),
+      row({ id: 'b', name: 'B', websiteUrl: 'http://example.com/panaderia' }),
+      row({ id: 'c', name: 'C', websiteUrl: null }),
+    ];
+
+    const result = await listActiveBusinesses(findRowsReturning(rows));
+
+    expect(result.map((business) => business.websiteUrl)).toEqual(['https://example.com/panaderia', null, null]);
+  });
+
+  it('returns sorted opening hours, or [] when they are invalid or missing (directory spec, "Opening hours validity")', async () => {
+    const rows = [
+      row({
+        id: 'a',
+        name: 'A',
+        openingHours: '[{"dayOfWeek": 2, "opens": "09:00", "closes": "17:00"}, {"dayOfWeek": 1, "opens": "08:00", "closes": "12:00"}]',
+      }),
+      row({ id: 'b', name: 'B', openingHours: '[{"dayOfWeek": 1, "opens": "18:00", "closes": "09:00"}]' }),
+      row({ id: 'c', name: 'C', openingHours: null }),
+    ];
+
+    const result = await listActiveBusinesses(findRowsReturning(rows));
+
+    expect(result.map((business) => business.openingHours)).toEqual([
+      [
+        { dayOfWeek: 1, opens: '08:00', closes: '12:00' },
+        { dayOfWeek: 2, opens: '09:00', closes: '17:00' },
+      ],
+      [],
+      [],
+    ]);
+  });
+
+  it('returns exactly the eight API fields (AC-2.4)', async () => {
     const result = await listActiveBusinesses(findRowsReturning([row({ id: 'a' })]));
 
     expect(result).toEqual([
@@ -86,10 +123,12 @@ describe('listActiveBusinesses', () => {
         locationSummary: 'Centro Comercial Plaza',
         hasPhysicalStore: true,
         whatsappNumber: '573001234567',
+        websiteUrl: null,
+        openingHours: [],
       },
     ]);
     expect(Object.keys(result[0] ?? {}).sort()).toEqual(
-      ['category', 'hasPhysicalStore', 'id', 'locationSummary', 'name', 'whatsappNumber'],
+      ['category', 'hasPhysicalStore', 'id', 'locationSummary', 'name', 'openingHours', 'websiteUrl', 'whatsappNumber'],
     );
   });
 
