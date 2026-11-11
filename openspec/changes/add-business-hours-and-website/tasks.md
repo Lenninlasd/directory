@@ -14,7 +14,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 ## 2. Backend
 
-- [ ] 2.1 Add the two validators in `backend/src/domain/` (design D-4, D-5).
+- [x] 2.1 Add the two validators in `backend/src/domain/` (design D-4, D-5).
   - Tests first:
     - `backend/test/domain/websiteUrl.test.ts`: the scenarios of "Website validity", plus `HTTPS://Example.com/panaderia` (returned as `https://example.com/panaderia`), surrounding spaces, an empty string, and `null`.
     - `backend/test/domain/openingHours.test.ts`: the scenarios of "Opening hours validity". Cover sorting, `"24:00"` as a closing time, `null`, text that is not JSON, JSON that is not a list, and one case per invalid range (day `0` and `8`, `7:00`, `25:00`, `24:30`, `24:00` as an opening time, and `closes` equal to or before `opens`).
