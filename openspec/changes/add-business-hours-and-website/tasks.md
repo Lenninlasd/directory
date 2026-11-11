@@ -42,7 +42,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
     - `frontend/test/strings.test.ts`: the new texts.
   - Update the `Business` fixtures in the other frontend tests to the new type, without changing any assertion.
   - Verify: the tests pass, and the two modules import nothing from React.
-- [ ] 3.2 Add the "Horario" and "Página web" rows to `BusinessDetailDialog.tsx`, and `ExternalLinkIcon` to `icons.tsx` (design D-7).
+- [x] 3.2 Add the "Horario" and "Página web" rows to `BusinessDetailDialog.tsx`, and `ExternalLinkIcon` to `icons.tsx` (design D-7).
   - Tests first, in `frontend/test/features/businesses/BusinessDetailDialog.test.tsx`:
     - Both rows show after "Ubicación", in the order of the spec, with the formatted lines and the link text.
     - Neither row shows for `[]` and `null`.

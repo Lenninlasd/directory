@@ -35,8 +35,31 @@ const desserts: Business = {
   openingHours: [],
 };
 
-async function renderDirectory(queryClient: QueryClient = createQueryClient()) {
-  fetchBusinessesMock.mockResolvedValue([cafe, desserts]);
+// Directory spec, "Detail dialog hours and website rows": a business with both, and one with a website only.
+const bakery: Business = {
+  id: 'bakery',
+  name: 'Panadería La Esquina',
+  category: 'Panadería',
+  locationSummary: 'Local 12',
+  hasPhysicalStore: true,
+  whatsappNumber: null,
+  websiteUrl: 'https://example.com/panaderia/',
+  openingHours: [1, 2, 3, 4, 5].map((dayOfWeek) => ({ dayOfWeek, opens: '08:00', closes: '18:00' })),
+};
+
+const tutoring: Business = {
+  id: 'tutoring',
+  name: 'Tutorías de Matemáticas',
+  category: 'Educación',
+  locationSummary: 'Torre 5',
+  hasPhysicalStore: false,
+  whatsappNumber: null,
+  websiteUrl: 'https://example.com/tutorias',
+  openingHours: [],
+};
+
+async function renderDirectory(queryClient: QueryClient = createQueryClient(), businesses: Business[] = [cafe, desserts]) {
+  fetchBusinessesMock.mockResolvedValue(businesses);
   render(
     <QueryClientProvider client={queryClient}>
       <Directory />
@@ -107,6 +130,73 @@ describe('BusinessDetailDialog: content', () => {
     expect(openDialog()?.textContent).toBe(
       ['Cafetería', 'Café del Río', 'En tienda', 'Ubicación', cafe.locationSummary, 'Escribir por WhatsApp'].join(''),
     );
+  });
+});
+
+describe('BusinessDetailDialog: opening hours and website rows', () => {
+  it('shows "Horario" and then "Página web" below "Ubicación", and nothing else', async () => {
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    expect(openDialog()?.textContent).toBe(
+      [
+        'Panadería',
+        'Panadería La Esquina',
+        'En tienda',
+        'Ubicación',
+        'Local 12',
+        'Horario',
+        'Lunes a viernes · 8:00 a. m. – 6:00 p. m.',
+        'Sábado y domingo · Cerrado',
+        'Página web',
+        'example.com/panaderia',
+        'Este negocio no tiene WhatsApp registrado',
+      ].join(''),
+    );
+  });
+
+  it('shows each group of days on its own line', async () => {
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    const dialog = screen.getByRole('dialog', { name: bakery.name });
+    expect(within(dialog).getByText('Lunes a viernes · 8:00 a. m. – 6:00 p. m.')).toBeInTheDocument();
+    expect(within(dialog).getByText('Sábado y domingo · Cerrado')).toBeInTheDocument();
+  });
+
+  it('shows the website row right after "Ubicación" when there are no hours', async () => {
+    await renderDirectory(createQueryClient(), [tutoring]);
+
+    openTile(tutoring);
+
+    const dialog = screen.getByRole('dialog', { name: tutoring.name });
+    expect(within(dialog).queryByText('Horario')).not.toBeInTheDocument();
+    expect(openDialog()?.textContent).toContain('UbicaciónTorre 5Página webexample.com/tutorias');
+  });
+
+  it('shows neither row without hours and without a website', async () => {
+    await renderDirectory();
+
+    openTile(cafe);
+
+    const dialog = screen.getByRole('dialog', { name: cafe.name });
+    expect(within(dialog).queryByText('Horario')).not.toBeInTheDocument();
+    expect(within(dialog).queryByText('Página web')).not.toBeInTheDocument();
+  });
+
+  it('links to the website in a new tab, with the address as its name and a hidden icon', async () => {
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    const link = within(screen.getByRole('dialog', { name: bakery.name })).getByRole('link');
+    expect(link).toHaveAccessibleName('example.com/panaderia');
+    expect(link).toHaveAttribute('href', 'https://example.com/panaderia/');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 });
 
