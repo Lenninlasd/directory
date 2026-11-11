@@ -3,7 +3,7 @@
 - **Status:** Approved
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Plan:** [plan.md](./plan.md) (Approved)
-- **Related:** [Tasks 001](../001-business-list/tasks.md) (milestone table shared across specs)
+- **Related:** [Tasks 001](../2026-10-23-001-business-list/tasks.md) (milestone table shared across specs)
 - **Created:** 2026-11-02
 
 ## How to work a task

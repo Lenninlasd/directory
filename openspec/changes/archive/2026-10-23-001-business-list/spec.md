@@ -3,7 +3,7 @@
 - **Status:** Approved
 - **Created:** 2026-10-23
 - **Last updated:** 2026-11-10
-- **Changed by:** [Spec 003](../003-directory-redesign/spec.md) (FR-2, FR-3, EC-4, EC-5, section 8). The sections below describe the current behavior.
+- **Changed by:** [Spec 003](../2026-10-31-003-directory-redesign/spec.md) (FR-2, FR-3, EC-4, EC-5, section 8). The sections below describe the current behavior.
 
 ## 1. Context and Objective
 
@@ -50,7 +50,7 @@ Acceptance criteria use EARS notation (Easy Approach to Requirements Syntax).
 
 ### FR-2: Business content (US-1, US-3)
 
-Each business is shown as a tile, and opens in a detail dialog. Layout and behavior are in [spec 003](../003-directory-redesign/spec.md) FR-5 (tile) and FR-8 (dialog).
+Each business is shown as a tile, and opens in a detail dialog. Layout and behavior are in [spec 003](../2026-10-31-003-directory-redesign/spec.md) FR-5 (tile) and FR-8 (dialog).
 
 - **AC-2.1.** The system shall display, for each business, its name, category, short location summary, and store type indicator.
 - **AC-2.2.** While a business has a valid WhatsApp number, the system shall display a WhatsApp contact button for it (spec 003 AC-5.3, AC-8.2).
@@ -60,7 +60,7 @@ Each business is shown as a tile, and opens in a detail dialog. Layout and behav
 
 ### FR-3: Store type indicator (US-3)
 
-The label is shown as a badge with an icon on the tile and in the dialog ([spec 003](../003-directory-redesign/spec.md) AC-5.2, AC-8.1).
+The label is shown as a badge with an icon on the tile and in the dialog ([spec 003](../2026-10-31-003-directory-redesign/spec.md) AC-5.2, AC-8.1).
 
 - **AC-3.1.** While a business operates from a physical store, the system shall display the label "En tienda".
 - **AC-3.2.** While a business does not operate from a physical store, the system shall display the label "Solo domicilios".
@@ -108,7 +108,7 @@ The label is shown as a badge with an icon on the tile and in the dialog ([spec 
 ## 8. Out of Scope
 
 - Pagination, "load more", and infinite scroll. The directory returns all active businesses in one request. This will be revisited when the number of businesses makes it necessary.
-- Filters other than the category filter of [spec 003](../003-directory-redesign/spec.md) FR-3, and any sort option other than the fixed order. Search (spec 003 FR-2) and a detail dialog (spec 003 FR-8) are in scope; a separate page per business is not.
+- Filters other than the category filter of [spec 003](../2026-10-31-003-directory-redesign/spec.md) FR-3, and any sort option other than the fixed order. Search (spec 003 FR-2) and a detail dialog (spec 003 FR-8) are in scope; a separate page per business is not.
 - Extended business attributes: description, logo, cover image, exact address, coordinates, email, Instagram, catalog link, opening hours, home delivery flag, payment methods, and verification status.
 - Creating, editing, or removing businesses through the product. The team loads and changes businesses through reviewed, versioned SQL data migrations applied by the deployment process (spec 002 FR-7), not through the product.
 - Business owner accounts and ownership claims.
