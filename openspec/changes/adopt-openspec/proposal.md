@@ -14,7 +14,7 @@ The numbered folders in `specs/` are records of changes, not a description of th
 - **History:** move `specs/001-business-list/`, `specs/002-infrastructure/`, and `specs/003-directory-redesign/` unchanged into `openspec/changes/archive/`. The `specs/` folder is removed. **BREAKING** for links that point into `specs/`.
 - **Open work:** carry the two unfinished tasks (002-T10, 002-T11) into a new active change, `finish-mvp-rollout`, so they are not buried in the archive.
 - **Dependency register:** move the approved dependency tables (spec 001 section 8a, spec 002 section 9) to `docs/dependencies.md`, the one place where approved packages and tools are recorded.
-- **Workflow:** rewrite the workflow parts of `AGENTS.md` for OpenSpec: propose, human approval, apply, archive. The rule "When a spec changes earlier behavior" is removed, because the archive step now does that job. The constitution does not change.
+- **Workflow:** rewrite the workflow parts of `AGENTS.md` for OpenSpec: propose, human approval, apply, archive. The rule "When a spec changes earlier behavior" is removed, because the archive step now does that job. The constitution does not change; a change may skip spec deltas only when a current spec already describes the behavior it builds or deploys, so constitution principle 2 (a reviewed spec before code) still holds (design D-16).
 - **CI:** validate the specs on every pull request (`openspec validate --all --strict`). This is the only behavior change, and it is in the `infrastructure` spec.
 
 ## Capabilities

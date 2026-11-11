@@ -184,7 +184,7 @@ On every pull request to `main`, a CI workflow SHALL install with the frozen loc
 
 #### Scenario: Specs are validated
 - **WHEN** a pull request to `main` is opened or updated
-- **THEN** CI runs `openspec validate --all --strict`, and a spec or change with a format error blocks the merge
+- **THEN** CI runs `pnpm spec:validate` (`openspec validate --all --strict`, plus a check that no scenario heading has fewer than four `#`), and a spec or change with a format error blocks the merge
 
 #### Scenario: No deployment from CI (002 AC-8.2)
 - **WHEN** the CI workflow runs

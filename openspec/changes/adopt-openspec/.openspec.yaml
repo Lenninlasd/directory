@@ -1,2 +1,4 @@
 schema: spec-driven
 created: 2026-11-10
+# Approval of the whole change (proposal, specs, design, tasks) before apply (design D-10).
+x-approved: "2026-11-11, by the project owner in chat"

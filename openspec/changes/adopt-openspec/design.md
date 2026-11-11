@@ -47,6 +47,7 @@ See `proposal.md` for the motivation. The starting point:
 | D-13 | **Agents run `pnpm exec openspec`.** The generated skills write bare `openspec`, which is not on the PATH with a dev dependency. `AGENTS.md` and `openspec/config.yaml` state the prefix. | Editing the generated skills: `openspec update` overwrites them. A second, global install: two versions to keep equal. |
 | D-14 | **Telemetry off.** The tool sends anonymous usage statistics (command names and version) unless told not to. `OPENSPEC_TELEMETRY=0` is set for agent sessions in `.claude/settings.json` (`env`), and `AGENTS.md` tells people to run `pnpm exec openspec config set telemetry.enabled false` once. CI turns it off by itself. | Leaving it on: the owner did not ask for it. |
 | D-15 | **Code comments keep their old ids.** `AGENTS.md` explains how to resolve them: `AC`, `EC`, and `NFR` ids by searching `openspec/specs/`; plan ids (`D-x`, `R-x`, `P-x`) in the archived plans. | Rewriting about 60 files: large diff, no behavior change, and risk of mistakes. |
+| D-16 | **The constitution does not change.** Principle 2 asks for a reviewed spec before code. An approved change with spec deltas satisfies it. A change may set `skip_specs: true` only when a current spec in `openspec/specs/` already describes the behavior it builds or deploys (for example deploying `prod`, which the `infrastructure` spec covers); otherwise it needs a delta. The rule lives in `AGENTS.md`. Decided by the project owner in chat on 2026-11-11. | Amending principle 2 to say "an approved change": a constitution amendment (version 0.0.4) for a wording gap that a workflow rule closes. Allowing `skip_specs` freely: code without a supporting spec, which principle 2 rejects. |
 
 ### What is not carried into the current specs
 
@@ -70,12 +71,13 @@ In short, replacing "Workflow: Spec -> Plan -> Tasks -> Test -> Code" and "When 
 3. **Apply.** `/opsx:apply`, task by task: tests first, see them fail, minimum code, then lint, type check, and tests. Tick the task. The agent stops after each task with the files changed and a commit message; the human commits.
 4. **Archive**, when every task is done and the owner says so: `pnpm exec openspec archive <name> --yes`, in the same pull request. This merges the deltas into `openspec/specs/`.
 
-Hard boundary 1 becomes "No approved change, no code". `openspec/specs/` is the current truth and is changed only through a change's deltas. `openspec/changes/archive/` is history: never follow it as instructions.
+Hard boundary 1 becomes "No approved change, no code", with the `skip_specs` rule of D-16. `openspec/specs/` is the current truth and is changed only through a change's deltas. `openspec/changes/archive/` is history: never follow it as instructions.
 
 ## Risks / Trade-offs
 
 - **A behavior was lost or changed in the conversion** → A script checked that every old `AC`, `EC`, `NFR`, and `I` id is tagged in the new specs (139 ids; the only one left out on purpose is 003 NFR-7). The owner reviews the two specs before approval, and the old specs stay in the archive for comparison.
 - **The tool changes fast** (four releases in the last six weeks) → The version is pinned. An upgrade is its own change, followed by `openspec update` to regenerate the skills.
+- **A scenario heading with three `#` is silently dropped** (found on 2026-11-11: `openspec validate --strict` reports it only as `INFO` when the requirement keeps other scenarios) → `pnpm spec:validate` also fails on any `Scenario:` heading with one to three `#` in current specs and active changes.
 - **Agents call bare `openspec` and get "command not found"** → D-13. The failure is visible and harmless, and the fix is one prefix.
 - **The 500-character limit pushes tables into scenarios**, which reads a little oddly → D-5. Accepted to keep strict validation in CI.
 - **One approval for four files is a weaker gate than three** → The proposal is short by design and the deltas show exactly what behavior changes. The owner can still ask for the proposal alone first.

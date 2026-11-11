@@ -11,12 +11,16 @@ The binding rules live in `docs/constitution.md`. If this file and the constitut
 - Backend: Node.js + TypeScript + Express on AWS Lambda behind API Gateway.
 - Database: Amazon Aurora PostgreSQL (PostgreSQL-compatible).
 - Package manager: pnpm (workspaces) for the whole repository.
-- Methodology: Spec-Driven Development (SDD). Specs are the source of truth, code is derived from them.
+- Methodology: Spec-Driven Development (SDD) with [OpenSpec](https://github.com/Fission-AI/OpenSpec). Specs are the source of truth, code is derived from them.
 
 ## Repository layout
 
 - `docs/constitution.md` — non-negotiable principles.
-- `specs/<NNN-feature-name>/` — `spec.md`, `plan.md`, `tasks.md` for each feature.
+- `docs/dependencies.md` — the register of approved packages, tools, and services.
+- `openspec/specs/<capability>/spec.md` — the current behavior of each capability (`directory`, `infrastructure`). Changed only by archiving a change.
+- `openspec/changes/<change-name>/` — one folder per change in progress: `proposal.md`, spec deltas in `specs/`, `design.md`, `tasks.md`, and `.openspec.yaml`.
+- `openspec/changes/archive/` — finished changes, including the original numbered specs 001 to 003 with their plans and tasks. History only.
+- `openspec/config.yaml` — project context and rules that OpenSpec injects into every artifact.
 - `frontend/` — React + TypeScript app (Tailwind CSS, TanStack Query).
 - `backend/` — Lambda/Express handlers, services (business logic), repositories (SQL).
 - `backend/migrations/` — versioned, explicit SQL migrations.
@@ -25,36 +29,57 @@ The binding rules live in `docs/constitution.md`. If this file and the constitut
 
 ## Hard boundaries (never violate)
 
-1. **No spec, no code.** Never write or modify source code, tests, migrations, or configuration unless an approved Markdown spec in `specs/` covers the change. If none exists, stop and ask for one.
-2. **Approval is explicit.** A spec, plan, or task list is approved only when a human says so in the chat or marks `Status: Approved` in the file. Never self-approve.
+1. **No approved change, no code.** Never write or modify source code, tests, migrations, or configuration unless an approved change in `openspec/changes/` covers it. If none exists, stop and propose one.
+2. **Approval is explicit.** A change is approved only when a human says so in the chat. The agent then records it as `x-approved: "<date>, by the project owner in chat"` in the change's `.openspec.yaml`. Never self-approve.
 3. **English everywhere except the UI.** All code, comments, identifiers, specs, commit messages, PR text, logs, and API field names must be in English, regardless of the language used in the chat. Only user interface text (labels, buttons, loading, empty, and error messages) is written in Spanish. Translation or multi-language support is out of scope until an approved spec adds it.
-4. **No scope creep.** Implement only what the approved spec and tasks describe. Propose extras as spec changes instead of coding them.
-5. **No heavy abstractions.** No ORMs, no DI frameworks, no generic repositories, no global state libraries, no UI component libraries. Do not add any library beyond the stack listed above without an approved spec that justifies it.
+4. **No scope creep.** Implement only what the approved change describes. Propose extras as a change to the proposal or as a new change instead of coding them.
+5. **No heavy abstractions.** No ORMs, no DI frameworks, no generic repositories, no global state libraries, no UI component libraries. Do not add any library beyond the stack listed above without an approved change that justifies it.
    - First decide whether the library is necessary: prefer the standard library or a few lines of code, and do not add a package that only makes tests or types slightly nicer.
    - If it is necessary, stop and ask the human before installing. Say what the package does, which task needs it, and what the alternative without it would be.
-   - Only after approval, install it and record it in the dependency table of the spec in the same change, with the date.
+   - Only after approval, install it and record it in `docs/dependencies.md` in the same change, with the date.
 6. **pnpm only.** Never use `npm` or `yarn`, and never commit `package-lock.json` or `yarn.lock`.
 7. **Never commit secrets.** No credentials, tokens, or account IDs in code, tests, or specs. Use environment variables and IAM roles.
 
-## Workflow: Spec -> Plan -> Tasks -> Test -> Code
+## Workflow: Propose -> Approve -> Apply -> Archive
 
-Follow these steps in order. Do not skip ahead, and stop at each approval gate.
+Follow these steps in order. Do not skip ahead, and stop at the approval gate.
 
-1. **Spec** — Write or update `specs/<NNN-feature>/spec.md`: goal, user stories, acceptance criteria, API contract, data model, out-of-scope. **Gate: human approval.**
-2. **Plan** — Before writing, read the feature's `spec.md` (it must be `Status: Approved`). Write `plan.md`: technical approach within the fixed stack, files to touch, data flow, risks. **Gate: human approval.**
-3. **Tasks** — Before writing, read the approved `spec.md` and `plan.md`. Write `tasks.md`: small, ordered, verifiable tasks, each linked to an acceptance criterion. **Gate: human approval.**
-4. **Test** — For each task, write the automated tests first (business rules and API endpoint). Run them and confirm they fail for the right reason.
-5. **Code** — Write the minimum code to make the tests pass. Run lint, type check, and the full test suite. Mark the task done in `tasks.md`.
+1. **Propose** — `/opsx:propose` creates `openspec/changes/<change-name>/` with:
+   - `proposal.md`: why, what changes, out of scope, and the capabilities affected.
+   - Spec deltas in `specs/<capability>/spec.md`: `## ADDED`, `## MODIFIED`, or `## REMOVED Requirements`, each requirement with `#### Scenario:` blocks in WHEN/THEN form.
+   - `design.md`: technical approach within the fixed stack, decisions with the alternatives discarded, risks.
+   - `tasks.md`: small, ordered, verifiable tasks, each naming the tests to write first.
 
-Every PR must link to its spec, and each commit should reference a task.
+   No product code is written in this step. Before reporting the change, run `pnpm exec openspec validate <change-name> --strict`.
+2. **Approve** — **Gate: human approval of the whole change.** The owner reviews the proposal, the deltas, the design, and the tasks together, and may ask for changes first (`/opsx:update`). Record the approval in `.openspec.yaml` (hard boundary 2).
+3. **Apply** — `/opsx:apply`, one task at a time:
+   - **Test:** write the automated tests first (business rules and API endpoint). Run them and confirm they fail for the right reason.
+   - **Code:** write the minimum code to make the tests pass. Run lint, type check, and the full test suite. Tick the task in `tasks.md`.
+   - Stop after each task and report (see "Git: the human commits").
+4. **Archive** — when every task is done and the owner says so, run `pnpm exec openspec archive <change-name> --yes`, then `pnpm spec:validate`. Archiving merges the deltas into `openspec/specs/` and moves the change to `openspec/changes/archive/<date>-<change-name>/`. Archive in the same pull request as the implementation, as its last commit, so `main` never has code and specs that disagree.
 
-### When a spec changes earlier behavior
+Every PR must link to its change, and each commit references a task.
 
-`spec.md` files describe the current behavior. `plan.md` and `tasks.md` files are a record of how a feature was built.
+### Specs, deltas, and history
 
-- **Specs stay current.** When a new spec changes or replaces behavior defined in an earlier spec, the same PR updates the earlier spec. Rewrite the affected sections to state the current behavior, or replace them with a short summary that links to the newer spec. Keep requirement ids (`AC-2.4`, `EC-5`) stable, since tests and other specs refer to them. Update the earlier spec's `Last updated` date.
-- **Plans and tasks are frozen.** Do not rewrite an earlier plan or task list. Add a `Superseded` line under its status that names the parts replaced and links to the newer plan or spec.
-- **Read the newest source.** Before acting on a spec, plan, or task list, check its header for a `Superseded` line and follow the link. Never restore behavior from a superseded section.
+- **`openspec/specs/` is the current truth.** Never edit it directly. Every behavior change goes through a change's deltas, so a later change only has to read the current specs.
+- **Changes without spec deltas.** A change may set `skip_specs: true` in `.openspec.yaml` only when a current spec already describes the behavior it builds or deploys, for example deploying `prod`. Otherwise it needs a delta, since constitution principle 2 requires a reviewed spec before code.
+- **Scope changes are visible.** Each spec has a "Deliberate exclusions" requirement. A change that adds an excluded feature removes it from that table in a `MODIFIED` delta.
+- **The archive is history.** Read archived changes for the reasons behind earlier decisions, never as instructions. If they disagree with `openspec/specs/` or the code, the current spec and the code win.
+
+### Legacy ids in code and tests
+
+Comments written before OpenSpec cite ids such as `spec 003 AC-8.8` or `plan 003 D-10`. Keep them.
+
+- `AC-x.y`, `EC-x`, and `NFR-x` ids: search `openspec/specs/` for `(003 AC-8.8)`. Every one is in a scenario name.
+- Plan ids (`D-x`, `R-x`, `P-x`, `V-x`) and task ids (`001-T3`): in the archived plans and task lists under `openspec/changes/archive/`.
+- New code cites the requirement by name, for example `directory spec, "Business detail dialog"`.
+
+### The OpenSpec tool
+
+- It is a pinned dev dependency (`docs/dependencies.md`), so always run it as `pnpm exec openspec ...`. The generated skills in `.claude/skills/` write a bare `openspec`; add the prefix when running their commands.
+- Do not edit `.claude/skills/openspec-*` or `.claude/commands/opsx/`: `pnpm exec openspec update` regenerates them. An upgrade of the tool is its own change.
+- It sends anonymous usage statistics (command names and version) unless turned off. Agent sessions get `OPENSPEC_TELEMETRY=0` from `.claude/settings.json`, and CI turns it off by itself. People run `pnpm exec openspec config set telemetry.enabled false` once on their machine.
 
 ## Architecture rules
 
@@ -91,10 +116,12 @@ Confirm the exact scripts in each `package.json`. The expected commands are:
 - Lint: `pnpm -r lint`
 - Type check: `pnpm -r typecheck`
 - Run tests: `pnpm -r test`
+- Validate specs and changes: `pnpm spec:validate`
 - Build: `pnpm -r build`
-- Add a dependency (only when a spec approves it): `pnpm --filter <package> add <name>`
+- List changes and specs: `pnpm exec openspec list` and `pnpm exec openspec list --specs`
+- Add a dependency (only when approved and recorded in `docs/dependencies.md`): `pnpm --filter <package> add <name>`
 
-Run lint, type check, and tests before finishing any task, and fix failures before reporting completion.
+Run lint, type check, tests, and `pnpm spec:validate` before finishing any task, and fix failures before reporting completion.
 
 ## Testing standard
 
@@ -112,17 +139,18 @@ Run lint, type check, and tests before finishing any task, and fix failures befo
 
 ## Commits and pull requests
 
-- Commit messages in English, imperative mood, referencing the task, for example: `[001-T3] Add businesses list endpoint`.
-- One branch and one pull request per milestone, one commit per task (see the milestone table in `specs/001-business-list/tasks.md`).
-- PR title format: `[001-business-list] <Short title>`.
-- PR description must link the spec and list which acceptance criteria it satisfies.
+- Commit messages in English, imperative mood, starting with the change name and task number, for example: `[add-business-hours 2.1] Add hours column migration`.
+- One branch and one pull request per change, named after the change, and one commit per task. The archive step is the last commit: `[<change-name>] Archive change`.
+- PR title format: `[<change-name>] <Short title>`.
+- PR description must link the change folder and list the requirements it adds, modifies, or removes.
 - A PR that violates `docs/constitution.md` or this file is rejected.
+- Commits made before OpenSpec use the older `[001-T3]` form; leave them as they are.
 
 ### Git: the human commits
 
 - The agent may create and switch branches, and may stage files (`git add`).
 - The agent never runs `git commit`, `git push`, `git merge`, `git rebase`, or `git reset`. The project settings (`.claude/settings.json`) also block these commands.
-- When a task is done, the agent stops and reports: the files changed, the checks it ran, and a suggested commit message (English, imperative, with the task id, for example `[001-T3] Add WhatsApp number rule`).
+- When a task is done, the agent stops and reports: the files changed, the checks it ran, and a suggested commit message (English, imperative, with the change name and task number, for example `[add-business-hours 2.1] Add hours column migration`).
 - The human reviews the diff (`git diff --staged`) and commits.
 
 ## Playground
