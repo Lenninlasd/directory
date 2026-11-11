@@ -51,11 +51,12 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 ## 4. Final check
 
-- [ ] 4.1 The owner deploys `dev` with the seed and looks at the dialog.
+- [x] 4.1 The owner deploys `dev` with the seed and looks at the dialog.
   - On a 320 px wide screen, "Ubicación" and the WhatsApp button are visible without scrolling for the business with the most hours lines.
   - The website link opens in a new tab, and the dialog is still open on return.
   - The businesses seeded with invalid hours or an invalid website show no row for them.
   - Verify: note the result in this task. If a check fails, stop and propose the fix through `/opsx:update` before changing code.
+  - Done 2026-11-11: the owner deployed `dev`, ran the seed, and reported in chat that every check passed.
 
 ## Workflow follow-up
 
