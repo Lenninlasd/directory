@@ -196,4 +196,19 @@ describe('dev seed in backend/seeds', () => {
   it.each(readdirSync(directory).filter((file) => file.endsWith('.sql')))('%s holds exactly one statement', (file) => {
     expect(countStatements(readFileSync(join(directory, file), 'utf8'))).toBe(1);
   });
+
+  // Sample data must never send a visitor of `dev` to a real site (playground/AGENTS.md, security).
+  describe('dev_businesses.sql websites (design D-8)', () => {
+    const urls = readFileSync(join(directory, 'dev_businesses.sql'), 'utf8').match(/https?:\/\/[^\s',)]+/g) ?? [];
+    const secure = urls.filter((url) => url.startsWith('https://'));
+
+    it('has https websites, all on example.com', () => {
+      expect(secure.length).toBeGreaterThan(0);
+      expect(secure.every((url) => new URL(url).hostname === 'example.com')).toBe(true);
+    });
+
+    it('has exactly one http website, to check that it is returned as null', () => {
+      expect(urls.filter((url) => url.startsWith('http://'))).toEqual(['http://example.com/ferreteria']);
+    });
+  });
 });
