@@ -40,6 +40,8 @@ function row(overrides: Partial<BusinessRow> & Pick<BusinessRow, 'id'>): Busines
     hasPhysicalStore: true,
     whatsappNumber: '573001234567',
     createdAt: new Date('2026-10-01T12:00:00Z'),
+    websiteUrl: null,
+    openingHours: null,
     ...overrides,
   };
 }
@@ -63,6 +65,8 @@ describe('GET /businesses handler', () => {
           locationSummary: 'Centro Comercial Plaza, local 12',
           whatsappNumber: '+57 300 123 4567',
           createdAt: new Date('2026-10-01T00:00:00Z'),
+          websiteUrl: 'https://example.com/panaderia',
+          openingHours: '[{"dayOfWeek": 1, "opens": "07:00", "closes": "19:00"}]',
         }),
       ],
       logError: () => {},
@@ -81,6 +85,8 @@ describe('GET /businesses handler', () => {
           locationSummary: 'Centro Comercial Plaza, local 12',
           hasPhysicalStore: true,
           whatsappNumber: '573001234567',
+          websiteUrl: 'https://example.com/panaderia',
+          openingHours: [{ dayOfWeek: 1, opens: '07:00', closes: '19:00' }],
         },
         {
           id: '7c1d0f35-2b8e-4e57-a1a4-5f0e3b9c6d22',
@@ -89,6 +95,8 @@ describe('GET /businesses handler', () => {
           locationSummary: 'Alameda del Río, home delivery',
           hasPhysicalStore: false,
           whatsappNumber: null,
+          websiteUrl: null,
+          openingHours: [],
         },
       ],
     });

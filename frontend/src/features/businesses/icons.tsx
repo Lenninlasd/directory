@@ -40,6 +40,14 @@ export const CloseIcon = (props: IconProps) => (
   </StrokeIcon>
 );
 
+// After the website link in the detail dialog (directory spec, "Website link").
+export const ExternalLinkIcon = (props: IconProps) => (
+  <StrokeIcon {...props}>
+    <path d="M14 4h6v6M20 4l-9 9" />
+    <path d="M18 14v4.5A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10" />
+  </StrokeIcon>
+);
+
 export const StoreIcon = (props: IconProps) => (
   <StrokeIcon {...props}>
     <path d="M4.5 4h15L21 9H3z" />

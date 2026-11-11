@@ -1,4 +1,14 @@
-/** A business as returned by `GET /businesses` (plan 001 section 3). */
+/** A weekly opening range (directory spec, "Opening hours validity"). */
+export interface OpeningHoursRange {
+  /** 1 is Monday, 7 is Sunday. */
+  dayOfWeek: number;
+  /** `HH:MM`, 24-hour. */
+  opens: string;
+  /** `HH:MM`, 24-hour; `24:00` is midnight. */
+  closes: string;
+}
+
+/** A business as returned by `GET /businesses` (directory spec, "Business list API"). */
 export interface Business {
   id: string;
   name: string;
@@ -7,6 +17,10 @@ export interface Business {
   hasPhysicalStore: boolean;
   /** Normalized digits with country code, or `null` when missing or invalid. */
   whatsappNumber: string | null;
+  /** An `https` URL, or `null` when missing or invalid. */
+  websiteUrl: string | null;
+  /** Ranges sorted by day and opening time, or `[]` when missing or invalid. */
+  openingHours: OpeningHoursRange[];
 }
 
 interface BusinessesResponse {

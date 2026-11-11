@@ -2,8 +2,10 @@ import { useId, useLayoutEffect, useRef } from 'react';
 import type { Business } from '../../api/businesses.ts';
 import { strings } from '../../strings.ts';
 import { CategoryCover } from './CategoryCover.tsx';
-import { CloseIcon } from './icons.tsx';
+import { CloseIcon, ExternalLinkIcon } from './icons.tsx';
+import { formatOpeningHours } from './openingHours.ts';
 import { StoreTypeBadge } from './StoreTypeBadge.tsx';
+import { websiteLinkText } from './website.ts';
 import { WhatsAppButton } from './WhatsAppButton.tsx';
 
 interface BusinessDetailDialogProps {
@@ -75,9 +77,38 @@ export function BusinessDetailDialog({ business, onClose }: BusinessDetailDialog
                 </h2>
                 <StoreTypeBadge hasPhysicalStore={business.hasPhysicalStore} className="mt-1 bg-canvas" />
               </div>
-              <dl className="rounded-2xl border border-border p-4 text-sm">
-                <dt className="font-medium text-ink">{strings.locationLabel}</dt>
-                <dd className="break-words text-ink-muted">{business.locationSummary}</dd>
+              {/* Rows without data are not rendered (directory spec, "Detail dialog hours and website rows"). */}
+              <dl className="flex flex-col gap-3 rounded-2xl border border-border p-4 text-sm">
+                <div>
+                  <dt className="font-medium text-ink">{strings.locationLabel}</dt>
+                  <dd className="break-words text-ink-muted">{business.locationSummary}</dd>
+                </div>
+                {business.openingHours.length > 0 && (
+                  <div>
+                    <dt className="font-medium text-ink">{strings.openingHoursLabel}</dt>
+                    {formatOpeningHours(business.openingHours).map((line) => (
+                      <dd key={line} className="text-ink-muted">
+                        {line}
+                      </dd>
+                    ))}
+                  </div>
+                )}
+                {business.websiteUrl !== null && (
+                  <div>
+                    <dt className="font-medium text-ink">{strings.websiteLabel}</dt>
+                    <dd>
+                      <a
+                        href={business.websiteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex max-w-full items-center gap-1 font-medium break-all text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                      >
+                        {websiteLinkText(business.websiteUrl)}
+                        <ExternalLinkIcon className="size-4 shrink-0" />
+                      </a>
+                    </dd>
+                  </div>
+                )}
               </dl>
             </div>
           </div>

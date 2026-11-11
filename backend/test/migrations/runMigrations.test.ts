@@ -170,8 +170,45 @@ describe('migration files in backend/migrations', () => {
     expect(countStatements(readFileSync(join(directory, file), 'utf8'))).toBe(1);
   });
 
+  // Data migrations share this folder, so two branches can pick the same number (design D-2).
+  it('have unique three-digit number prefixes', () => {
+    const numbers = files.map((file) => file.slice(0, 4));
+    expect(numbers.every((prefix) => /^\d{3}_$/.test(prefix))).toBe(true);
+    expect(new Set(numbers).size).toBe(numbers.length);
+  });
+
   it('001_create_businesses.sql creates the businesses table', () => {
     const sql = readFileSync(join(directory, '001_create_businesses.sql'), 'utf8');
     expect(sql).toMatch(/^CREATE TABLE businesses \(/m);
+  });
+
+  it('002_add_business_hours_and_website.sql adds both nullable columns (design D-2)', () => {
+    const sql = readFileSync(join(directory, '002_add_business_hours_and_website.sql'), 'utf8');
+    expect(sql).toMatch(/^ALTER TABLE businesses\b/m);
+    expect(sql).toMatch(/ADD COLUMN website_url TEXT NULL/);
+    expect(sql).toMatch(/ADD COLUMN opening_hours JSONB NULL/);
+  });
+});
+
+describe('dev seed in backend/seeds', () => {
+  const directory = join(import.meta.dirname, '../../seeds');
+
+  it.each(readdirSync(directory).filter((file) => file.endsWith('.sql')))('%s holds exactly one statement', (file) => {
+    expect(countStatements(readFileSync(join(directory, file), 'utf8'))).toBe(1);
+  });
+
+  // Sample data must never send a visitor of `dev` to a real site (playground/AGENTS.md, security).
+  describe('dev_businesses.sql websites (design D-8)', () => {
+    const urls = readFileSync(join(directory, 'dev_businesses.sql'), 'utf8').match(/https?:\/\/[^\s',)]+/g) ?? [];
+    const secure = urls.filter((url) => url.startsWith('https://'));
+
+    it('has https websites, all on example.com', () => {
+      expect(secure.length).toBeGreaterThan(0);
+      expect(secure.every((url) => new URL(url).hostname === 'example.com')).toBe(true);
+    });
+
+    it('has exactly one http website, to check that it is returned as null', () => {
+      expect(urls.filter((url) => url.startsWith('http://'))).toEqual(['http://example.com/ferreteria']);
+    });
   });
 });

@@ -1,4 +1,6 @@
 import type { Business, BusinessRow } from '../domain/business.ts';
+import { normalizeOpeningHours } from '../domain/openingHours.ts';
+import { normalizeWebsiteUrl } from '../domain/websiteUrl.ts';
 import { normalizeWhatsappNumber } from '../domain/whatsappNumber.ts';
 
 export type FindActiveBusinessRows = () => Promise<BusinessRow[]>;
@@ -26,6 +28,8 @@ function toBusiness(row: BusinessRow): Business {
     locationSummary: row.locationSummary,
     hasPhysicalStore: row.hasPhysicalStore,
     whatsappNumber: normalizeWhatsappNumber(row.whatsappNumber),
+    websiteUrl: normalizeWebsiteUrl(row.websiteUrl),
+    openingHours: normalizeOpeningHours(row.openingHours),
   };
 }
 

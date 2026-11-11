@@ -17,11 +17,11 @@ The directory SHALL be open to anyone without an account or login, and SHALL NOT
 - **THEN** its logs contain no request headers and no client IP address
 
 ### Requirement: Business list API
-The API SHALL expose `GET /businesses`, with no parameters and no authentication, and return every active business in one JSON response. Each business SHALL have exactly these fields: `id`, `name`, `category`, `locationSummary`, `hasPhysicalStore`, and `whatsappNumber`.
+The API SHALL expose `GET /businesses`, with no parameters and no authentication, and return every active business in one JSON response. Each business SHALL have exactly these fields: `id`, `name`, `category`, `locationSummary`, `hasPhysicalStore`, `whatsappNumber`, `websiteUrl`, and `openingHours`.
 
 #### Scenario: Active businesses are returned in one request (001 AC-1.1)
 - **WHEN** a client calls `GET /businesses`
-- **THEN** the response is `200` with a body of the form `{ "businesses": [ { "id": "0b9f6c1e-6d0a-4c43-9f43-3a6c1d2e8a10", "name": "Panadería La Esquina", "category": "Panadería", "locationSummary": "Centro Comercial Plaza, local 12", "hasPhysicalStore": true, "whatsappNumber": "573001234567" } ] }`
+- **THEN** the response is `200` with a body of the form `{ "businesses": [ { "id": "0b9f6c1e-6d0a-4c43-9f43-3a6c1d2e8a10", "name": "Panadería La Esquina", "category": "Panadería", "locationSummary": "Centro Comercial Plaza, local 12", "hasPhysicalStore": true, "whatsappNumber": "573001234567", "websiteUrl": "https://example.com/panaderia", "openingHours": [ { "dayOfWeek": 1, "opens": "07:00", "closes": "19:00" } ] } ] }`
 - **AND** it contains every active business
 
 #### Scenario: Inactive businesses are never returned (001 AC-1.2)
@@ -34,7 +34,7 @@ The API SHALL expose `GET /businesses`, with no parameters and no authentication
 
 #### Scenario: No other attributes are returned (001 AC-2.4)
 - **WHEN** a client reads a business from the response
-- **THEN** it has only the six fields of this requirement, and no active flag, creation time, or other attribute
+- **THEN** it has only the eight fields of this requirement, and no active flag, creation time, or other attribute
 
 #### Scenario: Server failure (001 AC-6.4, 002 EC-1)
 - **WHEN** the API cannot read the businesses
@@ -358,11 +358,11 @@ The system SHALL display every business that matches the current search and cate
 - **THEN** the filter shows "Todos" and one option, the count reads "1 negocio", and the featured section appears only if that business has a store
 
 ### Requirement: Business detail dialog
-When the user opens a tile, the system SHALL display a modal dialog with a short cover in the category color and icon, the full business name as its title, the category, the store type badge, and a "Ubicación" row with the full location summary. It SHALL NOT display any other business attribute.
+When the user opens a tile, the system SHALL display a modal dialog with a short cover in the category color and icon, the full business name as its title, the category, the store type badge, a "Ubicación" row with the full location summary, and the rows of "Detail dialog hours and website rows". It SHALL NOT display any other business attribute.
 
 #### Scenario: Dialog content (003 AC-8.1, 003 AC-8.3)
 - **WHEN** the user opens a tile
-- **THEN** the dialog shows the cover, name, category, badge, and full location of that business, and nothing else about it
+- **THEN** the dialog shows the cover, name, category, badge, and full location of that business, plus its hours and website when it has them, and nothing else about it
 
 #### Scenario: WhatsApp button in the dialog (003 AC-8.2)
 - **WHEN** the business has a valid WhatsApp number
@@ -428,6 +428,10 @@ All interface text SHALL be in Spanish, with the exact wording of the table in t
 | WhatsApp greeting | "Hola, te encontré en el directorio de Alameda del Río" |
 | Dialog close button accessible name | "Cerrar" |
 | Dialog location row label | "Ubicación" |
+| Dialog opening hours row label | "Horario" |
+| Dialog website row label | "Página web" |
+| Day names, Monday to Sunday | "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" |
+| A day without hours | "Cerrado" |
 | Dialog WhatsApp button | "Escribir por WhatsApp" |
 | Dialog, no WhatsApp | "Este negocio no tiene WhatsApp registrado" |
 
@@ -495,7 +499,7 @@ The directory SHALL NOT include the features in the table of the first scenario.
 | Other filters, selecting several categories, sort options | Only the single category filter and the fixed order exist. |
 | Search on the server, typo-tolerant search, search by location summary | Search runs in the browser over name and category. |
 | A page or URL per business; search or category kept in the URL | Details open in a dialog. |
-| Extended business attributes | Description, logo, cover image, photos, exact address, coordinates, email, Instagram, website, catalog link, opening hours, home delivery flag, payment methods, verification status. They need API and data model changes. |
+| Extended business attributes | Description, logo, cover image, photos, exact address, coordinates, email, Instagram, catalog link, home delivery flag, payment methods, verification status. They need API and data model changes. |
 | A confirmation dialog for leaving the site | |
 | Managing businesses or categories through the product | The team loads business data through reviewed data migrations (infrastructure spec). Categories are free text. |
 | Business owner accounts and ownership claims | |
@@ -508,3 +512,70 @@ The directory SHALL NOT include the features in the table of the first scenario.
 #### Scenario: A change proposes an excluded feature
 - **WHEN** a change adds a feature from the table
 - **THEN** the same change removes its row from the table and specifies the new behavior as requirements
+
+### Requirement: Detail dialog hours and website rows
+Below "Ubicación", the detail dialog SHALL display a "Horario" row when the business has opening hours, and then a "Página web" row when it has a website. A row without data SHALL NOT be displayed.
+
+#### Scenario: Opening hours row
+- **WHEN** the business has opening hours
+- **THEN** the dialog shows a "Horario" row below "Ubicación", as defined in "Opening hours display"
+
+#### Scenario: Website row
+- **WHEN** the business has a website
+- **THEN** the dialog shows a "Página web" row after the other rows, with the link defined in "Website link"
+
+#### Scenario: No hours or no website
+- **WHEN** `openingHours` is `[]` or `websiteUrl` is `null`
+- **THEN** the dialog does not show that row, and shows no text in its place
+
+### Requirement: Website validity
+A stored website SHALL be valid when it is an absolute URL with the `https` scheme. The API SHALL return a valid website as `websiteUrl`, and `null` for a missing or invalid one.
+
+#### Scenario: A valid website
+- **WHEN** a business has the stored website `https://example.com/panaderia`
+- **THEN** the API returns `"websiteUrl": "https://example.com/panaderia"`
+
+#### Scenario: An invalid or missing website
+- **WHEN** a business has no stored website, or one without a scheme, such as `example.com/panaderia`, or with another scheme, such as `http://example.com` or `javascript:alert(1)`
+- **THEN** the API returns `"websiteUrl": null`
+
+### Requirement: Opening hours validity
+The API SHALL return a business's weekly hours as `openingHours`, a list of ranges ordered by day and then by opening time. A range has `dayOfWeek` (1 is Monday, 7 is Sunday), `opens`, and `closes`. Times are `HH:MM` in 24-hour format, `closes` is later than `opens`, and `closes` can be `"24:00"` for midnight. A day can have several ranges. For missing hours, or stored hours with any invalid range, the API SHALL return `[]`.
+
+#### Scenario: Valid hours
+- **WHEN** a business has stored the ranges Tuesday `09:00` to `17:00`, Monday `14:00` to `18:00`, and Monday `08:00` to `12:00`
+- **THEN** `openingHours` is `[ { "dayOfWeek": 1, "opens": "08:00", "closes": "12:00" }, { "dayOfWeek": 1, "opens": "14:00", "closes": "18:00" }, { "dayOfWeek": 2, "opens": "09:00", "closes": "17:00" } ]`
+
+#### Scenario: Missing hours
+- **WHEN** a business has no stored hours
+- **THEN** the API returns `"openingHours": []`
+
+#### Scenario: Invalid hours
+- **WHEN** the stored hours are not a list of ranges, or contain a range with a day outside 1 to 7, a time that is not `HH:MM`, or a closing time that is not later than its opening time
+- **THEN** the API returns `"openingHours": []`, so the directory never shows partly wrong hours
+
+### Requirement: Opening hours display
+The "Horario" row SHALL list the week from Monday to Sunday, one line per group of consecutive days with the same hours, as `{días} · {horas}`. A day's hours are its ranges as `{apertura} – {cierre}`, joined by " y ", or "Cerrado" when the day has none. A group is labeled with its day name, two names joined by " y ", or its first and last names joined by " a ", with only the first word capitalized.
+
+#### Scenario: A typical week
+- **WHEN** a business opens Monday to Friday from `08:00` to `18:00`, Saturday from `08:00` to `12:00`, and has no range on Sunday
+- **THEN** the row shows "Lunes a viernes · 8:00 a. m. – 6:00 p. m.", "Sábado · 8:00 a. m. – 12:00 p. m.", and "Domingo · Cerrado", in that order
+
+#### Scenario: Two days and several ranges
+- **WHEN** Saturday and Sunday both open from `08:00` to `12:00` and from `14:00` to `24:00`
+- **THEN** their line reads "Sábado y domingo · 8:00 a. m. – 12:00 p. m. y 2:00 p. m. – 12:00 a. m."
+
+#### Scenario: Times in 12-hour format
+- **WHEN** a time is shown
+- **THEN** it has the hour without a leading zero, two-digit minutes, and "a. m." or "p. m.": `07:00` is "7:00 a. m.", `12:00` is "12:00 p. m.", `18:30` is "6:30 p. m.", and both `00:00` and `24:00` are "12:00 a. m."
+
+### Requirement: Website link
+The "Página web" row SHALL show a link whose text is the website without its `https://` prefix and without a trailing slash, followed by an external-link icon that screen readers ignore. Activating the link SHALL open the website in a new tab, with no confirmation step.
+
+#### Scenario: Link text
+- **WHEN** the website is `https://example.com/panaderia/`
+- **THEN** the link text reads "example.com/panaderia", followed by the icon
+
+#### Scenario: Opening the website
+- **WHEN** the user activates the link
+- **THEN** the website opens in a new tab, and the directory stays open with the dialog where the user left it

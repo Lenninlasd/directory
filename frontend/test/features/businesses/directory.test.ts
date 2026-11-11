@@ -16,6 +16,8 @@ function business(overrides: Partial<Business> & Pick<Business, 'id'>): Business
     locationSummary: 'Alameda del Río',
     hasPhysicalStore: false,
     whatsappNumber: null,
+    websiteUrl: null,
+    openingHours: [],
     ...overrides,
   };
 }

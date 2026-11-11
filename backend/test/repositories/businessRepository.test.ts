@@ -23,6 +23,8 @@ const sampleRecord = {
   has_physical_store: true,
   whatsapp_number: '573001234567',
   created_at: '2026-10-01T12:30:45.123Z',
+  website_url: 'https://example.com/panaderia',
+  opening_hours: '[{"dayOfWeek": 1, "opens": "07:00", "closes": "19:00"}]',
 };
 
 describe('findActiveBusinessRows', () => {
@@ -47,6 +49,8 @@ describe('findActiveBusinessRows', () => {
       'id',
       'location_summary',
       'name',
+      'opening_hours',
+      'website_url',
       'whatsapp_number',
     ]);
   });
@@ -75,6 +79,8 @@ describe('findActiveBusinessRows', () => {
         hasPhysicalStore: true,
         whatsappNumber: '573001234567',
         createdAt: new Date('2026-10-01T12:30:45.123Z'),
+        websiteUrl: 'https://example.com/panaderia',
+        openingHours: '[{"dayOfWeek": 1, "opens": "07:00", "closes": "19:00"}]',
       },
     ]);
   });
@@ -85,6 +91,30 @@ describe('findActiveBusinessRows', () => {
     const rows = await findActiveBusinessRows(query);
 
     expect(rows[0]?.whatsappNumber).toBeNull();
+  });
+
+  // Design D-3: the Data API documents text as a string, but not the shape of a JSONB value.
+  it('reads the opening hours as text', async () => {
+    const { query, calls } = fakeQuery([]);
+
+    await findActiveBusinessRows(query);
+
+    expect(calls[0]?.sql).toMatch(/opening_hours::text AS opening_hours/);
+  });
+
+  it('keeps a NULL website and NULL opening hours as null', async () => {
+    const { query } = fakeQuery([{ ...sampleRecord, website_url: null, opening_hours: null }]);
+
+    const rows = await findActiveBusinessRows(query);
+
+    expect(rows[0]?.websiteUrl).toBeNull();
+    expect(rows[0]?.openingHours).toBeNull();
+  });
+
+  it('fails clearly when the opening hours are not text', async () => {
+    const { query } = fakeQuery([{ ...sampleRecord, opening_hours: [{ dayOfWeek: 1 }] }]);
+
+    await expect(findActiveBusinessRows(query)).rejects.toThrow(/opening_hours/);
   });
 
   it('fails clearly when a record has an unexpected shape', async () => {

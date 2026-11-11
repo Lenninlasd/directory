@@ -12,6 +12,8 @@ function business(id: string, name: string): Business {
     locationSummary: 'Alameda del Río',
     hasPhysicalStore: true,
     whatsappNumber: null,
+    websiteUrl: null,
+    openingHours: [],
   };
 }
 
