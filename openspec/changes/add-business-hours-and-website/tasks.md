@@ -4,11 +4,12 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 ## 1. Database
 
-- [ ] 1.1 Add `backend/migrations/002_add_business_hours_and_website.sql` (design D-2).
-  - Test first: a new `backend/test/migrations/migrationFiles.test.ts` reads every file in `backend/migrations/` and `backend/seeds/` and asserts that `countStatements` returns 1 for each, and that a migration adds `website_url` and `opening_hours`. It fails because the file does not exist yet.
+- [x] 1.1 Add `backend/migrations/002_add_business_hours_and_website.sql` (design D-2).
+  - Test first: extend the real-file tests in `backend/test/migrations/runMigrations.test.ts`. They already check that every migration holds one statement. Add checks that the seed holds one statement, that migration number prefixes are unique, and that `002` adds `website_url` and `opening_hours`. The `002` test fails because the file does not exist yet.
   - Verify: the test passes.
+  - Done 2026-11-11: `runMigrations.test.ts` already had a real-file block, so the tests went there instead of a new `migrationFiles.test.ts`, to avoid a duplicate.
 - [ ] 1.2 Add the two columns and the example values to `backend/seeds/dev_businesses.sql` (design D-8).
-  - Test first: in `migrationFiles.test.ts`, assert that every `https` URL in the seed is on `example.com`, and that the seed has one `http://` website to check the `null` path.
+  - Test first: in the seed block of `runMigrations.test.ts`, assert that every `https` URL in the seed is on `example.com`, and that the seed has one `http://` website to check the `null` path.
   - Verify: the tests pass, and the seed is still one statement.
 
 ## 2. Backend
