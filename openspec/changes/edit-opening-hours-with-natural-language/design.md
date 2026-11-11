@@ -44,6 +44,7 @@ See `proposal.md` for the motivation, and the three spec deltas for the required
 | D-15 | CORS adds `POST` and `PUT` to `AllowMethods`, and `AllowHeaders: [authorization, content-type]`. The HTTP API answers the preflight itself. | Handling `OPTIONS` in Express. | API Gateway already owns CORS for this API (infrastructure spec, "Cross-origin access"). |
 | D-16 | The eval: `backend/eval/openingHours/cases.json` holds about 20 cases `{ name, storedHours, request, expected }`, covering one-day changes, whole weeks, split days, "24:00", "cerrado", ambiguous text, off-topic text, and an injection attempt. `backend/scripts/evalOpeningHours.ts` runs each case through `interpretOpeningHours` with the real client and the developer's `ANTHROPIC_API_KEY`, and prints per case pass or fail, the exact-match accuracy, the total tokens, and the cost. A pure `scoreCase(expected, actual)` is unit-tested. | (a) An eval job in CI. (b) An LLM judge. | (a) CI has no secrets and must not call the network. (b) The expected answer is a week, so an exact comparison after sorting is enough. About 20 calls cost well under a cent. |
 | D-17 | New packages in `backend`: `@anthropic-ai/sdk` (1.8.0, checked on 2026-11-11) and `@aws-sdk/client-ssm` (3.1167.0, the same release line as `@aws-sdk/client-rds-data`). The Anthropic API is added to the services table of `docs/dependencies.md`. | (a) Raw `fetch` to the Anthropic API. (b) The AWS SDK that the Node.js 24 runtime includes. | (a) means writing typed errors, retries, and types the SDK already has, and the project's rule is to use the official SDK. (b) The bundle pins versions through the lockfile, as it already does for the RDS client. |
+| D-18 | The text box has `maxLength={300}` and the Tailwind utilities `field-sizing-content`, a minimum height of about two lines, and `max-h` of about six lines with `overflow-y-auto`. The AI border is a wrapper with 2 px of padding and a `conic-gradient(from var(--ai-border-angle), …)` background in two new tokens, `--color-ai-from` (blue-500) and `--color-ai-to` (violet-500) of the Tailwind 4.3 default palette as sRGB hex, like the category tokens. `--ai-border-angle` is registered with `@property` as an `<angle>` in `index.css`, and `@theme` defines `--animate-ai-border-spin` (one turn in 4 s, linear, infinite). The animation class applies only while interpreting, through a `data-interpreting` attribute, and `motion-reduce:animate-none` stops it. A sparkle SVG with `aria-hidden="true"` joins `icons.tsx`. The existing `focus-visible` outline in `ink` stays on the text box. | (a) A JavaScript auto-resize that sets the height from `scrollHeight`. (b) Animating the border all the time. (c) An animated GIF or a library. | (a) is an effect and a ref for something CSS now does; in a browser without `field-sizing` the box keeps a fixed height and scrolls, which is acceptable for an admin screen. (b) Motion that always runs distracts and spends battery; turning only while the model works makes the motion mean "working" (owner's choice). (c) adds assets or a package. Custom CSS stays in the Tailwind entry file and colors are tokens (AGENTS.md, "Styling"). |
 
 Documentation checked on 2026-11-11:
 
@@ -52,7 +53,8 @@ Documentation checked on 2026-11-11:
 - AWS Systems Manager User Guide, "Parameter Store throughput": 40 transactions per second by default, shared by the `GetParameter` actions. Extra charges apply only to the higher throughput setting.
 - Claude API documentation (structured outputs, effort, stop reasons, Claude Haiku 5.5): supported JSON Schema features (no `pattern`, no numeric ranges), `output_config.format`, `stop_reason` values, and pricing.
 - npm registry: `@anthropic-ai/sdk` 1.8.0 and `@aws-sdk/client-ssm` 3.1167.0.
-- No Tailwind feature beyond the utilities already in use.
+- Tailwind CSS 4.3.3 (the installed version): the `field-sizing-content` utility, the `motion-reduce` variant, and `--animate-*` theme variables in `@theme` (D-18).
+- MDN, CSS `field-sizing`: Baseline 2026, newly available since June 2026. MDN, CSS `@property`: Baseline 2024, newly available since July 2024.
 
 ## Risks / Trade-offs
 
@@ -66,6 +68,9 @@ Documentation checked on 2026-11-11:
 - [Anthropic API spending] → Only the admin can call the model. The documentation recommends a monthly spend limit in the Anthropic Console, set by hand.
 - [The request and the hours are sent to Anthropic] → They hold only public business information. Neither is logged (D-12).
 - [The Lambda bundle grows] → Both SDKs are bundled by esbuild. Task 6.3 compares cold start and `GET /businesses` times with the performance check of the infrastructure spec.
+
+- [An older browser without `field-sizing`] → The text box keeps its minimum height and scrolls. Nothing breaks, and the admin can use a current browser.
+- [The moving border hides where the keyboard focus is] → The `focus-visible` outline stays on the text box itself, and task 6.1 checks it with the keyboard.
 
 ## Migration Plan
 

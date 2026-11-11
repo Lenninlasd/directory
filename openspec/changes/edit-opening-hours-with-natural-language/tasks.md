@@ -63,11 +63,13 @@ Each task writes its tests first and confirms they fail for the right reason bef
   - `frontend/src/api/openingHours.ts` with `interpretOpeningHours` and `saveOpeningHours`, and `UnauthorizedError` for `401`. Hooks `useInterpretOpeningHours` and `useSaveOpeningHours`, the second invalidating `BUSINESSES_QUERY_KEY` on success.
   - Tests first: `frontend/test/api/openingHours.test.ts` with a mocked `fetch`, for the URL, method, `Authorization` header, body, each response shape, and `UnauthorizedError`. Hook tests with a fresh `QueryClient` and a mocked API layer, for the invalidation after a save and no retry after a failure.
   - Verify: the tests pass.
-- [ ] 4.3 Add `OpeningHoursEditor.tsx` and admin mode to the dialog (design D-13, D-14).
+- [ ] 4.3 Add `OpeningHoursEditor.tsx` and admin mode to the dialog (design D-13, D-14, D-18).
+  - The AI border tokens, the `@property` rule, and the animation in `frontend/src/index.css`, and the sparkle icon in `icons.tsx`.
   - `Directory` reads `isAdminMode(window.location.search)` once and passes it to `BusinessDetailDialog`. In admin mode, the "Horario" row always shows, with "Sin horario registrado" when empty, and the "Editar horario" button opens the editor.
   - Tests first, in `frontend/test/features/businesses/OpeningHoursEditor.test.tsx` and `BusinessDetailDialog.test.tsx`, with a mocked API layer:
     - No editing control without admin mode, and the existing dialog tests unchanged.
     - Every scenario of "Admin mode" and "Opening hours edit flow": the key step, the wrong key keeping the text, the disabled buttons, the loading, proposal, no-change, not-understood, saved, canceled, and failure states, and the `role="status"` region.
+    - The text box has `maxLength` 300 and the placeholder of the wording table, the border wrapper has `data-interpreting` only while interpreting, and the sparkle icon is `aria-hidden`. The motion itself cannot be tested in jsdom, so task 6.1 checks it.
   - Verify: the tests pass, and the whole flow works with the keyboard alone in `pnpm --filter frontend dev` against fakes.
 
 ## 5. Eval
@@ -83,6 +85,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
 - [ ] 6.1 The owner creates the `dev` parameters, deploys `dev`, and checks the flow in the browser.
   - Without `?admin`, nothing changes. With `?admin`, editing one day, a whole week, a request that is not understood, a wrong key, and canceling all behave as the spec says, and a saved week appears after the reload.
   - `curl` without a key and with a wrong key gets `401`.
+  - The text box stops at 300 characters and grows up to about six lines. The border moves only during "Interpretando…", never with reduced motion on, and the focus outline is visible with the keyboard.
   - Verify: note the results in this task. If a check fails, stop and propose the fix through `/opsx:update` before changing code.
 - [ ] 6.2 Check least privilege in `dev` (design D-9).
   - The Lambda reads both parameters. With the role's credentials simulated in the IAM policy simulator, `ssm:GetParameter` on another parameter and `kms:Decrypt` outside SSM are denied.

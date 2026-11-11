@@ -141,7 +141,23 @@ In admin mode, "Editar horario" SHALL open a panel in the dialog where the admin
 
 #### Scenario: Writing the change
 - **WHEN** the admin activates "Editar horario"
-- **THEN** a text box labeled "¿Qué cambia en el horario?" with the placeholder "Ej.: el sábado cerramos a las 2 p. m.", a "Revisar cambio" button, and a "Cancelar" button are shown, and "Revisar cambio" is disabled while the text is empty
+- **THEN** a text box labeled "¿Qué cambia en el horario?" with the placeholder "Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m.", a "Revisar cambio" button, and a "Cancelar" button are shown, and "Revisar cambio" is disabled while the text is empty
+
+#### Scenario: Text box size and limit
+- **WHEN** the admin types in the text box
+- **THEN** it accepts at most 300 characters, and it grows with its text up to about six lines, after which it scrolls
+
+#### Scenario: AI indicator
+- **WHEN** the panel is open
+- **THEN** the text box has a blue-to-violet gradient border and a sparkle icon that screen readers ignore, and the keyboard focus indicator stays visible over it
+
+#### Scenario: AI indicator while interpreting
+- **WHEN** "Interpretando…" is shown
+- **THEN** the border's gradient turns slowly around the text box, and it stops when the answer arrives
+
+#### Scenario: AI indicator with reduced motion
+- **WHEN** the system setting for reduced motion is on
+- **THEN** the gradient border is shown but never moves
 
 #### Scenario: While interpreting
 - **WHEN** the admin activates "Revisar cambio"
@@ -187,7 +203,7 @@ All editing text SHALL be in Spanish, with the exact wording of the table in the
 | Edit button | "Editar horario" |
 | "Horario" row of a business without hours, in admin mode | "Sin horario registrado" |
 | Text box label | "¿Qué cambia en el horario?" |
-| Text box placeholder | "Ej.: el sábado cerramos a las 2 p. m." |
+| Text box placeholder | "Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m." |
 | Interpret button | "Revisar cambio" |
 | Cancel button | "Cancelar" |
 | While interpreting | "Interpretando…" |
