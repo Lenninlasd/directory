@@ -29,7 +29,7 @@ Before pushing, run `pnpm typecheck`. There is no lint, test, or build script.
 - Never import from `frontend/` or `backend/`. `src/api`, `src/features`, `strings.ts`, and `queryClient.ts` are copies from `frontend/src/` and may drift.
 - Keep `package.json` identical to the frontend's dependencies. Never add a package only for the playground.
 - Open changes in their own pull request, titled `[playground] <Short title>`.
-- A design reaches the product only through a spec in `specs/`, which can reference files here.
+- A design reaches the product only through an OpenSpec change in `openspec/changes/`, which can reference files here.
 
 Rules for AI agents are in `AGENTS.md`.
 

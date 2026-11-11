@@ -1,7 +1,7 @@
 # Plan 001: Business Directory Listing
 
 - **Status:** Approved
-- **Superseded:** the frontend presentation (section 1 "renders them as cards", the `BusinessList.tsx`, `BusinessCard.tsx`, and `WhatsAppButton.tsx` rows and the accessible-name and layout notes of section 5, and the Components row of section 8) is replaced by [plan 003](../003-directory-redesign/plan.md). Everything else still applies.
+- **Superseded:** the frontend presentation (section 1 "renders them as cards", the `BusinessList.tsx`, `BusinessCard.tsx`, and `WhatsAppButton.tsx` rows and the accessible-name and layout notes of section 5, and the Components row of section 8) is replaced by [plan 003](../2026-10-31-003-directory-redesign/plan.md). Everything else still applies.
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Created:** 2026-10-23
 

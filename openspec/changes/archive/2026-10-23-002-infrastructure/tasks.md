@@ -3,7 +3,7 @@
 - **Status:** Approved 2026-11-02
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Plan:** [plan.md](./plan.md) (Approved)
-- **Related:** [Tasks 001](../001-business-list/tasks.md) (application; milestones are shared, see the execution order there)
+- **Related:** [Tasks 001](../2026-10-23-001-business-list/tasks.md) (application; milestones are shared, see the execution order there)
 - **Created:** 2026-10-23
 - **Last updated:** 2026-11-02 (002-T7 to 002-T10 changed for Cloudflare Pages hosting)
 

@@ -3,7 +3,7 @@
 - **Status:** Approved
 - **Created:** 2026-10-23
 - **Last updated:** 2026-11-02
-- **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
+- **Depends on:** [Spec 001](../2026-10-23-001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
 

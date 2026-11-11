@@ -3,7 +3,7 @@
 - **Status:** Approved (approved by the project owner in chat on 2026-11-02)
 - **Created:** 2026-10-31
 - **Last updated:** 2026-11-02
-- **Depends on:** [Spec 001](../001-business-list/spec.md) (Approved)
+- **Depends on:** [Spec 001](../2026-10-23-001-business-list/spec.md) (Approved)
 
 ## 1. Context and Objective
 
@@ -200,9 +200,9 @@ Spec 001 NFR-1 to NFR-5 still apply. In addition:
 
 The visual reference is the playground view "App de domicilios", opened at `#delivery` (see `playground/README.md` to run it):
 
-- [`playground/src/views/DeliveryView.tsx`](../../playground/src/views/DeliveryView.tsx): header, search, category filter, featured section, list, and tile
-- [`playground/src/BusinessDetailDialog.tsx`](../../playground/src/BusinessDetailDialog.tsx): detail dialog
-- [`playground/src/categories.ts`](../../playground/src/categories.ts) and [`playground/src/icons.tsx`](../../playground/src/icons.tsx): category icons and colors
+- [`playground/src/views/DeliveryView.tsx`](../../../../playground/src/views/DeliveryView.tsx): header, search, category filter, featured section, list, and tile
+- [`playground/src/BusinessDetailDialog.tsx`](../../../../playground/src/BusinessDetailDialog.tsx): detail dialog
+- [`playground/src/categories.ts`](../../../../playground/src/categories.ts) and [`playground/src/icons.tsx`](../../../../playground/src/icons.tsx): category icons and colors
 
 Plan 003 uses these files as the reference for layout, spacing, and styling. Per `playground/README.md`, the design reaches `frontend/src/` through the normal workflow and the code is never copied over. Where the playground and this spec differ, this spec wins. The playground's example data (extra businesses, descriptions, photos, websites, the photo gallery) and its leaving-the-site dialog are not part of this spec (section 11).
 

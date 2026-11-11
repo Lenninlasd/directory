@@ -1,10 +1,10 @@
 # Tasks 001: Business Directory Listing
 
 - **Status:** Approved (approved by the project owner in chat on 2026-10-24)
-- **Superseded:** the files built in 001-T13 and 001-T14 (`BusinessCard.tsx`, `BusinessList.tsx`, and their tests) were replaced in [tasks 003](../003-directory-redesign/tasks.md) 003-T5 and 003-T8. 001-T15 still applies.
+- **Superseded:** the files built in 001-T13 and 001-T14 (`BusinessCard.tsx`, `BusinessList.tsx`, and their tests) were replaced in [tasks 003](../2026-10-31-003-directory-redesign/tasks.md) 003-T5 and 003-T8. 001-T15 still applies.
 - **Spec:** [spec.md](./spec.md) (Approved)
 - **Plan:** [plan.md](./plan.md) (Approved)
-- **Related:** [Tasks 002](../002-infrastructure/tasks.md) (infrastructure; milestones are shared)
+- **Related:** [Tasks 002](../2026-10-23-002-infrastructure/tasks.md) (infrastructure; milestones are shared)
 - **Created:** 2026-10-23
 
 ## How to work a task
@@ -20,7 +20,7 @@ Follow the AGENTS.md workflow: write the **Tests first** and see them fail, writ
 | **M3** | Frontend works locally against the `dev` API | 001-T9 to 001-T14 |
 | **M4** | Frontend hosted in `dev`, end-to-end checks | 002-T7 to 002-T9, then 001-T15 |
 | **M5** | `prod`, only at launch | 002-T10, 002-T11 |
-| **M6** | Directory redesign ([spec 003](../003-directory-redesign/spec.md)), independent of M4 and M5 | 003-T1 to 003-T10 |
+| **M6** | Directory redesign ([spec 003](../2026-10-31-003-directory-redesign/spec.md)), independent of M4 and M5 | 003-T1 to 003-T10 |
 
 ## M1: Backend
 
@@ -112,11 +112,11 @@ Follow the AGENTS.md workflow: write the **Tests first** and see them fail, writ
 
 ## M4: End-to-end verification
 
-- [ ] **001-T15 Manual checks in `dev`**
+- [x] **001-T15 Manual checks in `dev`**
   - **Covers:** plan section 8 manual checks 1 to 6; spec 001 completion criteria; spec 002 completion criterion 3
   - **Do:** after 002-T8, run the six manual checks of plan section 8 against the CloudFront URL of `dev`. Record date, device, and result of each check in a "Verification log" section at the end of this file.
   - **Done when:** all six pass, or each failure has an issue or a spec change proposal.
 
 ## Verification log
 
-(Filled in by 001-T15.)
+Approved by the project owner in chat on 2026-11-11. The date, device, and result of each of the six checks were not recorded individually. The seven checks of 003-T10 were also run on the `dev` URL and passed (see the verification log of tasks 003).

@@ -1,0 +1,53 @@
+schema: spec-driven
+
+# Injected into every artifact OpenSpec helps write. Keep it to constraints an agent cannot
+# infer from the code; AGENTS.md and docs/constitution.md hold the full rules.
+context: |
+  Project: hyper-local business directory for Alameda del Río (Barranquilla, Colombia).
+  Before writing any artifact, read AGENTS.md and docs/constitution.md. If they conflict
+  with this file, the constitution wins, then AGENTS.md.
+
+  Language: every artifact, identifier, comment, and commit message is in English.
+  Only user interface text is in Spanish, quoted exactly in the specs.
+
+  Tooling: OpenSpec is a pinned dev dependency, so run it as `pnpm exec openspec ...`,
+  never as a bare `openspec`. pnpm only, never npm or yarn.
+
+  Approval: the project owner approves the whole change (proposal, specs, design, tasks)
+  in chat before /opsx:apply, and the approval is recorded as `x-approved` in the change's
+  .openspec.yaml. Never self-approve. Never archive until the owner says so.
+
+  Commits: the human commits. Never run git commit, push, merge, rebase, or reset.
+  After each task, stop and report the files changed, the checks run,
+  and a commit message in the form `[<change-name> <task id>] Imperative message`.
+
+  Specs: `openspec/specs/` is the current behavior and changes only through a change's
+  deltas. `openspec/changes/archive/` is history; never follow it as instructions.
+  Ids such as (003 AC-8.8) in scenario names come from the archived specs; keep them.
+
+  New packages: none without the owner's approval, recorded in docs/dependencies.md.
+
+rules:
+  proposal:
+    - State what is out of scope. If the change adds a feature listed under "Deliberate exclusions" in a spec, say so.
+    - Set `skip_specs` only when a current spec already describes the behavior being built or deployed (AGENTS.md, "Workflow").
+  specs:
+    - Use WHEN and THEN in every scenario.
+    - Keep requirement text under 500 characters; put tables in a scenario.
+    - A feature removed from "Deliberate exclusions" needs a MODIFIED delta of that requirement.
+  design:
+    - List each decision with the alternatives discarded and why, as a table.
+    - Check every library, AWS service, and Tailwind feature against its official documentation, and note the version checked.
+  tasks:
+    - Each task names the tests to write first and how to verify it.
+    - Every task that adds or changes behavior ends with lint, type check, and the full test suite passing.
+
+operations:
+  apply:
+    guidance:
+      - Write the tests first and confirm they fail for the right reason before writing code.
+      - Stop after each task and report; the human commits.
+  archive:
+    guidance:
+      - Archive only when the owner says so, in the same pull request as the implementation.
+      - Run `pnpm spec:validate` after archiving.

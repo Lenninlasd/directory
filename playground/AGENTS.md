@@ -4,7 +4,7 @@ Rules for AI coding agents working inside `playground/`. They replace the root `
 
 ## Rules
 
-- **Stay inside `playground/`.** A playground task never changes files outside this folder. If a design needs a product change, stop and propose a spec in `specs/` instead.
+- **Stay inside `playground/`.** A playground task never changes files outside this folder. If a design needs a product change, stop and propose an OpenSpec change in `openspec/changes/` instead.
 - **Self-contained.** Never import from `frontend/`, `backend/`, or any other folder. Copy what is needed into `src/`, and accept that copies drift.
 - **No new packages.** `package.json` keeps the same dependencies and version ranges as `frontend/package.json`. Never add a package only for the playground.
 - **pnpm only**, run from inside `playground/`. It is its own pnpm project, not part of the root workspace.

@@ -1,6 +1,6 @@
 # Infrastructure and Deployment
 
-Deployment guide for spec 002. Sections are added as the tasks in `specs/002-infrastructure/tasks.md` are completed.
+Deployment guide for the `infrastructure` spec (`openspec/specs/infrastructure/spec.md`). It was written while the tasks of the archived spec 002 were done (`openspec/changes/archive/2026-10-23-002-infrastructure/tasks.md`); ids such as 002-T5 and AC-7.3 below refer to them.
 
 ## Architecture
 
@@ -72,7 +72,7 @@ Why two subnets: an RDS DB subnet group must span at least two Availability Zone
 
 ## Prerequisites
 
-These tools run on the developer machine. They are not in `package.json` or the lockfile (spec 002 section 9). Record the versions you use here.
+These tools run on the developer machine. They are not in `package.json` or the lockfile (`docs/dependencies.md`). Record the versions you use here.
 
 | Tool | Used for | Install | Version used |
 |---|---|---|---|

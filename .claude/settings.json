@@ -3,6 +3,9 @@
     "commit": "",
     "pr": ""
   },
+  "env": {
+    "OPENSPEC_TELEMETRY": "0"
+  },
   "permissions": {
     "deny": [
       "Bash(git commit:*)",

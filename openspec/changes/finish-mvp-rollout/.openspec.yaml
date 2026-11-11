@@ -1,0 +1,7 @@
+schema: spec-driven
+created: 2026-11-11
+# No spec delta: openspec/specs/infrastructure already describes the production deploy and business
+# data loading that these tasks carry out (AGENTS.md, "Workflow").
+skip_specs: true
+# These tasks were approved as 002-T10 and 002-T11 of tasks 002; adopt-openspec carried them over.
+x-approved: "2026-11-02, as tasks 002-T10 and 002-T11 of tasks 002; carried over on 2026-11-11"
