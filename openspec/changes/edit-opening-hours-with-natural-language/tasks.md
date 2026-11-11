@@ -4,10 +4,11 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 ## 1. Dependencies
 
-- [ ] 1.1 Install `@anthropic-ai/sdk` and `@aws-sdk/client-ssm` in `backend` (design D-17), only after the owner approves both in chat.
+- [x] 1.1 Install `@anthropic-ai/sdk` and `@aws-sdk/client-ssm` in `backend` (design D-17), only after the owner approves both in chat.
   - Run `pnpm --filter backend add @anthropic-ai/sdk @aws-sdk/client-ssm`.
   - Add both packages to the npm table of `docs/dependencies.md`, and the Anthropic API to the services table, with the approval date.
   - Verify: `pnpm install --frozen-lockfile` succeeds, `pnpm-lock.yaml` changed, and the existing checks pass.
+  - Done 2026-11-11: `@aws-sdk/client-ssm` is on 3.1156.0, not the latest 3.1167.0. The latest was published the same day, and pnpm only installed it by adding `minimumReleaseAgeExclude` entries to `pnpm-workspace.yaml`. The owner chose the version of `@aws-sdk/client-rds-data` instead, which needs no exception (design D-17 updated).
 
 ## 2. Backend
 

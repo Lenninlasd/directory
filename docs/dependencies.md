@@ -22,6 +22,8 @@ Version ranges live in each `package.json` and exact versions in `pnpm-lock.yaml
 | `eslint-plugin-react-hooks` | root (dev) | Lint rules for correct hook usage, applied to `frontend/` only. At the root next to `eslint`, because the shared `eslint.config.mjs` imports it. | 2026-10-29, spec 001 section 8a (001-T9) |
 | `esbuild` | backend (dev) | Bundles the Lambda, run through `pnpm exec` by the SAM makefile builder | 2026-10-24, spec 002 section 9 |
 | `@fission-ai/openspec` | root (dev), exact version `1.16.1` | The OpenSpec CLI: validates specs and changes, and merges a finished change into the current specs (adopt-openspec, design D-1). Sends anonymous usage statistics unless turned off; see AGENTS.md. | 2026-11-10, owner in chat |
+| `@anthropic-ai/sdk` | backend | The official SDK for the Claude API, which interprets opening hours requests (edit-opening-hours-with-natural-language, design D-17) | 2026-11-11, owner in chat |
+| `@aws-sdk/client-ssm` | backend | Reads the admin key and the Anthropic API key from SSM Parameter Store. Kept on the same version as `@aws-sdk/client-rds-data`, so both share their internal packages (edit-opening-hours-with-natural-language, design D-17) | 2026-11-11, owner in chat |
 
 ## Tools and services outside the lockfile
 
@@ -32,6 +34,7 @@ Version ranges live in each `package.json` and exact versions in `pnpm-lock.yaml
 | GitHub Actions | `.github/workflows/` | CI for pull requests | 2026-10-24, spec 002 section 9 |
 | Cloudflare account (free plan) | external service | Hosts the frontend | 2026-11-02, spec 002 section 9 |
 | Wrangler CLI `4.151.1` | developer machine, run as `pnpm dlx wrangler@4.151.1`, not in `package.json` | Creates the Pages project and deploys the built frontend | 2026-11-02, spec 002 section 9 |
+| Anthropic API (Claude Haiku 5.5) | external paid service, called by the backend | Interprets opening hours requests written in Spanish (edit-opening-hours-with-natural-language) | 2026-11-11, owner in chat |
 
 Tools outside the lockfile are documented with their required version in `infra/README.md`.
 
