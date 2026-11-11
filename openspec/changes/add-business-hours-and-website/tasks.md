@@ -15,8 +15,8 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 - [ ] 2.1 Add the two validators in `backend/src/domain/` (design D-4, D-5).
   - Tests first:
-    - `backend/test/domain/websiteUrl.test.ts`: the scenarios of "Website validity", plus surrounding spaces, an empty string, and `null`.
-    - `backend/test/domain/openingHours.test.ts`: the scenarios of "Opening hours validity". Cover sorting, `"24:00"` as a closing time, `null`, text that is not JSON, JSON that is not a list, and one case per invalid range (day `0` and `8`, `7:00`, `25:00`, and `closes` equal to or before `opens`).
+    - `backend/test/domain/websiteUrl.test.ts`: the scenarios of "Website validity", plus `HTTPS://Example.com/panaderia` (returned as `https://example.com/panaderia`), surrounding spaces, an empty string, and `null`.
+    - `backend/test/domain/openingHours.test.ts`: the scenarios of "Opening hours validity". Cover sorting, `"24:00"` as a closing time, `null`, text that is not JSON, JSON that is not a list, and one case per invalid range (day `0` and `8`, `7:00`, `25:00`, `24:30`, `24:00` as an opening time, and `closes` equal to or before `opens`).
   - Verify: the tests pass, and the modules import nothing from Express or Lambda.
 - [ ] 2.2 Return the two fields from `GET /businesses` (design D-3).
   - Add `websiteUrl` and `openingHours` to `BusinessRow` (raw strings) and `Business` in `domain/business.ts`.
@@ -26,6 +26,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
     - `businessRepository.test.ts`: the query selects both columns, and maps a value and `null` for each.
     - `businessService.test.ts`: an invalid website becomes `null`, and invalid hours become `[]`.
     - `lambda.test.ts`: each business has exactly the eight fields of "Business list API".
+  - Update the `BusinessRow` fixtures in the existing backend tests to the new type, without changing any assertion.
   - Verify: the tests pass.
 
 ## 3. Frontend
@@ -57,5 +58,4 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 ## Workflow follow-up
 
-- After the owner approves the change, record `x-approved` in `.openspec.yaml`.
-- When every task is done and the owner says so, run `pnpm exec openspec archive add-business-hours-and-website --yes` and then `pnpm spec:validate`, as the last commit of the pull request. This needs the `adopt-openspec` archive merged into the branch first.
+- When every task is done and the owner says so, run `pnpm exec openspec archive add-business-hours-and-website --yes` and then `pnpm spec:validate`, as the last commit of the pull request.
