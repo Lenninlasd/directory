@@ -26,7 +26,8 @@ export interface DataApi {
   inTransaction<T>(work: (execute: Execute) => Promise<T>): Promise<T>;
 }
 
-function requireVariable(environment: Record<string, string | undefined>, name: string): string {
+/** The value of a required environment variable; a missing or empty one throws with its name. */
+export function requireVariable(environment: Record<string, string | undefined>, name: string): string {
   const value = environment[name];
   if (value === undefined || value === '') {
     throw new Error(`Missing environment variable ${name}`);

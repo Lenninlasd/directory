@@ -38,7 +38,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
   - Tests first, in a new `backend/test/app.openingHours.test.ts` that calls the Express app with fake dependencies: every scenario with a status code in "Admin key", "Editing an inactive or unknown business", "Opening hours interpretation", and "Opening hours update", plus that each request logs one line with the fields of D-12 and never the header, the key, or the request text.
     - When the outcome is `unavailable`, the `cause` of `InterpretationUnavailable` also goes to `logError`, so a wrong Anthropic key or a rejected request (`401`, `400`) can be told apart from a timeout or a `5xx`. Test it with a fake cause of each kind, and check that the logged line still holds no header, key, or request text.
   - Verify: the new tests pass, and the `GET /businesses` tests in `lambda.test.ts` pass unchanged.
-- [ ] 2.7 Wire the real clients in `backend/src/handlers/lambda.ts` (design D-8, D-11).
+- [x] 2.7 Wire the real clients in `backend/src/handlers/lambda.ts` (design D-8, D-11).
   - A `readSecureParameter(name)` over `SSMClient` with `WithDecryption: true`, the parameter names from `ADMIN_KEY_PARAMETER` and `ANTHROPIC_API_KEY_PARAMETER`, and an Anthropic client per request with `timeout: 7000` and `maxRetries: 0`.
   - Tests first, in `backend/test/handlers/lambda.test.ts`: a missing parameter name answers `500` with `internal_error`, the SSM command asks for decryption, and the handler passes the routes through to the app.
   - Verify: the tests pass, and `sam build --config-env dev` bundles the function.
