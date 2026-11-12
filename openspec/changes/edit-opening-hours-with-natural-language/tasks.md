@@ -15,7 +15,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
 - [x] 2.1 Add `validateOpeningHoursForWriting` to `backend/src/domain/openingHours.ts` (design D-6).
   - Tests first, in `backend/test/domain/openingHours.test.ts`: every scenario of "Opening hours for writing" (overlapping, touching, invalid ranges, `[]`), sorting of a valid week, values that are not a list, and one problem message per invalid case. Keep every existing `normalizeOpeningHours` test unchanged.
   - Verify: the tests pass, and the module still imports nothing from Express or Lambda.
-- [ ] 2.2 Add the admin key check in `backend/src/auth/adminKey.ts` (design D-7).
+- [x] 2.2 Add the admin key check in `backend/src/auth/adminKey.ts` (design D-7).
   - A pure `isAdminKey(authorizationHeader, expectedKey)` and the `requireAdminKey(readAdminKey)` middleware.
   - Tests first, in `backend/test/auth/adminKey.test.ts`: a correct `Bearer` key, a missing header, a wrong key, a key of a different length, another scheme (`Basic`), and that the middleware answers `401` with `{ "error": "unauthorized" }` without calling the next handler.
   - Verify: the tests pass, and the module uses only `node:crypto`.
