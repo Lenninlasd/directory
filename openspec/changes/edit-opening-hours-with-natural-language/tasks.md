@@ -25,7 +25,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
     - An `end_turn` proposal is returned sorted. `understood: false` is passed through. A proposal that fails the write rules becomes `understood: false`.
     - `refusal` becomes `understood: false`. `max_tokens`, a missing text block, and text that is not JSON throw `InterpretationUnavailable`.
   - Verify: the tests pass, and the module imports nothing from the SDK at run time (types only).
-- [ ] 2.4 Add `findActiveBusinessOpeningHours` and `updateActiveBusinessOpeningHours` to `businessRepository.ts` (design D-10).
+- [x] 2.4 Add `findActiveBusinessOpeningHours` and `updateActiveBusinessOpeningHours` to `businessRepository.ts` (design D-10).
   - Tests first, in `backend/test/repositories/businessRepository.test.ts`, with a fake `execute`: the SQL and the named parameters `id` and `openingHours`, the casts to `uuid` and `jsonb`, the `is_active` condition in both, and how a found row, no row, and a `NULL` value are returned.
   - Verify: the tests pass, and the existing repository tests are unchanged.
 - [ ] 2.5 Add the two services in `backend/src/services/openingHoursService.ts`.
