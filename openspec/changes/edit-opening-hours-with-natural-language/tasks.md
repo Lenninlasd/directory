@@ -28,7 +28,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
 - [x] 2.4 Add `findActiveBusinessOpeningHours` and `updateActiveBusinessOpeningHours` to `businessRepository.ts` (design D-10).
   - Tests first, in `backend/test/repositories/businessRepository.test.ts`, with a fake `execute`: the SQL and the named parameters `id` and `openingHours`, the casts to `uuid` and `jsonb`, the `is_active` condition in both, and how a found row, no row, and a `NULL` value are returned.
   - Verify: the tests pass, and the existing repository tests are unchanged.
-- [ ] 2.5 Add the two services in `backend/src/services/openingHoursService.ts`.
+- [x] 2.5 Add the two services in `backend/src/services/openingHoursService.ts`.
   - `interpretBusinessOpeningHours`: checks the request text (1 to 300 characters after trimming), checks the id format, reads the stored hours, reads the Anthropic key only then, and calls `interpretOpeningHours`.
   - `saveBusinessOpeningHours`: checks the id format, validates the week, and writes it.
   - Tests first, in `backend/test/services/openingHoursService.test.ts`: each outcome of "Opening hours interpretation" and "Opening hours update", including that a bad id, an unknown business, or invalid text never reads the Anthropic key or calls the model, and that stored invalid hours are sent to the model as `[]`.
