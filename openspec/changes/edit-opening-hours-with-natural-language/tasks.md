@@ -33,7 +33,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
   - `saveBusinessOpeningHours`: checks the id format, validates the week, and writes it.
   - Tests first, in `backend/test/services/openingHoursService.test.ts`: each outcome of "Opening hours interpretation" and "Opening hours update", including that a bad id, an unknown business, or invalid text never reads the Anthropic key or calls the model, and that stored invalid hours are sent to the model as `[]`.
   - Verify: the tests pass, with no database or HTTP layer.
-- [ ] 2.6 Add the two routes to `backend/src/app.ts` (design D-1, D-7, D-12).
+- [x] 2.6 Add the two routes to `backend/src/app.ts` (design D-1, D-7, D-12).
   - The JSON body parser with a 4 KB limit and `requireAdminKey` on the two routes only, and the status codes and bodies of the business-editing spec.
   - Tests first, in a new `backend/test/app.openingHours.test.ts` that calls the Express app with fake dependencies: every scenario with a status code in "Admin key", "Editing an inactive or unknown business", "Opening hours interpretation", and "Opening hours update", plus that each request logs one line with the fields of D-12 and never the header, the key, or the request text.
     - When the outcome is `unavailable`, the `cause` of `InterpretationUnavailable` also goes to `logError`, so a wrong Anthropic key or a rejected request (`401`, `400`) can be told apart from a timeout or a `5xx`. Test it with a fake cause of each kind, and check that the logged line still holds no header, key, or request text.
