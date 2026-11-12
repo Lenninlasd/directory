@@ -19,7 +19,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
   - A pure `isAdminKey(authorizationHeader, expectedKey)` and the `requireAdminKey(readAdminKey)` middleware.
   - Tests first, in `backend/test/auth/adminKey.test.ts`: a correct `Bearer` key, a missing header, a wrong key, a key of a different length, another scheme (`Basic`), and that the middleware answers `401` with `{ "error": "unauthorized" }` without calling the next handler.
   - Verify: the tests pass, and the module uses only `node:crypto`.
-- [ ] 2.3 Add the prompt and `interpretOpeningHours` in `backend/src/interpretation/` (design D-3, D-4, D-5).
+- [x] 2.3 Add the prompt and `interpretOpeningHours` in `backend/src/interpretation/` (design D-3, D-4, D-5).
   - Tests first, in `backend/test/interpretation/openingHoursInterpretation.test.ts`, with a fake `callModel`:
     - The request it builds: model `claude-haiku-5-5`, effort `low`, the JSON schema, no `temperature` or `thinking`, the stored week in `<stored_hours>` and the request in `<request>`.
     - An `end_turn` proposal is returned sorted. `understood: false` is passed through. A proposal that fails the write rules becomes `understood: false`.
@@ -36,6 +36,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
 - [ ] 2.6 Add the two routes to `backend/src/app.ts` (design D-1, D-7, D-12).
   - The JSON body parser with a 4 KB limit and `requireAdminKey` on the two routes only, and the status codes and bodies of the business-editing spec.
   - Tests first, in a new `backend/test/app.openingHours.test.ts` that calls the Express app with fake dependencies: every scenario with a status code in "Admin key", "Editing an inactive or unknown business", "Opening hours interpretation", and "Opening hours update", plus that each request logs one line with the fields of D-12 and never the header, the key, or the request text.
+    - When the outcome is `unavailable`, the `cause` of `InterpretationUnavailable` also goes to `logError`, so a wrong Anthropic key or a rejected request (`401`, `400`) can be told apart from a timeout or a `5xx`. Test it with a fake cause of each kind, and check that the logged line still holds no header, key, or request text.
   - Verify: the new tests pass, and the `GET /businesses` tests in `lambda.test.ts` pass unchanged.
 - [ ] 2.7 Wire the real clients in `backend/src/handlers/lambda.ts` (design D-8, D-11).
   - A `readSecureParameter(name)` over `SSMClient` with `WithDecryption: true`, the parameter names from `ADMIN_KEY_PARAMETER` and `ANTHROPIC_API_KEY_PARAMETER`, and an Anthropic client per request with `timeout: 7000` and `maxRetries: 0`.
@@ -77,7 +78,8 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 - [ ] 5.1 Add the golden set and the eval script (design D-16).
   - `backend/eval/openingHours/cases.json` with about 20 cases covering the kinds listed in D-16, and `backend/scripts/evalOpeningHours.ts`.
-  - Tests first: `backend/test/eval/scoreCase.test.ts` for `scoreCase`: an exact match, the same week in another order, a different range, and `understood` that differs. A test that every case in `cases.json` has a valid stored week and, when understood, a valid expected week.
+  - Include two cases the prompt does not cover by name: a change to one day when no hours are stored ("el sábado cerramos a las 2" with `[]`, expected not understood) and "abiertos 24 horas" (expected every day from `00:00` to `24:00`). If the eval shows the model gets them wrong, add a rule and move the prompt to `opening-hours-v2`, instead of changing the prompt before measuring.
+  - Tests first: `backend/test/eval/scoreCase.test.ts` for `scoreCase`: an exact match, the same week in another order, a different range, and `understood` that differs. A test that every case in `cases.json` has a valid stored week and, when understood, a valid expected week. A test that no case `request` appears in `SYSTEM_PROMPT`, so the prompt's own examples never inflate the score.
   - Document how to run it in `infra/README.md` or a short comment at the top of the script, with the cost estimate.
   - Verify: the tests pass, and `pnpm -r test` does not run the script.
 
