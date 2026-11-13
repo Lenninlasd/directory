@@ -39,4 +39,26 @@ export const strings = {
   and: 'y',
   /** Joins the first and last day of a group: "Lunes a viernes". */
   through: 'a',
+
+  // Business-editing spec, "Editing interface text" (edit-opening-hours-with-natural-language). Admin mode only.
+  editOpeningHours: 'Editar horario',
+  noOpeningHours: 'Sin horario registrado',
+  openingHoursRequestLabel: '¿Qué cambia en el horario?',
+  openingHoursRequestPlaceholder: 'Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m.',
+  reviewChange: 'Revisar cambio',
+  cancel: 'Cancelar',
+  interpreting: 'Interpretando…',
+  proposalTitle: 'Nuevo horario',
+  /** `days` comes from `formatDayList`, for example "lunes, miércoles y sábado". */
+  changedDays: (days: string): string => `Días con cambios: ${days}`,
+  noChanges: 'No hay cambios en el horario.',
+  save: 'Guardar',
+  saving: 'Guardando…',
+  saved: 'Horario actualizado',
+  notUnderstood: 'No entendí el cambio. Intenta escribirlo de otra forma.',
+  interpretationError: 'No pudimos procesar el cambio. Inténtalo de nuevo.',
+  saveError: 'No pudimos guardar el horario. Inténtalo de nuevo.',
+  adminKeyLabel: 'Clave de administrador',
+  adminKeyContinue: 'Continuar',
+  wrongAdminKey: 'Clave incorrecta',
 } as const;

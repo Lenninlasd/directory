@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Business } from '../../api/businesses.ts';
 import { strings } from '../../strings.ts';
+import { isAdminMode } from './adminMode.ts';
 import { BusinessDetailDialog } from './BusinessDetailDialog.tsx';
 import { BusinessResults } from './BusinessResults.tsx';
 import { CategoryFilter } from './CategoryFilter.tsx';
@@ -25,6 +26,8 @@ export function Directory() {
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string | null>(null);
   const [openBusinessId, setOpenBusinessId] = useState<string | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
+  // Read once: admin mode lasts as long as the page (business-editing spec, "Admin mode"; design D-13).
+  const [adminMode] = useState(() => isAdminMode(window.location.search));
 
   const businesses = data ?? NO_BUSINESSES;
   const categoryOptions = useMemo(() => listCategoryOptions(businesses), [businesses]);
@@ -102,7 +105,7 @@ export function Directory() {
           </>
         )}
       </main>
-      <BusinessDetailDialog business={openBusiness} onClose={handleDialogClose} />
+      <BusinessDetailDialog business={openBusiness} onClose={handleDialogClose} adminMode={adminMode} />
     </>
   );
 }

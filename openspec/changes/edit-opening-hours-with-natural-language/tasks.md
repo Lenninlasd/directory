@@ -56,12 +56,12 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 ## 4. Frontend
 
-- [ ] 4.1 Add the texts and the pure modules (design D-13, D-14).
+- [x] 4.1 Add the texts and the pure modules (design D-13, D-14).
   - The texts of "Editing interface text" in `frontend/src/strings.ts`.
   - `features/businesses/adminMode.ts` with `isAdminMode(search)`, `features/businesses/adminKey.ts` with get, set, and clear over `sessionStorage`, and `changedDays` and `formatDayList` in `features/businesses/openingHours.ts`.
   - Tests first: `strings.test.ts` for the new texts, `adminMode.test.ts` (`?admin`, `?admin=1`, other parameters, none), `adminKey.test.ts` (round trip, clear, and a storage that throws), and `openingHours.test.ts` for one changed day, several days, no change, a day that gains or loses a range, and the three list forms.
   - Verify: the tests pass, and the modules import nothing from React.
-- [ ] 4.2 Add the API functions and mutation hooks.
+- [x] 4.2 Add the API functions and mutation hooks.
   - `frontend/src/api/openingHours.ts` with `interpretOpeningHours` and `saveOpeningHours`, and `UnauthorizedError` for `401`. Hooks `useInterpretOpeningHours` and `useSaveOpeningHours`, the second invalidating `BUSINESSES_QUERY_KEY` on success.
   - Tests first: `frontend/test/api/openingHours.test.ts` with a mocked `fetch`, for the URL, method, `Authorization` header, body, each response shape, and `UnauthorizedError`. Hook tests with a fresh `QueryClient` and a mocked API layer, for the invalidation after a save and no retry after a failure.
   - Verify: the tests pass.

@@ -48,6 +48,14 @@ export const ExternalLinkIcon = (props: IconProps) => (
   </StrokeIcon>
 );
 
+// Marks the opening hours text box as an AI feature (business-editing spec, "AI indicator").
+export const SparkleIcon = (props: IconProps) => (
+  <StrokeIcon {...props}>
+    <path d="M10 4.5 11.6 9.4 16.5 11 11.6 12.6 10 17.5 8.4 12.6 3.5 11 8.4 9.4Z" />
+    <path d="M18 3v4M16 5h4M18 15.5v3M16.5 17h3" />
+  </StrokeIcon>
+);
+
 export const StoreIcon = (props: IconProps) => (
   <StrokeIcon {...props}>
     <path d="M4.5 4h15L21 9H3z" />

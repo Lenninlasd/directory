@@ -1,9 +1,10 @@
-import { useId, useLayoutEffect, useRef } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { Business } from '../../api/businesses.ts';
 import { strings } from '../../strings.ts';
 import { CategoryCover } from './CategoryCover.tsx';
 import { CloseIcon, ExternalLinkIcon } from './icons.tsx';
 import { formatOpeningHours } from './openingHours.ts';
+import { OpeningHoursEditor } from './OpeningHoursEditor.tsx';
 import { StoreTypeBadge } from './StoreTypeBadge.tsx';
 import { websiteLinkText } from './website.ts';
 import { WhatsAppButton } from './WhatsAppButton.tsx';
@@ -13,11 +14,13 @@ interface BusinessDetailDialogProps {
   business: Business | null;
   /** Called once the dialog has closed, by any means. */
   onClose: () => void;
+  /** Admin mode adds the opening hours editing controls (business-editing spec, "Admin mode"). */
+  adminMode: boolean;
 }
 
 // Native modal dialog (spec 003 FR-8, plan D-4): the browser provides the focus trap, the inert
 // page, and Escape. Bottom sheet on phones, centered from `sm` (AC-8.4). No animation (NFR-9).
-export function BusinessDetailDialog({ business, onClose }: BusinessDetailDialogProps) {
+export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessDetailDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -37,6 +40,31 @@ export function BusinessDetailDialog({ business, onClose }: BusinessDetailDialog
 
   const close = () => dialogRef.current?.close();
 
+  // Editing state is kept by business id, so it never carries over to another business (design D-14).
+  const [editingBusinessId, setEditingBusinessId] = useState<string | null>(null);
+  const [savedBusinessId, setSavedBusinessId] = useState<string | null>(null);
+  const isEditing = business !== null && editingBusinessId === business.id;
+
+  // When the panel closes, focus goes back to "Editar horario", since the focused control was removed.
+  const editButtonRef = useRef<HTMLButtonElement>(null);
+  const returnFocusToEditButtonRef = useRef(false);
+  useEffect(() => {
+    if (!isEditing && returnFocusToEditButtonRef.current) {
+      returnFocusToEditButtonRef.current = false;
+      editButtonRef.current?.focus();
+    }
+  }, [isEditing]);
+
+  const openEditor = (businessId: string) => {
+    setSavedBusinessId(null);
+    setEditingBusinessId(businessId);
+  };
+  const closeEditor = (savedBusinessIdOrNull: string | null) => {
+    returnFocusToEditButtonRef.current = true;
+    setEditingBusinessId(null);
+    setSavedBusinessId(savedBusinessIdOrNull);
+  };
+
   return (
     <dialog
       ref={dialogRef}
@@ -44,6 +72,9 @@ export function BusinessDetailDialog({ business, onClose }: BusinessDetailDialog
       // React passes `close` events up through the component tree, so only act on this dialog's own (D-4).
       onClose={(event) => {
         if (event.target === event.currentTarget) {
+          // Closing the dialog closes the panel and stores nothing (business-editing spec, "Canceling").
+          setEditingBusinessId(null);
+          setSavedBusinessId(null);
           onClose();
         }
       }}
@@ -83,14 +114,42 @@ export function BusinessDetailDialog({ business, onClose }: BusinessDetailDialog
                   <dt className="font-medium text-ink">{strings.locationLabel}</dt>
                   <dd className="break-words text-ink-muted">{business.locationSummary}</dd>
                 </div>
-                {business.openingHours.length > 0 && (
+                {/* In admin mode the row always shows, so hours can be added (directory spec, "No hours in admin mode"). */}
+                {(business.openingHours.length > 0 || adminMode) && (
                   <div>
                     <dt className="font-medium text-ink">{strings.openingHoursLabel}</dt>
-                    {formatOpeningHours(business.openingHours).map((line) => (
-                      <dd key={line} className="text-ink-muted">
-                        {line}
+                    {business.openingHours.length > 0 ? (
+                      formatOpeningHours(business.openingHours).map((line) => (
+                        <dd key={line} className="text-ink-muted">
+                          {line}
+                        </dd>
+                      ))
+                    ) : (
+                      <dd className="text-ink-muted">{strings.noOpeningHours}</dd>
+                    )}
+                    {adminMode && (
+                      <dd className="mt-2 flex flex-col items-start gap-2">
+                        {isEditing ? (
+                          <OpeningHoursEditor
+                            business={business}
+                            onCancel={() => closeEditor(null)}
+                            onSaved={() => closeEditor(business.id)}
+                          />
+                        ) : (
+                          <button
+                            ref={editButtonRef}
+                            type="button"
+                            onClick={() => openEditor(business.id)}
+                            className="min-h-11 rounded-md border border-border bg-surface px-4 font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                          >
+                            {strings.editOpeningHours}
+                          </button>
+                        )}
+                        <p role="status" className="text-ink empty:hidden">
+                          {savedBusinessId === business.id ? strings.saved : ''}
+                        </p>
                       </dd>
-                    ))}
+                    )}
                   </div>
                 )}
                 {business.websiteUrl !== null && (

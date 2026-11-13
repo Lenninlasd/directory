@@ -53,3 +53,31 @@ export function formatOpeningHours(ranges: OpeningHoursRange[]): string[] {
   });
   return lines;
 }
+
+/** One day's ranges as a comparable text, independent of the order they came in. */
+function dayKey(ranges: OpeningHoursRange[], dayOfWeek: number): string {
+  return ranges
+    .filter((range) => range.dayOfWeek === dayOfWeek)
+    .map((range) => `${range.opens}-${range.closes}`)
+    .sort()
+    .join(',');
+}
+
+/**
+ * The days (1 is Monday, 7 is Sunday) whose hours differ between the stored and the proposed week,
+ * in week order (business-editing spec, "A proposal"; design D-2). The diff is computed here, never
+ * by the model, so a wrong proposal shows up as an unexpected changed day.
+ */
+export function changedDays(stored: OpeningHoursRange[], proposed: OpeningHoursRange[]): number[] {
+  return [1, 2, 3, 4, 5, 6, 7].filter((day) => dayKey(stored, day) !== dayKey(proposed, day));
+}
+
+/** Lowercase day names joined by ", " and the last two by " y ": "lunes, miércoles y sábado" (design D-14). */
+export function formatDayList(days: number[]): string {
+  const names = days.map((day) => (strings.dayNames[day - 1] ?? '').toLowerCase());
+  const last = names.pop();
+  if (last === undefined) {
+    return '';
+  }
+  return names.length === 0 ? last : `${names.join(', ')} ${strings.and} ${last}`;
+}
