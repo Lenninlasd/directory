@@ -131,7 +131,8 @@ Resources:
       LogGroupName: !Sub /aws/lambda/alameda-${Environment}-api
       RetentionInDays: 30
 
-  # Only the three permissions of spec AC-2.3. No managed policies, so nothing broader is granted.
+  # Only the permissions of the infrastructure spec ("Least privilege and secrets"). No managed policies,
+  # so nothing broader is granted.
   ApiRole:
     Type: AWS::IAM::Role
     Properties:
@@ -158,8 +159,26 @@ Resources:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !GetAtt DatabaseCluster.MasterUserSecret.SecretArn
+              # The two SecureString parameters of this environment (design D-8). A person stores their
+              # values with the command in infra/README.md; the template never holds them.
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/alameda/${Environment}/admin-key
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/alameda/${Environment}/anthropic-api-key
+              # Decrypting is allowed only through SSM and only for those two parameters (design D-9).
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub ssm.${AWS::Region}.amazonaws.com
+                    kms:EncryptionContext:PARAMETER_ARN:
+                      - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/alameda/${Environment}/admin-key
+                      - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/alameda/${Environment}/anthropic-api-key
 
-  # CORS allows only the frontend origin of this environment (spec AC-2.4).
+  # CORS allows only the frontend origin of this environment (spec AC-2.4). The HTTP API answers the
+  # preflight of the editing routes itself (design D-15).
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
@@ -168,6 +187,11 @@ Resources:
           - !Ref FrontendOrigin
         AllowMethods:
           - GET
+          - POST
+          - PUT
+        AllowHeaders:
+          - authorization
+          - content-type
 
   ApiFunction:
     Type: AWS::Serverless::Function
@@ -189,6 +213,9 @@ Resources:
           DATA_API_CLUSTER_ARN: !GetAtt DatabaseCluster.DBClusterArn
           DATA_API_SECRET_ARN: !GetAtt DatabaseCluster.MasterUserSecret.SecretArn
           DATABASE_NAME: !Ref DatabaseName
+          # Only the parameter names; the function reads the values at run time (design D-8).
+          ADMIN_KEY_PARAMETER: !Sub /alameda/${Environment}/admin-key
+          ANTHROPIC_API_KEY_PARAMETER: !Sub /alameda/${Environment}/anthropic-api-key
           # Stack traces in the logs point to the TypeScript source (backend/Makefile builds the source map).
           NODE_OPTIONS: --enable-source-maps
       Events:
@@ -198,6 +225,19 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /businesses
             Method: GET
+        # The business-editing routes (business-editing spec). Express checks the admin key.
+        InterpretOpeningHours:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /businesses/{id}/opening-hours/interpretation
+            Method: POST
+        SaveOpeningHours:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /businesses/{id}/opening-hours
+            Method: PUT
     # backend/Makefile bundles with esbuild through pnpm (plan section 7). Needs build_in_source (samconfig.toml).
     Metadata:
       BuildMethod: makefile

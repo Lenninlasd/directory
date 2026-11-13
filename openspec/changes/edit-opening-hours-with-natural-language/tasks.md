@@ -45,7 +45,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 ## 3. Infrastructure
 
-- [ ] 3.1 Update `infra/template.yaml` (design D-9, D-15).
+- [x] 3.1 Update `infra/template.yaml` (design D-9, D-15).
   - The two `HttpApi` events, CORS methods `GET`, `POST`, `PUT` and headers `authorization`, `content-type`, the two environment variables with parameter names, and the `ssm:GetParameter` and conditional `kms:Decrypt` statements.
   - Verify: `sam validate --lint` passes, and a review of the template shows no secret value and no permission beyond those of the infrastructure spec.
 - [ ] 3.2 Document the secrets in `infra/README.md`.
