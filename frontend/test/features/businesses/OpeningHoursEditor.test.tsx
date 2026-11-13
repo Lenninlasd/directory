@@ -13,7 +13,8 @@ import { Directory } from '../../../src/features/businesses/Directory.tsx';
 import { createQueryClient } from '../../../src/queryClient.ts';
 
 // Business-editing spec, "Admin mode" and "Opening hours edit flow", through the Directory in admin
-// mode with a mocked API layer. The border's motion cannot be seen in jsdom; task 6.1 checks it by hand.
+// mode with a mocked API layer. The border's motion, its glow, and the width of the text box cannot
+// be seen in jsdom, which has no layout; task 6.1 checks them by hand.
 vi.mock('../../../src/api/businesses.ts', () => ({ fetchBusinesses: vi.fn() }));
 vi.mock('../../../src/api/openingHours.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../src/api/openingHours.ts')>()),
@@ -32,6 +33,8 @@ function on(days: number[], opens: string, closes: string): OpeningHoursRange[] 
 const mondayToSaturday = on([1, 2, 3, 4, 5, 6], '08:00', '18:00');
 const saturdayUntilTwo = [...on([1, 2, 3, 4, 5], '08:00', '18:00'), ...on([6], '08:00', '14:00')];
 const SATURDAY_CHANGE = 'el sábado cerramos a las 2';
+const REQUEST_LABEL = '¿Qué cambia en el horario?';
+const KEY_TITLE = 'Clave de administrador';
 
 const shop: Business = {
   id: 'shop',
@@ -74,30 +77,47 @@ function openDialogFor(business: Business): HTMLElement {
   return screen.getByRole('dialog', { name: business.name });
 }
 
-/** Renders the directory in admin mode, opens the business, and activates "Editar horario". */
-async function openEditor(business: Business = shop): Promise<HTMLElement> {
+/** Renders the directory in admin mode, opens the business, and activates "Editar con IA". */
+async function activateEdit(business: Business = shop): Promise<HTMLElement> {
   await renderAdminDirectory();
   const dialog = openDialogFor(business);
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Editar horario' }));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Editar con IA' }));
   return dialog;
 }
 
-const textBox = () => screen.getByRole('textbox', { name: '¿Qué cambia en el horario?' });
+/** The same with a key already kept for the tab, so the panel opens at once. */
+async function openEditor(business: Business = shop): Promise<HTMLElement> {
+  setAdminKey('the-key');
+  return activateEdit(business);
+}
+
+const textBox = () => screen.getByRole('textbox', { name: REQUEST_LABEL });
+const queryTextBox = () => screen.queryByRole('textbox', { name: REQUEST_LABEL });
 const button = (name: string) => screen.getByRole('button', { name });
 const queryButton = (name: string) => screen.queryByRole('button', { name });
 const typeRequest = (text: string) => fireEvent.change(textBox(), { target: { value: text } });
+/** Presses Enter in the text box. Returns false when the key's default action was prevented. */
+const pressEnter = (init: KeyboardEventInit = {}) => fireEvent.keyDown(textBox(), { key: 'Enter', ...init });
+
+const keyDialog = () => screen.getByRole('dialog', { name: KEY_TITLE });
+const queryKeyDialog = () => screen.queryByRole('dialog', { name: KEY_TITLE });
+const keyField = () => within(keyDialog()).getByLabelText(KEY_TITLE);
+
+function enterKey(key: string) {
+  fireEvent.change(keyField(), { target: { value: key } });
+  fireEvent.click(within(keyDialog()).getByRole('button', { name: 'Continuar' }));
+}
 
 /** The live region that holds `text`, so the test also checks that screen readers announce it. */
 function statusWith(text: string): HTMLElement | null {
   return screen.getByText(text).closest('[role="status"]');
 }
 
-/** Types the change and activates "Revisar cambio", with a key already kept for the tab. */
+/** Types the change and presses Enter, then waits for the answer. */
 async function interpretWith(answer: Interpretation, request = SATURDAY_CHANGE) {
-  setAdminKey('the-key');
   interpretMock.mockResolvedValue(answer);
   typeRequest(request);
-  fireEvent.click(button('Revisar cambio'));
+  pressEnter();
   await screen.findByText(/Días con cambios|No hay cambios|No entendí/);
 }
 
@@ -113,7 +133,7 @@ afterEach(() => {
 });
 
 describe('OpeningHoursEditor: writing the change', () => {
-  it('shows the labeled text box, "Revisar cambio", and "Cancelar", with the text box focused', async () => {
+  it('shows the labeled text box with the focus and a close button named "Cancelar"', async () => {
     await openEditor();
 
     expect(textBox()).toHaveAttribute(
@@ -121,9 +141,12 @@ describe('OpeningHoursEditor: writing the change', () => {
       'Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m.',
     );
     expect(textBox()).toHaveFocus();
-    expect(button('Revisar cambio')).toBeInTheDocument();
     expect(button('Cancelar')).toBeInTheDocument();
-    expect(queryButton('Editar horario')).not.toBeInTheDocument();
+    // An icon button: the name is for screen readers, not visible text.
+    expect(screen.queryByText('Cancelar')).not.toBeInTheDocument();
+    expect(queryButton('Revisar cambio')).not.toBeInTheDocument();
+    expect(queryButton('Editar con IA')).not.toBeInTheDocument();
+    expect(queryKeyDialog()).not.toBeInTheDocument();
   });
 
   it('accepts at most 300 characters', async () => {
@@ -132,15 +155,42 @@ describe('OpeningHoursEditor: writing the change', () => {
     expect(textBox()).toHaveAttribute('maxLength', '300');
   });
 
-  it('disables "Revisar cambio" while the text is empty or only spaces', async () => {
+  it('sends the request with Enter, without adding a line break', async () => {
     await openEditor();
-    expect(button('Revisar cambio')).toBeDisabled();
-
-    typeRequest('   ');
-    expect(button('Revisar cambio')).toBeDisabled();
-
+    interpretMock.mockResolvedValue({ understood: false });
     typeRequest(SATURDAY_CHANGE);
-    expect(button('Revisar cambio')).toBeEnabled();
+
+    const notPrevented = pressEnter();
+
+    expect(notPrevented).toBe(false);
+    await waitFor(() =>
+      expect(interpretMock).toHaveBeenCalledWith(
+        { businessId: 'shop', request: SATURDAY_CHANGE, adminKey: 'the-key' },
+        expect.anything(),
+      ),
+    );
+  });
+
+  it('does nothing on Enter while the text is empty or only spaces', async () => {
+    await openEditor();
+
+    pressEnter();
+    typeRequest('   ');
+    pressEnter();
+
+    expect(interpretMock).not.toHaveBeenCalled();
+    expect(screen.queryByText('Interpretando…')).not.toBeInTheDocument();
+  });
+
+  it('leaves Shift+Enter to add a line break, and ignores Enter while composing text', async () => {
+    await openEditor();
+    typeRequest(SATURDAY_CHANGE);
+
+    const shiftEnterNotPrevented = pressEnter({ shiftKey: true });
+    pressEnter({ isComposing: true });
+
+    expect(shiftEnterNotPrevented).toBe(true);
+    expect(interpretMock).not.toHaveBeenCalled();
   });
 
   it('wraps the text box in the AI border with a sparkle icon that screen readers ignore', async () => {
@@ -149,54 +199,64 @@ describe('OpeningHoursEditor: writing the change', () => {
     const border = textBox().parentElement;
     expect(border).toHaveClass('bg-ai-border');
     expect(border).not.toHaveAttribute('data-interpreting');
-    const sparkle = border?.querySelector('svg');
-    expect(sparkle).toHaveAttribute('aria-hidden', 'true');
+    expect(border?.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('uses the glow of the border as the focus indicator, with no dark outline', async () => {
+    await openEditor();
+
+    expect(textBox().parentElement).toHaveClass('focus-within:shadow-ai-glow');
+    expect(textBox().className).not.toContain('outline-ink');
   });
 });
 
 describe('OpeningHoursEditor: admin key', () => {
-  it('asks for the key first, then sends the request with it and keeps it for the tab', async () => {
-    await openEditor();
-    interpretMock.mockResolvedValue({ understood: true, openingHours: saturdayUntilTwo });
-    typeRequest(SATURDAY_CHANGE);
+  it('asks for the key in its own dialog before the panel, then opens the panel and keeps the key', async () => {
+    await activateEdit();
 
-    fireEvent.click(button('Revisar cambio'));
+    expect(keyDialog()).toBeInTheDocument();
+    expect(queryTextBox()).not.toBeInTheDocument();
+    expect(keyField()).toHaveAttribute('type', 'password');
+    expect(keyField()).toHaveFocus();
+    expect(within(keyDialog()).getByRole('button', { name: 'Continuar' })).toBeDisabled();
+    expect(screen.queryByText('Clave incorrecta')).not.toBeInTheDocument();
 
-    expect(interpretMock).not.toHaveBeenCalled();
-    const keyField = screen.getByLabelText('Clave de administrador');
-    expect(keyField).toHaveAttribute('type', 'password');
-    expect(keyField).toHaveFocus();
-    expect(button('Continuar')).toBeDisabled();
+    enterKey('the-key');
 
-    fireEvent.change(keyField, { target: { value: 'the-key' } });
-    fireEvent.click(button('Continuar'));
-
-    await waitFor(() =>
-      expect(interpretMock).toHaveBeenCalledWith(
-        { businessId: 'shop', request: SATURDAY_CHANGE, adminKey: 'the-key' },
-        expect.anything(),
-      ),
-    );
+    expect(queryKeyDialog()).not.toBeInTheDocument();
+    expect(textBox()).toHaveFocus();
     expect(getAdminKey()).toBe('the-key');
-    await screen.findByText('Días con cambios: sábado');
-    expect(screen.queryByLabelText('Clave de administrador')).not.toBeInTheDocument();
+    expect(interpretMock).not.toHaveBeenCalled();
+  });
+
+  it('opens nothing and sends nothing when the key dialog is closed without a key', async () => {
+    const dialog = await activateEdit();
+
+    fireEvent.click(within(keyDialog()).getByRole('button', { name: 'Cerrar' }));
+
+    expect(queryKeyDialog()).not.toBeInTheDocument();
+    expect(queryTextBox()).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Editar con IA' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: shop.name })).toBeInTheDocument();
+    expect(getAdminKey()).toBeNull();
+    expect(interpretMock).not.toHaveBeenCalled();
   });
 
   it('does not ask again for a key kept in the tab, also for another business', async () => {
-    setAdminKey('the-key');
+    const dialog = await activateEdit();
+    enterKey('the-key');
     interpretMock.mockResolvedValue({ understood: false });
-    const dialog = await openEditor();
     typeRequest(SATURDAY_CHANGE);
-    fireEvent.click(button('Revisar cambio'));
+    pressEnter();
     await screen.findByText('No entendí el cambio. Intenta escribirlo de otra forma.');
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
     const otherDialog = openDialogFor(bakery);
-    fireEvent.click(within(otherDialog).getByRole('button', { name: 'Editar horario' }));
-    typeRequest('abrimos los lunes de 8 a 12');
-    fireEvent.click(button('Revisar cambio'));
+    fireEvent.click(within(otherDialog).getByRole('button', { name: 'Editar con IA' }));
 
-    expect(screen.queryByLabelText('Clave de administrador')).not.toBeInTheDocument();
+    expect(queryKeyDialog()).not.toBeInTheDocument();
+    typeRequest('abrimos los lunes de 8 a 12');
+    pressEnter();
     await waitFor(() =>
       expect(interpretMock).toHaveBeenLastCalledWith(
         { businessId: 'bakery', request: 'abrimos los lunes de 8 a 12', adminKey: 'the-key' },
@@ -205,23 +265,22 @@ describe('OpeningHoursEditor: admin key', () => {
     );
   });
 
-  it('forgets a rejected key, shows "Clave incorrecta" with the key field, and keeps the text', async () => {
+  it('forgets a rejected key, opens the key dialog with "Clave incorrecta", and keeps the text', async () => {
     setAdminKey('old-key');
-    await openEditor();
+    await activateEdit();
     interpretMock.mockRejectedValueOnce(new UnauthorizedError());
     typeRequest(SATURDAY_CHANGE);
 
-    fireEvent.click(button('Revisar cambio'));
+    pressEnter();
 
-    expect(await screen.findByText('Clave incorrecta')).toBeInTheDocument();
-    expect(statusWith('Clave incorrecta')).not.toBeNull();
+    const reopened = await screen.findByRole('dialog', { name: KEY_TITLE });
+    expect(within(reopened).getByText('Clave incorrecta')).toBeInTheDocument();
     expect(getAdminKey()).toBeNull();
     expect(textBox()).toHaveValue(SATURDAY_CHANGE);
     expect(screen.queryByText('No pudimos procesar el cambio. Inténtalo de nuevo.')).not.toBeInTheDocument();
 
     interpretMock.mockResolvedValueOnce({ understood: true, openingHours: saturdayUntilTwo });
-    fireEvent.change(screen.getByLabelText('Clave de administrador'), { target: { value: 'new-key' } });
-    fireEvent.click(button('Continuar'));
+    enterKey('new-key');
 
     await waitFor(() =>
       expect(interpretMock).toHaveBeenLastCalledWith(
@@ -230,7 +289,23 @@ describe('OpeningHoursEditor: admin key', () => {
       ),
     );
     await screen.findByText('Días con cambios: sábado');
-    expect(screen.queryByText('Clave incorrecta')).not.toBeInTheDocument();
+    expect(queryKeyDialog()).not.toBeInTheDocument();
+    expect(getAdminKey()).toBe('new-key');
+  });
+
+  it('keeps the panel and its text when the key dialog is closed after a rejected key', async () => {
+    setAdminKey('old-key');
+    await activateEdit();
+    interpretMock.mockRejectedValueOnce(new UnauthorizedError());
+    typeRequest(SATURDAY_CHANGE);
+    pressEnter();
+    await screen.findByText('Clave incorrecta');
+
+    fireEvent.click(within(keyDialog()).getByRole('button', { name: 'Cerrar' }));
+
+    expect(queryKeyDialog()).not.toBeInTheDocument();
+    expect(textBox()).toHaveValue(SATURDAY_CHANGE);
+    expect(interpretMock).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the proposal shown when the save answers 401, and saves after a new key', async () => {
@@ -246,8 +321,7 @@ describe('OpeningHoursEditor: admin key', () => {
     expect(textBox()).toHaveValue(SATURDAY_CHANGE);
 
     saveMock.mockResolvedValueOnce(saturdayUntilTwo);
-    fireEvent.change(screen.getByLabelText('Clave de administrador'), { target: { value: 'new-key' } });
-    fireEvent.click(button('Continuar'));
+    enterKey('new-key');
 
     await waitFor(() =>
       expect(saveMock).toHaveBeenLastCalledWith(
@@ -260,19 +334,17 @@ describe('OpeningHoursEditor: admin key', () => {
 });
 
 describe('OpeningHoursEditor: interpreting', () => {
-  it('shows "Interpretando…", disables the text box and buttons, and turns the border until the answer', async () => {
-    setAdminKey('the-key');
+  it('shows "Interpretando…", disables the text box and the close button, and turns the border until the answer', async () => {
     await openEditor();
     const answer = deferred<Interpretation>();
     interpretMock.mockReturnValue(answer.promise);
     typeRequest(SATURDAY_CHANGE);
 
-    fireEvent.click(button('Revisar cambio'));
+    pressEnter();
 
     expect(await screen.findByText('Interpretando…')).toBeInTheDocument();
     expect(statusWith('Interpretando…')).not.toBeNull();
     expect(textBox()).toBeDisabled();
-    expect(button('Revisar cambio')).toBeDisabled();
     expect(button('Cancelar')).toBeDisabled();
     expect(textBox().parentElement).toHaveAttribute('data-interpreting');
 
@@ -280,6 +352,7 @@ describe('OpeningHoursEditor: interpreting', () => {
 
     await waitFor(() => expect(screen.queryByText('Interpretando…')).not.toBeInTheDocument());
     expect(textBox()).toBeEnabled();
+    expect(textBox()).toHaveFocus();
     expect(textBox().parentElement).not.toHaveAttribute('data-interpreting');
   });
 
@@ -296,6 +369,17 @@ describe('OpeningHoursEditor: interpreting', () => {
     expect(button('Guardar')).toBeEnabled();
     expect(button('Cancelar')).toBeEnabled();
     expect(saveMock).not.toHaveBeenCalled();
+  });
+
+  it('does not send the same text again on Enter while its proposal is shown', async () => {
+    await openEditor();
+    await interpretWith({ understood: true, openingHours: saturdayUntilTwo });
+
+    pressEnter();
+
+    expect(interpretMock).toHaveBeenCalledTimes(1);
+    expect(saveMock).not.toHaveBeenCalled();
+    expect(screen.getByText('Nuevo horario')).toBeInTheDocument();
   });
 
   it('lists several changed days', async () => {
@@ -329,30 +413,36 @@ describe('OpeningHoursEditor: interpreting', () => {
     expect(screen.getByText('Días con cambios: lunes, martes, miércoles, jueves, viernes y sábado')).toBeInTheDocument();
   });
 
-  it('shows the not-understood message and keeps the text to change it', async () => {
+  it('shows the not-understood message and keeps the text to change it and send it again', async () => {
     await openEditor();
 
     await interpretWith({ understood: false }, 'hazme un poema');
 
     expect(statusWith('No entendí el cambio. Intenta escribirlo de otra forma.')).not.toBeNull();
     expect(textBox()).toHaveValue('hazme un poema');
-    expect(button('Revisar cambio')).toBeEnabled();
     expect(queryButton('Guardar')).not.toBeInTheDocument();
+
+    typeRequest('el sábado cerramos a las 2');
+    pressEnter();
+    await waitFor(() => expect(interpretMock).toHaveBeenCalledTimes(2));
   });
 
-  it('shows the interpretation failure, keeping the panel and its text', async () => {
-    setAdminKey('the-key');
+  it('shows the interpretation failure, keeping the panel and its text, and Enter tries again', async () => {
     await openEditor();
-    interpretMock.mockRejectedValue(new Error('503'));
+    interpretMock.mockRejectedValueOnce(new Error('503'));
     typeRequest(SATURDAY_CHANGE);
 
-    fireEvent.click(button('Revisar cambio'));
+    pressEnter();
 
     expect(await screen.findByText('No pudimos procesar el cambio. Inténtalo de nuevo.')).toBeInTheDocument();
     expect(statusWith('No pudimos procesar el cambio. Inténtalo de nuevo.')).not.toBeNull();
     expect(textBox()).toHaveValue(SATURDAY_CHANGE);
-    expect(button('Revisar cambio')).toBeEnabled();
     expect(getAdminKey()).toBe('the-key');
+
+    interpretMock.mockResolvedValueOnce({ understood: true, openingHours: saturdayUntilTwo });
+    pressEnter();
+
+    expect(await screen.findByText('Días con cambios: sábado')).toBeInTheDocument();
   });
 
   it('clears the proposal when the text changes, so the proposal always matches the text', async () => {
@@ -363,7 +453,6 @@ describe('OpeningHoursEditor: interpreting', () => {
 
     expect(screen.queryByText('Nuevo horario')).not.toBeInTheDocument();
     expect(queryButton('Guardar')).not.toBeInTheDocument();
-    expect(button('Revisar cambio')).toBeEnabled();
   });
 });
 
@@ -392,10 +481,10 @@ describe('OpeningHoursEditor: saving', () => {
 
     expect(await screen.findByText('Horario actualizado')).toBeInTheDocument();
     expect(statusWith('Horario actualizado')).not.toBeNull();
-    expect(screen.queryByRole('textbox', { name: '¿Qué cambia en el horario?' })).not.toBeInTheDocument();
+    expect(queryTextBox()).not.toBeInTheDocument();
     expect(fetchBusinessesMock).toHaveBeenCalledTimes(2);
     expect(within(dialog).getByText('Sábado · 8:00 a. m. – 2:00 p. m.')).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Editar horario' })).toHaveFocus();
+    expect(within(dialog).getByRole('button', { name: 'Editar con IA' })).toHaveFocus();
   });
 
   it('shows the save failure, keeping the panel, the text, and the proposal', async () => {
@@ -415,32 +504,33 @@ describe('OpeningHoursEditor: saving', () => {
 });
 
 describe('OpeningHoursEditor: canceling', () => {
-  it('closes the panel with "Cancelar", stores nothing, and returns focus to "Editar horario"', async () => {
+  it('closes the panel with its close button, stores nothing, and returns focus to "Editar con IA"', async () => {
     const dialog = await openEditor();
     await interpretWith({ understood: true, openingHours: saturdayUntilTwo });
 
     fireEvent.click(button('Cancelar'));
 
-    expect(screen.queryByRole('textbox', { name: '¿Qué cambia en el horario?' })).not.toBeInTheDocument();
+    expect(queryTextBox()).not.toBeInTheDocument();
     expect(saveMock).not.toHaveBeenCalled();
-    expect(within(dialog).getByRole('button', { name: 'Editar horario' })).toHaveFocus();
-    expect(within(dialog).getByText('Sábado · 8:00 a. m. – 6:00 p. m.', { exact: false })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Editar con IA' })).toHaveFocus();
+    expect(within(dialog).getByText('Lunes a sábado · 8:00 a. m. – 6:00 p. m.')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: shop.name })).toBeInTheDocument();
   });
 
-  it('closes the panel when the dialog closes, and shows "Editar horario" when it opens again', async () => {
+  it('closes the panel when the detail dialog closes, and shows "Editar con IA" when it opens again', async () => {
     const dialog = await openEditor();
     typeRequest(SATURDAY_CHANGE);
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
     const reopened = openDialogFor(shop);
 
-    expect(within(reopened).getByRole('button', { name: 'Editar horario' })).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: '¿Qué cambia en el horario?' })).not.toBeInTheDocument();
+    expect(within(reopened).getByRole('button', { name: 'Editar con IA' })).toBeInTheDocument();
+    expect(queryTextBox()).not.toBeInTheDocument();
     expect(interpretMock).not.toHaveBeenCalled();
     expect(saveMock).not.toHaveBeenCalled();
   });
 
-  it('forgets "Horario actualizado" when the dialog opens again', async () => {
+  it('forgets "Horario actualizado" when the detail dialog opens again', async () => {
     const dialog = await openEditor();
     await interpretWith({ understood: true, openingHours: saturdayUntilTwo });
     saveMock.mockResolvedValue(saturdayUntilTwo);

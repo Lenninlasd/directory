@@ -41,11 +41,11 @@ export const strings = {
   through: 'a',
 
   // Business-editing spec, "Editing interface text" (edit-opening-hours-with-natural-language). Admin mode only.
-  editOpeningHours: 'Editar horario',
+  editOpeningHours: 'Editar con IA',
   noOpeningHours: 'Sin horario registrado',
   openingHoursRequestLabel: '¿Qué cambia en el horario?',
   openingHoursRequestPlaceholder: 'Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m.',
-  reviewChange: 'Revisar cambio',
+  /** Accessible name of the panel's close button. Enter sends the request, so there is no send button. */
   cancel: 'Cancelar',
   interpreting: 'Interpretando…',
   proposalTitle: 'Nuevo horario',
@@ -58,6 +58,7 @@ export const strings = {
   notUnderstood: 'No entendí el cambio. Intenta escribirlo de otra forma.',
   interpretationError: 'No pudimos procesar el cambio. Inténtalo de nuevo.',
   saveError: 'No pudimos guardar el horario. Inténtalo de nuevo.',
+  /** Title of the key dialog and accessible name of its field. */
   adminKeyLabel: 'Clave de administrador',
   adminKeyContinue: 'Continuar',
   wrongAdminKey: 'Clave incorrecta',

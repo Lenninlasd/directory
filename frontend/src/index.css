@@ -80,10 +80,16 @@
 
   /*
    * AI feature border (business-editing spec, "AI indicator"; design D-18). Decorative, it carries no
-   * text: sRGB hex of the Tailwind 4.3 default palette shades named in the comment, like the category tokens.
+   * text: sRGB hex of the Tailwind 4.3 default palette shades named in the comment, like the category
+   * tokens. Blue to magenta, so the gradient between them passes through violet.
    */
   --color-ai-from: #2b7fff; /* blue-500 */
-  --color-ai-to: #8e51ff; /* violet-500 */
+  --color-ai-to: #e12afb; /* fuchsia-500 */
+  /*
+   * Focus indicator of the AI text box (business-editing spec, "Focus indicator of the text box"):
+   * a soft blur around the gradient border, which keeps its width with or without the focus.
+   */
+  --shadow-ai-glow: 0 0 14px 1px color-mix(in srgb, var(--color-ai-to) 60%, transparent);
   /* One slow turn of the border's gradient, only while the model works. */
   --animate-ai-border-spin: ai-border-spin 4s linear infinite;
   @keyframes ai-border-spin {

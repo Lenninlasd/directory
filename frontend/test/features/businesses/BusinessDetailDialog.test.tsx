@@ -292,12 +292,12 @@ describe('BusinessDetailDialog: admin mode', () => {
     openTile(bakery);
 
     const dialog = screen.getByRole('dialog', { name: bakery.name });
-    expect(within(dialog).queryByRole('button', { name: 'Editar horario' })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Editar con IA' })).not.toBeInTheDocument();
     expect(within(dialog).queryByRole('status')).not.toBeInTheDocument();
     expect(screen.queryByText('Sin horario registrado')).not.toBeInTheDocument();
   });
 
-  it('shows "Editar horario" in the "Horario" row with ?admin', async () => {
+  it('shows "Editar con IA" in the "Horario" row with ?admin', async () => {
     window.history.replaceState(null, '', '/?admin');
     await renderDirectory(createQueryClient(), [bakery]);
 
@@ -305,7 +305,7 @@ describe('BusinessDetailDialog: admin mode', () => {
 
     const dialog = screen.getByRole('dialog', { name: bakery.name });
     expect(within(dialog).getByText('Lunes a viernes · 8:00 a. m. – 6:00 p. m.')).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Editar horario' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Editar con IA' })).toBeInTheDocument();
   });
 
   it('shows the "Horario" row with "Sin horario registrado" for a business without hours', async () => {
@@ -317,7 +317,7 @@ describe('BusinessDetailDialog: admin mode', () => {
     const dialog = screen.getByRole('dialog', { name: tutoring.name });
     expect(within(dialog).getByText('Horario')).toBeInTheDocument();
     expect(within(dialog).getByText('Sin horario registrado')).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Editar horario' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Editar con IA' })).toBeInTheDocument();
   });
 
   it('keeps the list and search working as usual', async () => {

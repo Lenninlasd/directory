@@ -44,11 +44,10 @@ describe('strings', () => {
 
   it('has the exact texts of the editing interface (business-editing spec, "Editing interface text")', () => {
     expect(strings).toMatchObject({
-      editOpeningHours: 'Editar horario',
+      editOpeningHours: 'Editar con IA',
       noOpeningHours: 'Sin horario registrado',
       openingHoursRequestLabel: '¿Qué cambia en el horario?',
       openingHoursRequestPlaceholder: 'Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m.',
-      reviewChange: 'Revisar cambio',
       cancel: 'Cancelar',
       interpreting: 'Interpretando…',
       proposalTitle: 'Nuevo horario',
@@ -63,6 +62,10 @@ describe('strings', () => {
       adminKeyContinue: 'Continuar',
       wrongAdminKey: 'Clave incorrecta',
     });
+  });
+
+  it('has no text for a send button, since Enter sends the request (design D-20)', () => {
+    expect(strings).not.toHaveProperty('reviewChange');
   });
 
   it('lists the changed days after "Días con cambios:"', () => {

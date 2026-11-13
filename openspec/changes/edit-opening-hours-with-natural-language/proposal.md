@@ -6,8 +6,8 @@ Opening hours change often (holidays, a new Saturday schedule), and today every 
 
 ## What Changes
 
-- **Admin mode:** opening the directory with `?admin` shows an "Editar horario" button in the detail dialog. Visitors never see it. The admin key is asked for the first time it is needed and kept in `sessionStorage` until the tab closes. There are no accounts and no login.
-- **Edit flow in the dialog:** a text box for the request, limited to 300 characters and growing with its text, with a blue-to-violet gradient border that marks it as an AI feature and turns slowly while the model works. Then a loading state, then either a preview of the new week with the changed days marked and "Guardar" / "Cancelar" buttons, or a short message when the request was not understood. Saving shows a confirmation and reloads the list.
+- **Admin mode:** opening the directory with `?admin` shows an "Editar con IA" button in the detail dialog. Visitors never see it. The admin key is asked for in its own dialog the first time the button is used and kept in `sessionStorage` until the tab closes. There are no accounts and no login.
+- **Edit flow in the dialog:** a text box for the request, limited to 300 characters and growing with its text, with a blue-to-magenta gradient border that marks it as an AI feature and turns slowly while the model works. Enter sends the request. Then a loading state, then either a preview of the new week with the changed days marked and a "Guardar" button, or a short message when the request was not understood. Saving shows a confirmation and reloads the list.
 - **API, two new routes, both requiring the admin key:**
   - `POST /businesses/{id}/opening-hours/interpretation`: sends the stored hours and the request to Claude Haiku 5.5 and returns the proposed full week. It never writes.
   - `PUT /businesses/{id}/opening-hours`: validates a full week with the domain rules and stores it. It never calls the model.

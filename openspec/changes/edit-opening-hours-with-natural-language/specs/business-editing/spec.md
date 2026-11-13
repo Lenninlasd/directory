@@ -122,11 +122,15 @@ The directory SHALL enter admin mode when the page is opened with the `admin` qu
 
 #### Scenario: Opening admin mode
 - **WHEN** the directory is opened with `?admin`
-- **THEN** the list, search, and filter work as usual, and the detail dialog shows the "Editar horario" button
+- **THEN** the list, search, and filter work as usual, and the detail dialog shows the "Editar con IA" button
 
 #### Scenario: Entering the key
-- **WHEN** the admin sends a request and no key is kept for the tab
-- **THEN** a "Clave de administrador" field and a "Continuar" button are shown first, and the request is sent with the key once it is entered
+- **WHEN** the admin activates "Editar con IA" and no key is kept for the tab
+- **THEN** a second dialog opens over the detail dialog, titled "Clave de administrador", with a field for the key and a "Continuar" button, and the edit panel opens once a key is entered
+
+#### Scenario: Closing the key dialog
+- **WHEN** the admin closes the key dialog without entering a key
+- **THEN** the detail dialog is as it was before, and no request is sent
 
 #### Scenario: Key kept for the tab
 - **WHEN** the key was accepted and the admin edits another business in the same tab
@@ -134,22 +138,30 @@ The directory SHALL enter admin mode when the page is opened with the `admin` qu
 
 #### Scenario: Wrong key
 - **WHEN** an editing route answers `401`
-- **THEN** the kept key is forgotten, "Clave incorrecta" is shown with the key field, and the request text and any proposal already shown are kept
+- **THEN** the kept key is forgotten, the key dialog opens again showing "Clave incorrecta", the request text and any proposal already shown are kept, and the request is sent again once a new key is entered
 
 ### Requirement: Opening hours edit flow
-In admin mode, "Editar horario" SHALL open a panel in the dialog where the admin writes the change, sees the proposed week, and saves it or cancels. Nothing SHALL be stored until the admin activates "Guardar".
+In admin mode, "Editar con IA" SHALL open a panel in the dialog where the admin writes the change, sees the proposed week, and saves it or cancels. Nothing SHALL be stored until the admin activates "Guardar".
 
 #### Scenario: Writing the change
-- **WHEN** the admin activates "Editar horario"
-- **THEN** a text box labeled "¿Qué cambia en el horario?" with the placeholder "Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m.", a "Revisar cambio" button, and a "Cancelar" button are shown, and "Revisar cambio" is disabled while the text is empty
+- **WHEN** the admin activates "Editar con IA" and a key is kept for the tab
+- **THEN** the panel shows a text box labeled "¿Qué cambia en el horario?" with the placeholder "Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m.", which has the keyboard focus, and a close button with the accessible name "Cancelar"
+
+#### Scenario: Sending the request
+- **WHEN** the admin presses Enter in the text box
+- **THEN** the request is sent for interpretation, or nothing happens while the text is empty or the proposal for that text is already shown, and Shift+Enter adds a line break instead
 
 #### Scenario: Text box size and limit
 - **WHEN** the admin types in the text box
-- **THEN** it accepts at most 300 characters, and it grows with its text up to about six lines, after which it scrolls
+- **THEN** it accepts at most 300 characters, it keeps the width of the panel whatever its text, and it grows in height with its text up to about six lines, after which it scrolls
 
 #### Scenario: AI indicator
 - **WHEN** the panel is open
-- **THEN** the text box has a blue-to-violet gradient border and a sparkle icon that screen readers ignore, and the keyboard focus indicator stays visible over it
+- **THEN** the text box has a blue-to-magenta gradient border, equally wide all around, and a sparkle icon that screen readers ignore
+
+#### Scenario: Focus indicator of the text box
+- **WHEN** the text box has the keyboard focus
+- **THEN** its border shows a glow in the same colors as the focus indicator, and no dark outline
 
 #### Scenario: AI indicator while interpreting
 - **WHEN** "Interpretando…" is shown
@@ -160,12 +172,12 @@ In admin mode, "Editar horario" SHALL open a panel in the dialog where the admin
 - **THEN** the gradient border is shown but never moves
 
 #### Scenario: While interpreting
-- **WHEN** the admin activates "Revisar cambio"
-- **THEN** "Interpretando…" is shown, and the text box and buttons are disabled until the answer arrives
+- **WHEN** the request is sent
+- **THEN** "Interpretando…" is shown, and the text box and the panel's buttons are disabled until the answer arrives
 
 #### Scenario: A proposal
 - **WHEN** the interpretation is understood
-- **THEN** the panel shows "Nuevo horario" with the proposed week as defined in "Opening hours display", then "Días con cambios: {días}", and "Guardar" and "Cancelar" buttons
+- **THEN** the panel shows "Nuevo horario" with the proposed week as defined in "Opening hours display", then "Días con cambios: {días}", and a "Guardar" button
 
 #### Scenario: A proposal with no changes
 - **WHEN** the proposed week is the same as the stored one
@@ -180,7 +192,7 @@ In admin mode, "Editar horario" SHALL open a panel in the dialog where the admin
 - **THEN** "Guardando…" is shown, and on success the panel closes, "Horario actualizado" is shown in the dialog, and the list is loaded again so the "Horario" row shows the new week
 
 #### Scenario: Canceling
-- **WHEN** the admin activates "Cancelar" or closes the dialog
+- **WHEN** the admin activates the panel's close button or closes the detail dialog
 - **THEN** the panel closes and nothing is stored
 
 #### Scenario: A failure
@@ -200,12 +212,11 @@ All editing text SHALL be in Spanish, with the exact wording of the table in the
 
 | Where | Text |
 |---|---|
-| Edit button | "Editar horario" |
+| Edit button, next to a magic pencil icon | "Editar con IA" |
 | "Horario" row of a business without hours, in admin mode | "Sin horario registrado" |
 | Text box label | "¿Qué cambia en el horario?" |
 | Text box placeholder | "Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m." |
-| Interpret button | "Revisar cambio" |
-| Cancel button | "Cancelar" |
+| Panel close button accessible name | "Cancelar" |
 | While interpreting | "Interpretando…" |
 | Proposal title | "Nuevo horario" |
 | Changed days | "Días con cambios: {días}", with the day names in lowercase, joined by ", " and the last two by " y ", for example "Días con cambios: lunes, miércoles y sábado" |
@@ -216,6 +227,7 @@ All editing text SHALL be in Spanish, with the exact wording of the table in the
 | Not understood | "No entendí el cambio. Intenta escribirlo de otra forma." |
 | Interpretation failure | "No pudimos procesar el cambio. Inténtalo de nuevo." |
 | Save failure | "No pudimos guardar el horario. Inténtalo de nuevo." |
-| Key field label | "Clave de administrador" |
+| Key dialog title and key field accessible name | "Clave de administrador" |
+| Key dialog close button accessible name | "Cerrar" |
 | Key button | "Continuar" |
 | Wrong key | "Clave incorrecta" |

@@ -56,6 +56,15 @@ export const SparkleIcon = (props: IconProps) => (
   </StrokeIcon>
 );
 
+// On the "Editar con IA" button: a pencil with sparkles (business-editing spec, "Editing interface text").
+export const MagicPencilIcon = (props: IconProps) => (
+  <StrokeIcon {...props}>
+    <path d="M4 20l1-4.5L15 5.5a2.1 2.1 0 0 1 3 3L8.5 19z" />
+    <path d="m13.5 7 3 3" />
+    <path d="M19.5 13.5v4M17.5 15.5h4M6 3.5v3M4.5 5h3" />
+  </StrokeIcon>
+);
+
 export const StoreIcon = (props: IconProps) => (
   <StrokeIcon {...props}>
     <path d="M4.5 4h15L21 9H3z" />

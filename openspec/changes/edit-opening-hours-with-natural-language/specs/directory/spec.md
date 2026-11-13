@@ -9,7 +9,7 @@ When the user opens a tile, the system SHALL display a modal dialog with a short
 
 #### Scenario: Admin mode controls
 - **WHEN** the dialog is open in admin mode
-- **THEN** it also shows the "Editar horario" button in the "Horario" row and, while editing, the panel of "Opening hours edit flow" in the business-editing spec
+- **THEN** it also shows the "Editar con IA" button in the "Horario" row and, while editing, the panel of "Opening hours edit flow" in the business-editing spec
 
 #### Scenario: WhatsApp button in the dialog (003 AC-8.2)
 - **WHEN** the business has a valid WhatsApp number
@@ -99,7 +99,7 @@ Below "Ubicación", the detail dialog SHALL display a "Horario" row when the bus
 
 #### Scenario: No hours in admin mode
 - **WHEN** `openingHours` is `[]` in admin mode
-- **THEN** the dialog shows the "Horario" row with "Sin horario registrado" and the "Editar horario" button
+- **THEN** the dialog shows the "Horario" row with "Sin horario registrado" and the "Editar con IA" button
 
 ### Requirement: Deliberate exclusions
 The directory SHALL NOT include the features in the table of the first scenario. Each was left out on purpose, and a change that adds one SHALL remove it from this table.

@@ -1,8 +1,10 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { Business } from '../../api/businesses.ts';
 import { strings } from '../../strings.ts';
+import { AdminKeyDialog } from './AdminKeyDialog.tsx';
+import { getAdminKey, setAdminKey } from './adminKey.ts';
 import { CategoryCover } from './CategoryCover.tsx';
-import { CloseIcon, ExternalLinkIcon } from './icons.tsx';
+import { CloseIcon, ExternalLinkIcon, MagicPencilIcon } from './icons.tsx';
 import { formatOpeningHours } from './openingHours.ts';
 import { OpeningHoursEditor } from './OpeningHoursEditor.tsx';
 import { StoreTypeBadge } from './StoreTypeBadge.tsx';
@@ -43,9 +45,11 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
   // Editing state is kept by business id, so it never carries over to another business (design D-14).
   const [editingBusinessId, setEditingBusinessId] = useState<string | null>(null);
   const [savedBusinessId, setSavedBusinessId] = useState<string | null>(null);
+  // The business whose "Editar con IA" is waiting for the admin key (design D-19).
+  const [keyRequestBusinessId, setKeyRequestBusinessId] = useState<string | null>(null);
   const isEditing = business !== null && editingBusinessId === business.id;
 
-  // When the panel closes, focus goes back to "Editar horario", since the focused control was removed.
+  // When the panel closes, focus goes back to "Editar con IA", since the focused control was removed.
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const returnFocusToEditButtonRef = useRef(false);
   useEffect(() => {
@@ -58,6 +62,19 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
   const openEditor = (businessId: string) => {
     setSavedBusinessId(null);
     setEditingBusinessId(businessId);
+  };
+  // The key is asked for once per tab, in its own dialog, before the panel opens.
+  const startEditing = (businessId: string) => {
+    if (getAdminKey() === null) {
+      setKeyRequestBusinessId(businessId);
+    } else {
+      openEditor(businessId);
+    }
+  };
+  const continueWithKey = (businessId: string, adminKey: string) => {
+    setAdminKey(adminKey);
+    setKeyRequestBusinessId(null);
+    openEditor(businessId);
   };
   const closeEditor = (savedBusinessIdOrNull: string | null) => {
     returnFocusToEditButtonRef.current = true;
@@ -75,6 +92,7 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
           // Closing the dialog closes the panel and stores nothing (business-editing spec, "Canceling").
           setEditingBusinessId(null);
           setSavedBusinessId(null);
+          setKeyRequestBusinessId(null);
           onClose();
         }
       }}
@@ -129,6 +147,12 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
                     )}
                     {adminMode && (
                       <dd className="mt-2 flex flex-col items-start gap-2">
+                        <AdminKeyDialog
+                          open={keyRequestBusinessId === business.id}
+                          rejected={false}
+                          onSubmit={(adminKey) => continueWithKey(business.id, adminKey)}
+                          onClose={() => setKeyRequestBusinessId(null)}
+                        />
                         {isEditing ? (
                           <OpeningHoursEditor
                             business={business}
@@ -139,9 +163,10 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
                           <button
                             ref={editButtonRef}
                             type="button"
-                            onClick={() => openEditor(business.id)}
-                            className="min-h-11 rounded-md border border-border bg-surface px-4 font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                            onClick={() => startEditing(business.id)}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-4 font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                           >
+                            <MagicPencilIcon className="size-5 text-ai-to" />
                             {strings.editOpeningHours}
                           </button>
                         )}
