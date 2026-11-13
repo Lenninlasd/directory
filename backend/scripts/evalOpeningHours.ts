@@ -14,7 +14,7 @@ import { PROMPT_VERSION } from '../src/interpretation/openingHoursPrompt.ts';
 /**
  * Runs the golden set of `backend/eval/openingHours/cases.json` against the real model, with the real
  * prompt, schema, validation, and client settings (design D-16). Each case is one billed call; the whole
- * set costs about US$0.01 (23 calls of about 900 input and 150 output tokens at US$0.10 / US$0.50 per
+ * set costs about US$0.01 (25 calls of about 900 input and 150 output tokens at US$0.10 / US$0.50 per
  * million tokens).
  *
  * It is never run by `pnpm -r test` or CI: no test may call the Anthropic API. The key only lives in

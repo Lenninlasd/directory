@@ -87,10 +87,29 @@ describe('the golden set (backend/eval/openingHours/cases.json)', () => {
 
   it('covers both cases the prompt does not name: one day with no hours, and open 24 hours', () => {
     const noHours = cases.find((evalCase) => evalCase.request === 'los sábados cerramos a las 2');
-    const allDay = cases.find((evalCase) => evalCase.request === 'abiertos 24 horas');
+    const allDay = cases.find(
+      (evalCase) => evalCase.request === 'abiertos 24 horas' && evalCase.storedHours.length === 0,
+    );
 
     expect(noHours).toMatchObject({ storedHours: [], expected: { understood: false } });
     expect(allDay?.expected).toEqual({
+      understood: true,
+      openingHours: [1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => ({ dayOfWeek, opens: '00:00', closes: '24:00' })),
+    });
+  });
+
+  it('pins "24 horas" from both sides: closed days stay closed unless the request names them', () => {
+    const closedDaysKept = cases.find(
+      (evalCase) => evalCase.request === 'abiertos 24 horas' && evalCase.storedHours.length > 0,
+    );
+    const everyDay = cases.find((evalCase) => evalCase.request === 'abierto 24 horas todos los dias');
+
+    expect(closedDaysKept?.storedHours.some((range) => range.dayOfWeek === 7)).toBe(false);
+    expect(closedDaysKept?.expected).toEqual({
+      understood: true,
+      openingHours: [1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({ dayOfWeek, opens: '00:00', closes: '24:00' })),
+    });
+    expect(everyDay?.expected).toEqual({
       understood: true,
       openingHours: [1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => ({ dayOfWeek, opens: '00:00', closes: '24:00' })),
     });

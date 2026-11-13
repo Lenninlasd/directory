@@ -936,7 +936,128 @@
     }
   },
   {
-    "name": "24:00: open 24 hours (not named by the prompt)",
+    "name": "24:00: open 24 hours every day, Sunday added",
+    "storedHours": [
+      {
+        "dayOfWeek": 1,
+        "opens": "08:00",
+        "closes": "18:00"
+      },
+      {
+        "dayOfWeek": 2,
+        "opens": "08:00",
+        "closes": "18:00"
+      },
+      {
+        "dayOfWeek": 3,
+        "opens": "08:00",
+        "closes": "18:00"
+      },
+      {
+        "dayOfWeek": 4,
+        "opens": "08:00",
+        "closes": "18:00"
+      },
+      {
+        "dayOfWeek": 5,
+        "opens": "08:00",
+        "closes": "18:00"
+      },
+      {
+        "dayOfWeek": 6,
+        "opens": "08:00",
+        "closes": "18:00"
+      }
+    ],
+    "request": "abierto 24 horas todos los dias",
+    "expected": {
+      "understood": true,
+      "openingHours": [
+        {
+          "dayOfWeek": 1,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 2,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 3,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 4,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 5,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 6,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 7,
+          "opens": "00:00",
+          "closes": "24:00"
+        }
+      ]
+    }
+  },
+  {
+    "name": "24:00: open 24 hours with no stored hours (not named by the prompt)",
+    "storedHours": [],
+    "request": "abiertos 24 horas",
+    "expected": {
+      "understood": true,
+      "openingHours": [
+        {
+          "dayOfWeek": 1,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 2,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 3,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 4,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 5,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 6,
+          "opens": "00:00",
+          "closes": "24:00"
+        },
+        {
+          "dayOfWeek": 7,
+          "opens": "00:00",
+          "closes": "24:00"
+        }
+      ]
+    }
+  },
+  {
+    "name": "24:00: open 24 hours keeps closed days closed",
     "storedHours": [
       {
         "dayOfWeek": 1,
@@ -1000,11 +1121,6 @@
         },
         {
           "dayOfWeek": 6,
-          "opens": "00:00",
-          "closes": "24:00"
-        },
-        {
-          "dayOfWeek": 7,
           "opens": "00:00",
           "closes": "24:00"
         }
