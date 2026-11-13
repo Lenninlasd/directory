@@ -77,12 +77,13 @@ Each task writes its tests first and confirms they fail for the right reason bef
 
 ## 5. Eval
 
-- [ ] 5.1 Add the golden set and the eval script (design D-16).
+- [x] 5.1 Add the golden set and the eval script (design D-16).
   - `backend/eval/openingHours/cases.json` with about 20 cases covering the kinds listed in D-16, and `backend/scripts/evalOpeningHours.ts`.
   - Include two cases the prompt does not cover by name: a change to one day when no hours are stored ("el sábado cerramos a las 2" with `[]`, expected not understood) and "abiertos 24 horas" (expected every day from `00:00` to `24:00`). If the eval shows the model gets them wrong, add a rule and move the prompt to `opening-hours-v2`, instead of changing the prompt before measuring.
   - Tests first: `backend/test/eval/scoreCase.test.ts` for `scoreCase`: an exact match, the same week in another order, a different range, and `understood` that differs. A test that every case in `cases.json` has a valid stored week and, when understood, a valid expected week. A test that no case `request` appears in `SYSTEM_PROMPT`, so the prompt's own examples never inflate the score.
   - Document how to run it in `infra/README.md` or a short comment at the top of the script, with the cost estimate.
   - Verify: the tests pass, and `pnpm -r test` does not run the script.
+  - Done 2026-11-12: 23 cases. The case for one day with no stored hours uses "los sábados cerramos a las 2", since "el sábado cerramos a las 2" is the prompt's own example and the test forbids requests from `SYSTEM_PROMPT`. `scoreCase` and the case loader are in `backend/src/eval/openingHoursEval.ts`, and the script reuses `createAnthropicClient`, so the eval measures the Lambda's client settings.
 
 ## 6. Final check in `dev`
 
