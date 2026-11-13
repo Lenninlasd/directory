@@ -134,43 +134,46 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
                 </div>
                 {/* In admin mode the row always shows, so hours can be added (directory spec, "No hours in admin mode"). */}
                 {(business.openingHours.length > 0 || adminMode) && (
-                  <div>
+                  <div className="grid grid-cols-[1fr_auto] items-center gap-x-3">
                     <dt className="font-medium text-ink">{strings.openingHoursLabel}</dt>
+                    {adminMode && !isEditing && (
+                      <dd>
+                        <button
+                          ref={editButtonRef}
+                          type="button"
+                          onClick={() => startEditing(business.id)}
+                          className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-border bg-surface px-2 text-sm font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                        >
+                          <MagicPencilIcon className="size-4 text-ai-to" />
+                          {strings.editOpeningHours}
+                        </button>
+                      </dd>
+                    )}
                     {business.openingHours.length > 0 ? (
                       formatOpeningHours(business.openingHours).map((line) => (
-                        <dd key={line} className="text-ink-muted">
+                        <dd key={line} className="col-span-2 text-ink-muted">
                           {line}
                         </dd>
                       ))
                     ) : (
-                      <dd className="text-ink-muted">{strings.noOpeningHours}</dd>
+                      <dd className="col-span-2 text-ink-muted">{strings.noOpeningHours}</dd>
                     )}
                     {adminMode && (
-                      <dd className="mt-2 flex flex-col items-start gap-2">
+                      <dd className="col-span-2 flex flex-col items-start gap-2 empty:hidden">
                         <AdminKeyDialog
                           open={keyRequestBusinessId === business.id}
                           rejected={false}
                           onSubmit={(adminKey) => continueWithKey(business.id, adminKey)}
                           onClose={() => setKeyRequestBusinessId(null)}
                         />
-                        {isEditing ? (
+                        {isEditing && (
                           <OpeningHoursEditor
                             business={business}
                             onCancel={() => closeEditor(null)}
                             onSaved={() => closeEditor(business.id)}
                           />
-                        ) : (
-                          <button
-                            ref={editButtonRef}
-                            type="button"
-                            onClick={() => startEditing(business.id)}
-                            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-4 font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-                          >
-                            <MagicPencilIcon className="size-5 text-ai-to" />
-                            {strings.editOpeningHours}
-                          </button>
                         )}
-                        <p role="status" className="text-ink empty:hidden">
+                        <p role="status" className="mt-2 text-ink empty:hidden">
                           {savedBusinessId === business.id ? strings.saved : ''}
                         </p>
                       </dd>

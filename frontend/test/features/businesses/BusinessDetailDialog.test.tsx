@@ -308,6 +308,20 @@ describe('BusinessDetailDialog: admin mode', () => {
     expect(within(dialog).getByRole('button', { name: 'Editar con IA' })).toBeInTheDocument();
   });
 
+  it('puts "Editar con IA" right after the "Horario" label, before the hours, so Tab follows what is seen', async () => {
+    window.history.replaceState(null, '', '/?admin');
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    const dialog = screen.getByRole('dialog', { name: bakery.name });
+    const label = within(dialog).getByText('Horario');
+    const editButton = within(dialog).getByRole('button', { name: 'Editar con IA' });
+    const firstLine = within(dialog).getByText('Lunes a viernes · 8:00 a. m. – 6:00 p. m.');
+    expect(label.compareDocumentPosition(editButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(editButton.compareDocumentPosition(firstLine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('shows the "Horario" row with "Sin horario registrado" for a business without hours', async () => {
     window.history.replaceState(null, '', '/?admin=1');
     await renderDirectory(createQueryClient(), [tutoring]);
