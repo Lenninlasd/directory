@@ -93,6 +93,7 @@ Permissions needed so far (extended by later tasks as resources are added):
 - 002-T3: `cloudformation:DescribeStacks` on `alameda-*` stacks; `rds-data:ExecuteStatement`, `rds-data:BeginTransaction`, `rds-data:CommitTransaction`, and `rds-data:RollbackTransaction` on the cluster; `secretsmanager:GetSecretValue` on its secret.
 - 002-T4: create, update, and delete the `alameda-*` Lambda function (`lambda:*Function*`, `lambda:*Permission`, `lambda:TagResource`), its role (`iam:CreateRole`, `iam:DeleteRole`, `iam:GetRole`, `iam:PutRolePolicy`, `iam:DeleteRolePolicy`, `iam:GetRolePolicy`, `iam:TagRole`, `iam:PassRole` on `alameda-*` roles), the HTTP API (`apigateway:*` on `/apis*`), and the log group (`logs:CreateLogGroup`, `logs:DeleteLogGroup`, `logs:PutRetentionPolicy`, `logs:TagResource`, `logs:DescribeLogGroups`); for the checks, `lambda:GetFunctionConfiguration`, `iam:ListAttachedRolePolicies`, and `logs:FilterLogEvents`.
 - 002-T7: no new AWS permissions (the frontend is on Cloudflare Pages).
+- edit-opening-hours-with-natural-language: `ssm:PutParameter` and `ssm:GetParameter` on `arn:aws:ssm:us-east-1:<account>:parameter/alameda/*`, and `kms:Encrypt` and `kms:Decrypt` on the AWS managed key `aws/ssm` (through SSM), to store and read the secret parameters; for the checks, `iam:SimulatePrincipalPolicy` on `alameda-*` roles and `kms:DescribeKey` on `alias/aws/ssm`.
 
 ### Cloudflare login
 
@@ -134,6 +135,16 @@ node backend/scripts/migrate.ts dev --seed    # also run backend/seeds/dev_busin
 ```
 
 The script reads the cluster ARN, secret ARN, and database name from the `alameda-<env>` stack with the AWS CLI, then calls the Data API with your credentials. It prints each applied file and exits with a non-zero code if a migration fails (that file is rolled back and later files are not run). `--seed` is refused for `prod`. If the `dev` cluster is paused, the first run fails with `DatabaseResumingException`; run it again after about 30 seconds.
+
+**Opening hours in data migrations.** The admin can change a business's hours in `prod` through the editing routes, so the value in the database can be newer than any migration file. Before writing a data migration that sets `opening_hours`, read the current `prod` value and start from it (infrastructure spec, "Business data loading"):
+
+```
+CLUSTER_ARN=$(aws cloudformation describe-stacks --stack-name alameda-prod --query "Stacks[0].Outputs[?OutputKey=='ClusterArn'].OutputValue" --output text)
+SECRET_ARN=$(aws cloudformation describe-stacks --stack-name alameda-prod --query "Stacks[0].Outputs[?OutputKey=='SecretArn'].OutputValue" --output text)
+aws rds-data execute-statement --resource-arn "$CLUSTER_ARN" --secret-arn "$SECRET_ARN" --database alameda \
+  --sql "SELECT id, name, opening_hours FROM businesses WHERE id = CAST(:id AS uuid)" \
+  --parameters "name=id,value={stringValue=<business-id>}"
+```
 
 ## Rollback (002-T9, spec AC-6.3)
 
@@ -182,6 +193,43 @@ pnpm dlx wrangler@4.151.1 pages project create alameda-dev --production-branch m
 1. Note the URL it prints (`https://alameda-dev.pages.dev`, or with a suffix if the name was taken).
 2. Put that URL in `FrontendOrigin` in the `dev` section of `infra/samconfig.toml` (`parameter_overrides`), then run `sam deploy --config-env dev` so the API allows it (CORS).
 3. For `prod`, do the same with `alameda-prod` when the directory launches (002-T10).
+
+### Secret parameters (edit-opening-hours-with-natural-language, design D-8)
+
+The editing routes need two secrets per environment. CloudFormation cannot create `SecureString` parameters, so each one is stored once by hand from your terminal. Their values never go into a file, the template, or the Lambda environment variables, which hold only the parameter names (`ADMIN_KEY_PARAMETER`, `ANTHROPIC_API_KEY_PARAMETER`).
+
+| Parameter | Holds |
+|---|---|
+| `/alameda/<env>/admin-key` | The admin key of that environment: 32 random bytes in base64 |
+| `/alameda/<env>/anthropic-api-key` | An Anthropic API key used only by that environment |
+
+Both use the AWS managed key `aws/ssm` (the default for `--type SecureString`). `dev` and `prod` always have **different** values, so a `dev` key is rejected by `prod`.
+
+**Admin key.** Generate it and store it in one step, so it never appears on screen or in your shell history:
+
+```
+aws ssm put-parameter --name /alameda/<env>/admin-key --type SecureString --overwrite \
+  --value "$(openssl rand -base64 32)"
+```
+
+When you need the key to enter it in the browser (`?admin`), read it back and copy it:
+
+```
+aws ssm get-parameter --name /alameda/<env>/admin-key --with-decryption --query Parameter.Value --output text | pbcopy
+```
+
+**Anthropic API key.** Create a key for that environment in the Anthropic Console (**Settings** → **API keys**), copy it, then paste it at the hidden prompt (`read -rs` shows nothing and keeps it out of the history):
+
+```
+read -rs ANTHROPIC_KEY
+aws ssm put-parameter --name /alameda/<env>/anthropic-api-key --type SecureString --overwrite \
+  --value "$ANTHROPIC_KEY"
+unset ANTHROPIC_KEY
+```
+
+**Rotating a key.** Run the same `put-parameter` command again; `--overwrite` replaces the value. Nothing caches it, so the next request uses the new value, with no deploy (design D-8). After rotating the admin key, the browser gets a `401` on its next request, forgets the old key, and asks for the new one. For the Anthropic key, create the new key first, store it, check one interpretation (see Verification), and only then delete the old key in the Console.
+
+**Spend limit.** In the Anthropic Console (**Settings** → **Limits**), set a monthly spend limit for the organization or workspace that owns these keys. US$5 per month is enough: one interpretation costs about US$0.0005 with Claude Haiku 5.5, so the limit covers about 10,000 requests and caps the cost if a key leaks. Only the admin can trigger a model call, and a request without the key is rejected before any call.
 
 ## Verification
 
@@ -355,3 +403,50 @@ Performance target (spec 001 NFR-1): on a typical mobile connection, the list is
 | Browser, private window, DevTools → Network → throttling **Fast 4G**, cache disabled, open `$FRONTEND_URL` | The list is visible within about 3 s (warm API) | Passed (2026-11-02): load in 2.5 s on Fast 4G |
 | Same, after the `dev` database has been idle for more than one hour (auto-pause, plan P-1) | The first load shows the error screen (`DatabaseResumingException`, plan P-12, R-3); **Reintentar** after about 30 s shows the list. Accepted for `dev` only; `prod` never pauses | Passed (2026-11-03): the error screen appeared after about 10 s; one **Reintentar** showed the list 2 to 3 s later. The logs show four `DatabaseResumingException` failures between 15:48:41 and 15:48:50 UTC (no timeouts): the first request and the 2 automatic retries of spec 001 AC-6.1, each taking 2 to 3 s, then the first **Reintentar**; the list loaded about 11 s after the first request |
 | Freshness: change one row in `backend/seeds/dev_businesses.sql`, run `node backend/scripts/migrate.ts dev --seed`, reload `$FRONTEND_URL`; then revert the file and run the seed again | The change appears on the next load with no deploy (spec 001 NFR-5); after the revert the original row is back | Passed (2026-11-02): "Panadería Doña Rosa (prueba T9)" appeared on reload; after the revert the API returns the original name |
+
+### Opening hours editing (edit-opening-hours-with-natural-language, tasks 6.1 and 6.2)
+
+First store the two `dev` parameters (One-time manual setup, "Secret parameters") and deploy `dev`. Then set these variables; the values stay in your shell and are never written to the repository:
+
+```
+API_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+FRONTEND_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='FrontendUrl'].OutputValue" --output text)
+ADMIN_KEY=$(aws ssm get-parameter --name /alameda/dev/admin-key --with-decryption --query Parameter.Value --output text)
+BUSINESS_ID=$(node -e 'fetch(process.argv[1] + "/businesses").then((r) => r.json()).then((b) => console.log(b.businesses[0].id))' "$API_URL")
+```
+
+#### Routes (task 6.1, business-editing spec)
+
+Each interpretation call with the right key is one model call, about US$0.0005. A save changes the `dev` row; `node backend/scripts/migrate.ts dev --seed` puts the seed hours back afterwards.
+
+| Check | Expected | Result |
+|---|---|---|
+| `curl -i -X POST "$API_URL/businesses/$BUSINESS_ID/opening-hours/interpretation" -H "content-type: application/json" -d '{"request":"el sábado cerramos a las 2"}'` | `401 {"error":"unauthorized"}` (no key) | |
+| The same with `-H "Authorization: Bearer wrong-key"` | `401 {"error":"unauthorized"}` | |
+| The same with `-H "Authorization: Bearer $ADMIN_KEY"` | `200 {"understood":true,"openingHours":[...]}`; this also shows the Lambda reads both parameters | |
+| The same with `-d '{"request":"hazme un poema"}'` | `200 {"understood":false}` | |
+| The same with `-d '{"request":""}'` | `400 {"error":"invalid_request"}`, no model call | |
+| `curl -i -X PUT "$API_URL/businesses/$BUSINESS_ID/opening-hours" -H "Authorization: Bearer $ADMIN_KEY" -H "content-type: application/json" -d '{"openingHours":[{"dayOfWeek":1,"opens":"08:00","closes":"12:00"}]}'` | `200 {"openingHours":[...]}`, and the next `curl -s "$API_URL/businesses"` shows that week for the business | |
+| The same `PUT` with `-d '{"openingHours":[{"dayOfWeek":1,"opens":"12:00","closes":"08:00"}]}'` | `400 {"error":"invalid_opening_hours"}`, hours unchanged | |
+| `curl -i -X OPTIONS "$API_URL/businesses/$BUSINESS_ID/opening-hours" -H "Origin: $FRONTEND_URL" -H "Access-Control-Request-Method: PUT" -H "Access-Control-Request-Headers: authorization,content-type"` | `access-control-allow-origin` is the frontend URL, and the allowed methods and headers include `PUT`, `authorization`, and `content-type` (design D-15) | |
+| `aws logs tail /aws/lambda/alameda-dev-api --since 15m` | One JSON line per editing request with `route`, `outcome`, `latencyMs`, and, for interpretations, `promptVersion`, `stopReason`, and tokens; no `Authorization` header, no key, no request text (design D-12) | |
+
+The browser checks of task 6.1 (`?admin`, the edit flow, the text box, and the animated border) are noted in the task itself.
+
+#### Least privilege (task 6.2, design D-9)
+
+```
+ROLE_ARN=$(aws lambda get-function-configuration --function-name alameda-dev-api --query Role --output text)
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+SSM_KEY_ARN=$(aws kms describe-key --key-id alias/aws/ssm --query KeyMetadata.Arn --output text)
+DEV_KEY_PARAMETER="arn:aws:ssm:us-east-1:$ACCOUNT:parameter/alameda/dev/admin-key"
+```
+
+| Check | Expected | Result |
+|---|---|---|
+| `aws iam get-role-policy --role-name "${ROLE_ARN##*/}" --policy-name api-access` | The three statements of 002-T6, plus `ssm:GetParameter` on the two `/alameda/dev/` parameters and `kms:Decrypt` with the `kms:ViaService` and `kms:EncryptionContext:PARAMETER_ARN` conditions. Nothing else | |
+| `aws lambda get-function-configuration --function-name alameda-dev-api --query "Environment.Variables.[ADMIN_KEY_PARAMETER,ANTHROPIC_API_KEY_PARAMETER]"` | The two parameter names only, never a value | |
+| `aws iam simulate-principal-policy --policy-source-arn "$ROLE_ARN" --action-names ssm:GetParameter --resource-arns "$DEV_KEY_PARAMETER" "arn:aws:ssm:us-east-1:$ACCOUNT:parameter/alameda/prod/admin-key" "arn:aws:ssm:us-east-1:$ACCOUNT:parameter/other" --query "EvaluationResults[].[EvalResourceName,EvalDecision]"` | `allowed` for the `dev` parameter; `implicitDeny` for the `prod` one and for any other parameter | |
+| `aws iam simulate-principal-policy --policy-source-arn "$ROLE_ARN" --action-names kms:Decrypt --resource-arns "$SSM_KEY_ARN" --context-entries "ContextKeyName=kms:ViaService,ContextKeyValues=ssm.us-east-1.amazonaws.com,ContextKeyType=string" "ContextKeyName=kms:EncryptionContext:PARAMETER_ARN,ContextKeyValues=$DEV_KEY_PARAMETER,ContextKeyType=string" --query "EvaluationResults[].EvalDecision"` | `allowed` (SSM decrypting a `dev` parameter) | |
+| The same without the `kms:ViaService` entry (KMS called directly) | `implicitDeny` | |
+| The same with `kms:ViaService` but `PARAMETER_ARN` set to the `prod` admin key ARN | `implicitDeny` | |

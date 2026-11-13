@@ -48,7 +48,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
 - [x] 3.1 Update `infra/template.yaml` (design D-9, D-15).
   - The two `HttpApi` events, CORS methods `GET`, `POST`, `PUT` and headers `authorization`, `content-type`, the two environment variables with parameter names, and the `ssm:GetParameter` and conditional `kms:Decrypt` statements.
   - Verify: `sam validate --lint` passes, and a review of the template shows no secret value and no permission beyond those of the infrastructure spec.
-- [ ] 3.2 Document the secrets in `infra/README.md`.
+- [x] 3.2 Document the secrets in `infra/README.md`.
   - A "Secret parameters" section under one-time manual setup: how to generate a key, the `aws ssm put-parameter --type SecureString --overwrite` commands for both parameters per environment (with placeholder values only), how to rotate, and the recommended monthly spend limit in the Anthropic Console.
   - A note under migrations: a data migration that sets `opening_hours` reads the current `prod` value first.
   - Verification steps for tasks 6.1 and 6.2: how to call each route with `curl`, and how to check the role's permissions.
