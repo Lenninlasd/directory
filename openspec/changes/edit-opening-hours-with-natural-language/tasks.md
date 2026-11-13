@@ -65,7 +65,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
   - `frontend/src/api/openingHours.ts` with `interpretOpeningHours` and `saveOpeningHours`, and `UnauthorizedError` for `401`. Hooks `useInterpretOpeningHours` and `useSaveOpeningHours`, the second invalidating `BUSINESSES_QUERY_KEY` on success.
   - Tests first: `frontend/test/api/openingHours.test.ts` with a mocked `fetch`, for the URL, method, `Authorization` header, body, each response shape, and `UnauthorizedError`. Hook tests with a fresh `QueryClient` and a mocked API layer, for the invalidation after a save and no retry after a failure.
   - Verify: the tests pass.
-- [ ] 4.3 Add `OpeningHoursEditor.tsx` and admin mode to the dialog (design D-13, D-14, D-18).
+- [x] 4.3 Add `OpeningHoursEditor.tsx` and admin mode to the dialog (design D-13, D-14, D-18).
   - The AI border tokens, the `@property` rule, the glow, and the animation in `frontend/src/index.css`, and the sparkle and magic pencil icons in `icons.tsx`.
   - `Directory` reads `isAdminMode(window.location.search)` once and passes it to `BusinessDetailDialog`. In admin mode, the "Horario" row always shows, with "Sin horario registrado" when empty, and the "Editar con IA" button opens the key dialog of `AdminKeyDialog.tsx` when no key is kept, then the editor (design D-19).
   - Tests first, in `frontend/test/features/businesses/OpeningHoursEditor.test.tsx` and `BusinessDetailDialog.test.tsx`, with a mocked API layer:
