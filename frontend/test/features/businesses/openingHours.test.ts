@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OpeningHoursRange } from '../../../src/api/businesses.ts';
-import { formatOpeningHours } from '../../../src/features/businesses/openingHours.ts';
+import { changedDays, formatDayList, formatOpeningHours } from '../../../src/features/businesses/openingHours.ts';
 
 /** The same opening and closing time on each given day (1 is Monday, 7 is Sunday). */
 function on(days: number[], opens: string, closes: string): OpeningHoursRange[] {
@@ -66,5 +66,55 @@ describe('formatOpeningHours', () => {
 
   it('returns no lines for a business without hours', () => {
     expect(formatOpeningHours([])).toEqual([]);
+  });
+});
+
+// Business-editing spec, "A proposal" and "Editing interface text" (design D-2, D-14).
+describe('changedDays', () => {
+  const week = [...on([1, 2, 3, 4, 5, 6], '08:00', '18:00')];
+
+  it('returns the one day whose hours changed', () => {
+    const proposed = [...on([1, 2, 3, 4, 5], '08:00', '18:00'), ...on([6], '08:00', '14:00')];
+
+    expect(changedDays(week, proposed)).toEqual([6]);
+  });
+
+  it('returns several changed days in week order', () => {
+    const proposed = [...on([1], '07:00', '19:00'), ...on([2, 4, 5, 6], '08:00', '18:00'), ...on([3], '09:00', '18:00')];
+
+    expect(changedDays(week, proposed)).toEqual([1, 3]);
+  });
+
+  it('returns no days for the same week, whatever the order of the ranges', () => {
+    expect(changedDays(week, [...week].reverse())).toEqual([]);
+  });
+
+  it('returns a day that gains a range or loses one', () => {
+    const proposed = [
+      ...on([2, 3, 4, 5, 6], '08:00', '18:00'),
+      { dayOfWeek: 1, opens: '08:00', closes: '12:00' },
+      { dayOfWeek: 1, opens: '14:00', closes: '18:00' },
+      ...on([7], '09:00', '13:00'),
+    ];
+
+    expect(changedDays(week, proposed)).toEqual([1, 7]);
+  });
+
+  it('returns every open day when all hours are removed', () => {
+    expect(changedDays(week, [])).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+});
+
+describe('formatDayList', () => {
+  it('names one day in lowercase', () => {
+    expect(formatDayList([6])).toBe('sábado');
+  });
+
+  it('joins two days with " y "', () => {
+    expect(formatDayList([6, 7])).toBe('sábado y domingo');
+  });
+
+  it('joins several days with ", " and the last two with " y "', () => {
+    expect(formatDayList([1, 3, 6])).toBe('lunes, miércoles y sábado');
   });
 });

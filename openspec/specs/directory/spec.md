@@ -358,11 +358,15 @@ The system SHALL display every business that matches the current search and cate
 - **THEN** the filter shows "Todos" and one option, the count reads "1 negocio", and the featured section appears only if that business has a store
 
 ### Requirement: Business detail dialog
-When the user opens a tile, the system SHALL display a modal dialog with a short cover in the category color and icon, the full business name as its title, the category, the store type badge, a "Ubicación" row with the full location summary, and the rows of "Detail dialog hours and website rows". It SHALL NOT display any other business attribute.
+When the user opens a tile, the system SHALL display a modal dialog with a short cover in the category color and icon, the full business name as its title, the category, the store type badge, a "Ubicación" row with the full location summary, and the rows of "Detail dialog hours and website rows". It SHALL NOT display any other business attribute. In admin mode it SHALL also display the controls of the business-editing spec.
 
 #### Scenario: Dialog content (003 AC-8.1, 003 AC-8.3)
 - **WHEN** the user opens a tile
 - **THEN** the dialog shows the cover, name, category, badge, and full location of that business, plus its hours and website when it has them, and nothing else about it
+
+#### Scenario: Admin mode controls
+- **WHEN** the dialog is open in admin mode
+- **THEN** it also shows the "Editar con IA" button in the "Horario" row and, while editing, the panel of "Opening hours edit flow" in the business-editing spec
 
 #### Scenario: WhatsApp button in the dialog (003 AC-8.2)
 - **WHEN** the business has a valid WhatsApp number
@@ -401,7 +405,7 @@ When the user opens a tile, the system SHALL display a modal dialog with a short
 - **THEN** the dialog closes
 
 ### Requirement: Interface text
-All interface text SHALL be in Spanish, with the exact wording of the table in the first scenario. Everything else (specs, code, and API field names) is in English.
+All interface text SHALL be in Spanish, with the exact wording of the table in the first scenario. Everything else (specs, code, and API field names) is in English. Admin mode text is defined in the business-editing spec.
 
 #### Scenario: Wording table (001 section 3, 003 section 6)
 - **WHEN** the directory shows a text for one of the places in this table
@@ -501,9 +505,9 @@ The directory SHALL NOT include the features in the table of the first scenario.
 | A page or URL per business; search or category kept in the URL | Details open in a dialog. |
 | Extended business attributes | Description, logo, cover image, photos, exact address, coordinates, email, Instagram, catalog link, home delivery flag, payment methods, verification status. They need API and data model changes. |
 | A confirmation dialog for leaving the site | |
-| Managing businesses or categories through the product | The team loads business data through reviewed data migrations (infrastructure spec). Categories are free text. |
+| Managing businesses or categories through the product, except opening hours in admin mode | The team loads all other business data through reviewed data migrations (infrastructure spec). Categories are free text. Opening hours are edited as defined in the business-editing spec. |
 | Business owner accounts and ownership claims | |
-| User accounts, login, favorites, reviews, ratings | |
+| User accounts, login, favorites, reviews, ratings | Admin mode uses one shared key, not an account. |
 | Maps, directions, choosing a delivery address | The header only names the area. |
 | Interface languages other than Spanish | |
 | Analytics and usage tracking | |
@@ -514,7 +518,7 @@ The directory SHALL NOT include the features in the table of the first scenario.
 - **THEN** the same change removes its row from the table and specifies the new behavior as requirements
 
 ### Requirement: Detail dialog hours and website rows
-Below "Ubicación", the detail dialog SHALL display a "Horario" row when the business has opening hours, and then a "Página web" row when it has a website. A row without data SHALL NOT be displayed.
+Below "Ubicación", the detail dialog SHALL display a "Horario" row when the business has opening hours, and then a "Página web" row when it has a website. A row without data SHALL NOT be displayed, except the "Horario" row in admin mode.
 
 #### Scenario: Opening hours row
 - **WHEN** the business has opening hours
@@ -525,8 +529,12 @@ Below "Ubicación", the detail dialog SHALL display a "Horario" row when the bus
 - **THEN** the dialog shows a "Página web" row after the other rows, with the link defined in "Website link"
 
 #### Scenario: No hours or no website
-- **WHEN** `openingHours` is `[]` or `websiteUrl` is `null`
+- **WHEN** `openingHours` is `[]` or `websiteUrl` is `null`, outside admin mode
 - **THEN** the dialog does not show that row, and shows no text in its place
+
+#### Scenario: No hours in admin mode
+- **WHEN** `openingHours` is `[]` in admin mode
+- **THEN** the dialog shows the "Horario" row with "Sin horario registrado" and the "Editar con IA" button
 
 ### Requirement: Website validity
 A stored website SHALL be valid when it is an absolute URL with the `https` scheme. The API SHALL return a valid website as `websiteUrl`, and `null` for a missing or invalid one.

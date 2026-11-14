@@ -5,6 +5,7 @@ Carried over from the archived [tasks 002](../archive/2026-10-23-002-infrastruct
 ## 1. Production deploy (002-T10)
 
 - [ ] 1.1 Create the `alameda-prod` Pages project once and set its URL in the `prod` section of `infra/samconfig.toml`. Then `infra/deploy.sh prod` (confirmation required). Never seed. Re-run the 002-T6 checks and the HTTPS checks of 002-T7 against `prod`. Run spec 001 manual check 5 against `prod`. Covers spec 002 completion criteria 2, 4, 5; AC-1.2, AC-6.2, NFR-4. Verify: `prod` serves the directory over HTTPS, the database is not reachable over the network, deletion protection is on, and results are recorded.
+  - Opening hours editing (moved from task 6.5 of `edit-opening-hours-with-natural-language`, design D-3): before the deploy, the owner creates `/alameda/prod/admin-key` and `/alameda/prod/anthropic-api-key` with new values, never the `dev` ones (`infra/README.md`, "Secret parameters"), and sets a monthly spend limit for the `prod` Anthropic key. Verify: `?admin` and a save work in `prod`, the `dev` admin key gets `401` from `prod`, and the `prod` admin key gets `401` from `dev`.
 
 ## 2. Initial business data (002-T11)
 

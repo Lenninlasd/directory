@@ -1,3 +1,4 @@
+import type { Execute } from '../db/dataApi.ts';
 import type { BusinessRow } from '../domain/business.ts';
 
 /** Runs a SQL statement and returns its records as plain objects (RDS Data API, JSON format). */
@@ -66,4 +67,46 @@ function toBusinessRow(record: Record<string, unknown>): BusinessRow {
 export async function findActiveBusinessRows(query: QueryRecords): Promise<BusinessRow[]> {
   const records = await query(FIND_ACTIVE_BUSINESSES_SQL);
   return records.map(toBusinessRow);
+}
+
+// Design D-10: the id comes from the URL, so it is always a named parameter, cast in SQL.
+// The service checks the UUID format first, so a malformed id never reaches the cast.
+const FIND_ACTIVE_BUSINESS_OPENING_HOURS_SQL = `
+SELECT opening_hours::text AS opening_hours
+FROM businesses
+WHERE id = CAST(:id AS uuid) AND is_active = true
+`;
+
+// `is_active` in the UPDATE too, so a business deactivated after it was read is never written.
+const UPDATE_ACTIVE_BUSINESS_OPENING_HOURS_SQL = `
+UPDATE businesses SET opening_hours = CAST(:openingHours AS jsonb)
+WHERE id = CAST(:id AS uuid) AND is_active = true
+RETURNING id::text AS id
+`;
+
+/**
+ * The stored hours of one active business, as raw JSON text (business-editing spec, "Opening hours
+ * interpretation"). Returns `null` when no active business has that id, and `{ openingHours: null }`
+ * when the business exists but has no hours.
+ */
+export async function findActiveBusinessOpeningHours(
+  execute: Execute,
+  id: string,
+): Promise<{ openingHours: string | null } | null> {
+  const [record] = await execute(FIND_ACTIVE_BUSINESS_OPENING_HOURS_SQL, { id });
+  return record === undefined ? null : { openingHours: readNullableString(record, 'opening_hours') };
+}
+
+/**
+ * Stores the hours of one active business (business-editing spec, "Opening hours update"). The caller
+ * passes a week already checked by `validateOpeningHoursForWriting`, as JSON text. Returns `false`
+ * when no active business has that id, so nothing was written.
+ */
+export async function updateActiveBusinessOpeningHours(
+  execute: Execute,
+  id: string,
+  openingHoursJson: string,
+): Promise<boolean> {
+  const records = await execute(UPDATE_ACTIVE_BUSINESS_OPENING_HOURS_SQL, { id, openingHours: openingHoursJson });
+  return records.length > 0;
 }

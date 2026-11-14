@@ -1,0 +1,8 @@
+schema: spec-driven
+created: 2026-11-11
+# Approval of the whole change (proposal, specs, design, tasks) before apply (AGENTS.md, hard boundary 2).
+# It includes the two new packages of design D-17, @anthropic-ai/sdk and @aws-sdk/client-ssm (hard boundary 5).
+x-approved: "2026-11-11, by the project owner in chat"
+# Revision of the editing interface after the owner tried it (design D-18, D-19, D-20; tasks 4.3).
+x-revision-approved: "2026-11-12, by the project owner in chat"
+# Task 6.5 (prod parameters and deploy) moved to task 1.1 of finish-mvp-rollout by the project owner in chat on 2026-11-14.

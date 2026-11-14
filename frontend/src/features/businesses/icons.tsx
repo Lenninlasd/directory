@@ -48,6 +48,23 @@ export const ExternalLinkIcon = (props: IconProps) => (
   </StrokeIcon>
 );
 
+// Marks the opening hours text box as an AI feature (business-editing spec, "AI indicator").
+export const SparkleIcon = (props: IconProps) => (
+  <StrokeIcon {...props}>
+    <path d="M10 4.5 11.6 9.4 16.5 11 11.6 12.6 10 17.5 8.4 12.6 3.5 11 8.4 9.4Z" />
+    <path d="M18 3v4M16 5h4M18 15.5v3M16.5 17h3" />
+  </StrokeIcon>
+);
+
+// On the "Editar con IA" button: a pencil with sparkles (business-editing spec, "Editing interface text").
+export const MagicPencilIcon = (props: IconProps) => (
+  <StrokeIcon {...props}>
+    <path d="M4 20l1-4.5L15 5.5a2.1 2.1 0 0 1 3 3L8.5 19z" />
+    <path d="m13.5 7 3 3" />
+    <path d="M19.5 13.5v4M17.5 15.5h4M6 3.5v3M4.5 5h3" />
+  </StrokeIcon>
+);
+
 export const StoreIcon = (props: IconProps) => (
   <StrokeIcon {...props}>
     <path d="M4.5 4h15L21 9H3z" />

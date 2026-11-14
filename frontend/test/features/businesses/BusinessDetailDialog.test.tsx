@@ -279,3 +279,68 @@ describe('BusinessDetailDialog: page around it', () => {
     expect(document.documentElement).not.toHaveClass('overflow-hidden');
   });
 });
+
+// Directory spec, "Business detail dialog" and "No hours in admin mode"; business-editing spec, "Admin mode".
+describe('BusinessDetailDialog: admin mode', () => {
+  afterEach(() => {
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('shows no editing control or admin text without ?admin', async () => {
+    await renderDirectory(createQueryClient(), [bakery, tutoring]);
+
+    openTile(bakery);
+
+    const dialog = screen.getByRole('dialog', { name: bakery.name });
+    expect(within(dialog).queryByRole('button', { name: 'Editar con IA' })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sin horario registrado')).not.toBeInTheDocument();
+  });
+
+  it('shows "Editar con IA" in the "Horario" row with ?admin', async () => {
+    window.history.replaceState(null, '', '/?admin');
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    const dialog = screen.getByRole('dialog', { name: bakery.name });
+    expect(within(dialog).getByText('Lunes a viernes · 8:00 a. m. – 6:00 p. m.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Editar con IA' })).toBeInTheDocument();
+  });
+
+  it('puts "Editar con IA" right after the "Horario" label, before the hours, so Tab follows what is seen', async () => {
+    window.history.replaceState(null, '', '/?admin');
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    const dialog = screen.getByRole('dialog', { name: bakery.name });
+    const label = within(dialog).getByText('Horario');
+    const editButton = within(dialog).getByRole('button', { name: 'Editar con IA' });
+    const firstLine = within(dialog).getByText('Lunes a viernes · 8:00 a. m. – 6:00 p. m.');
+    expect(label.compareDocumentPosition(editButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(editButton.compareDocumentPosition(firstLine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows the "Horario" row with "Sin horario registrado" for a business without hours', async () => {
+    window.history.replaceState(null, '', '/?admin=1');
+    await renderDirectory(createQueryClient(), [tutoring]);
+
+    openTile(tutoring);
+
+    const dialog = screen.getByRole('dialog', { name: tutoring.name });
+    expect(within(dialog).getByText('Horario')).toBeInTheDocument();
+    expect(within(dialog).getByText('Sin horario registrado')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Editar con IA' })).toBeInTheDocument();
+  });
+
+  it('keeps the list and search working as usual', async () => {
+    window.history.replaceState(null, '', '/?admin');
+    await renderDirectory(createQueryClient(), [bakery, tutoring]);
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar negocios' }), { target: { value: 'tutorías' } });
+
+    const results = screen.getByRole('region', { name: 'Todos los negocios' });
+    expect(within(results).getByText('1 negocio')).toBeInTheDocument();
+  });
+});

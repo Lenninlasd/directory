@@ -78,9 +78,46 @@
   --color-category-other-to: #00786f; /* teal-700 */
   --color-category-other-tint: #cbfbf1; /* teal-100 */
 
+  /*
+   * AI feature border (business-editing spec, "AI indicator"; design D-18). Decorative, it carries no
+   * text: sRGB hex of the Tailwind 4.3 default palette shades named in the comment, like the category
+   * tokens. Blue to magenta, so the gradient between them passes through violet.
+   */
+  --color-ai-from: #2b7fff; /* blue-500 */
+  --color-ai-to: #e12afb; /* fuchsia-500 */
+  /*
+   * Focus indicator of the AI text box (business-editing spec, "Focus indicator of the text box"):
+   * a soft blur around the gradient border, which keeps its width with or without the focus.
+   */
+  --shadow-ai-glow: 0 0 14px 1px color-mix(in srgb, var(--color-ai-to) 60%, transparent);
+  /* One slow turn of the border's gradient, only while the model works. */
+  --animate-ai-border-spin: ai-border-spin 4s linear infinite;
+  @keyframes ai-border-spin {
+    to {
+      --ai-border-angle: 360deg;
+    }
+  }
+
   --spacing: 0.25rem;
 
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Registered as an angle, so the browser can animate it and the conic gradient turns (design D-18). */
+@property --ai-border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* The gradient behind the 2 px padding of the text box wrapper. */
+@utility bg-ai-border {
+  background-image: conic-gradient(
+    from var(--ai-border-angle),
+    var(--color-ai-from),
+    var(--color-ai-to),
+    var(--color-ai-from)
+  );
 }
 
 /* Keeps the scrollbar space while the dialog sets overflow-hidden on html (plan 003 R-5). */

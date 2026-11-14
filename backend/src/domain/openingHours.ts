@@ -21,6 +21,11 @@ function toRange(value: unknown): OpeningHoursRange | null {
   return validDay && validTimes && closes > opens ? { dayOfWeek, opens, closes } : null;
 }
 
+/** By day, then by opening time. Times are zero-padded, so they compare correctly as strings. */
+function compareRanges(left: OpeningHoursRange, right: OpeningHoursRange): number {
+  return left.dayOfWeek - right.dayOfWeek || (left.opens < right.opens ? -1 : left.opens > right.opens ? 1 : 0);
+}
+
 function parseJson(raw: string): unknown {
   try {
     return JSON.parse(raw);
@@ -43,7 +48,60 @@ export function normalizeOpeningHours(raw: string | null): OpeningHoursRange[] {
   if (ranges.some((range) => range === null)) {
     return [];
   }
-  return (ranges as OpeningHoursRange[]).sort(
-    (left, right) => left.dayOfWeek - right.dayOfWeek || (left.opens < right.opens ? -1 : left.opens > right.opens ? 1 : 0),
-  );
+  return (ranges as OpeningHoursRange[]).sort(compareRanges);
+}
+
+/** The result of checking a week before it is stored: the sorted ranges, or why it was rejected. */
+export type OpeningHoursValidation =
+  | { valid: true; ranges: OpeningHoursRange[] }
+  | { valid: false; problems: string[] };
+
+/**
+ * Validates a week that is about to be stored (business-editing spec, "Opening hours for writing").
+ * It applies the read rules and also rejects ranges of the same day that overlap. Unlike
+ * `normalizeOpeningHours`, it says why a week is invalid, and `[]` is a valid week (no hours).
+ * The problems are in English, for logs and tests (design D-6).
+ */
+export function validateOpeningHoursForWriting(value: unknown): OpeningHoursValidation {
+  if (!Array.isArray(value)) {
+    return { valid: false, problems: ['Opening hours must be a list of ranges'] };
+  }
+
+  const ranges: OpeningHoursRange[] = [];
+  const problems: string[] = [];
+  value.forEach((item, index) => {
+    const range = toRange(item);
+    if (range === null) {
+      problems.push(
+        `Range ${index + 1} is not valid: it needs a day from 1 to 7 and HH:MM times with closes later than opens`,
+      );
+    } else {
+      ranges.push(range);
+    }
+  });
+  if (problems.length > 0) {
+    return { valid: false, problems };
+  }
+
+  ranges.sort(compareRanges);
+  // Sorted by day and opening time, so a range overlaps an earlier one of its day exactly when it
+  // opens before the latest closing time seen so far that day. Comparing only with the range right
+  // before it would miss a long range followed by two short ones. Ranges that only touch (one
+  // closes when the next opens) do not overlap.
+  let latest: OpeningHoursRange | undefined;
+  for (const range of ranges) {
+    if (latest === undefined || latest.dayOfWeek !== range.dayOfWeek) {
+      latest = range;
+      continue;
+    }
+    if (range.opens < latest.closes) {
+      problems.push(
+        `Ranges ${latest.opens}-${latest.closes} and ${range.opens}-${range.closes} of day ${range.dayOfWeek} overlap`,
+      );
+    }
+    if (range.closes > latest.closes) {
+      latest = range;
+    }
+  }
+  return problems.length > 0 ? { valid: false, problems } : { valid: true, ranges };
 }

@@ -41,4 +41,34 @@ describe('strings', () => {
       closedDay: 'Cerrado',
     });
   });
+
+  it('has the exact texts of the editing interface (business-editing spec, "Editing interface text")', () => {
+    expect(strings).toMatchObject({
+      editOpeningHours: 'Editar con IA',
+      noOpeningHours: 'Sin horario registrado',
+      openingHoursRequestLabel: '¿Qué cambia en el horario?',
+      openingHoursRequestPlaceholder: 'Ej.: de lunes a viernes de 8 a. m. a 6 p. m., o el sábado cerramos a las 2 p. m.',
+      cancel: 'Cancelar',
+      interpreting: 'Interpretando…',
+      proposalTitle: 'Nuevo horario',
+      noChanges: 'No hay cambios en el horario.',
+      save: 'Guardar',
+      saving: 'Guardando…',
+      saved: 'Horario actualizado',
+      notUnderstood: 'No entendí el cambio. Intenta escribirlo de otra forma.',
+      interpretationError: 'No pudimos procesar el cambio. Inténtalo de nuevo.',
+      saveError: 'No pudimos guardar el horario. Inténtalo de nuevo.',
+      adminKeyLabel: 'Clave de administrador',
+      adminKeyContinue: 'Continuar',
+      wrongAdminKey: 'Clave incorrecta',
+    });
+  });
+
+  it('has no text for a send button, since Enter sends the request (design D-20)', () => {
+    expect(strings).not.toHaveProperty('reviewChange');
+  });
+
+  it('lists the changed days after "Días con cambios:"', () => {
+    expect(strings.changedDays('lunes, miércoles y sábado')).toBe('Días con cambios: lunes, miércoles y sábado');
+  });
 });
