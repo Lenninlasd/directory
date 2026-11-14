@@ -99,11 +99,14 @@ Each task writes its tests first and confirms they fail for the right reason bef
   - The Lambda reads both parameters. With the role's credentials simulated in the IAM policy simulator, `ssm:GetParameter` on another parameter and `kms:Decrypt` outside SSM are denied.
   - Verify: note the results in this task.
   - Done 2026-11-13. The Lambda reads both parameters: the understood interpretations of task 6.1 need the admin key and the Anthropic key. The role has one inline policy, `api-access`, and no managed policies. It holds the three statements of 002-T6, `ssm:GetParameter` on the two `/alameda/dev/` parameters, and `kms:Decrypt` on `key/*` with `kms:ViaService` = `ssm.us-east-1.amazonaws.com` and `kms:EncryptionContext:PARAMETER_ARN` equal to one of the two parameters. The Lambda environment holds the two parameter names and no value. Simulator, one resource per call (several resources in one call give a single merged result for SSM): `ssm:GetParameter` is `allowed` on both `dev` parameters and `implicitDeny` on both `prod` parameters and on `/other`; `ssm:PutParameter`, `ssm:GetParameters`, and `ssm:DeleteParameter` on a `dev` parameter are `implicitDeny`. `kms:Decrypt` on the `aws/ssm` key is `allowed` through SSM for each `dev` parameter, and `implicitDeny` without `kms:ViaService` (KMS called directly), for a `prod` parameter, and for another parameter; `kms:Encrypt` is `implicitDeny`.
-- [ ] 6.3 Measure times in `dev` (design D-11).
+- [x] 6.3 Measure times in `dev` (design D-11).
   - Interpretation latency on a cold and a warm Lambda, and `GET /businesses` on a cold Lambda, compared with the performance check of the infrastructure spec.
   - Verify: note the numbers in this task. If an interpretation comes close to 10 seconds, stop and propose a change through `/opsx:update`.
-- [ ] 6.4 Run the eval with the owner's approval of its cost.
+  - Done 2026-11-14, with `curl` and the database already resumed (both Lambdas had `Init Duration`). Interpretation: 6.3 s cold, 2.3 to 2.6 s warm, far from 10 seconds. `GET /businesses`: 2.3 s cold (1.9 s in 002-T9, before the two SDKs were bundled), 0.4 to 1.2 s warm. Under the budget of about 3 seconds, but with less margin; the owner decides if it needs a change.
+- [x] 6.4 Run the eval with the owner's approval of its cost.
   - Verify: note the accuracy, tokens, and cost in this task. The owner decides if it is good enough for `prod`.
+  - Run 2026-11-14 with the `dev` key (cost approved by the owner in chat): 24/25 (96%), 35,058 input and 5,224 output tokens, US$0.0061, 39 s, `opening-hours-v1`. The only failure is "abiertos 24 horas" over Monday to Saturday: the model also opened Sunday, the opposite of the owner's first run, so the model is not consistent on this case.
+  - Second run the same day: 24/25 again, the same failure, US$0.0060. Accepted for `prod` by the owner, whose rule was a second score equal or higher. The case stays as material for a later `opening-hours-v2`.
 - [ ] 6.5 The owner creates the `prod` parameters with new values and deploys `prod`.
   - Verify: `?admin` and a save work in `prod`, and the `prod` key is rejected by `dev`.
 
