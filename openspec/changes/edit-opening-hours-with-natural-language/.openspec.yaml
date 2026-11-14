@@ -5,3 +5,4 @@ created: 2026-11-11
 x-approved: "2026-11-11, by the project owner in chat"
 # Revision of the editing interface after the owner tried it (design D-18, D-19, D-20; tasks 4.3).
 x-revision-approved: "2026-11-12, by the project owner in chat"
+# Task 6.5 (prod parameters and deploy) moved to task 1.1 of finish-mvp-rollout by the project owner in chat on 2026-11-14.

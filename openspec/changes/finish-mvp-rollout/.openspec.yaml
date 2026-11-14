@@ -5,3 +5,5 @@ created: 2026-11-11
 skip_specs: true
 # These tasks were approved as 002-T10 and 002-T11 of tasks 002; adopt-openspec carried them over.
 x-approved: "2026-11-02, as tasks 002-T10 and 002-T11 of tasks 002; carried over on 2026-11-11"
+# Task 1.1 also takes over task 6.5 of edit-opening-hours-with-natural-language (design D-3).
+x-revision-approved: "2026-11-14, by the project owner in chat"

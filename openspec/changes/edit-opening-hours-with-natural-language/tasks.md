@@ -107,8 +107,7 @@ Each task writes its tests first and confirms they fail for the right reason bef
   - Verify: note the accuracy, tokens, and cost in this task. The owner decides if it is good enough for `prod`.
   - Run 2026-11-14 with the `dev` key (cost approved by the owner in chat): 24/25 (96%), 35,058 input and 5,224 output tokens, US$0.0061, 39 s, `opening-hours-v1`. The only failure is "abiertos 24 horas" over Monday to Saturday: the model also opened Sunday, the opposite of the owner's first run, so the model is not consistent on this case.
   - Second run the same day: 24/25 again, the same failure, US$0.0060. Accepted for `prod` by the owner, whose rule was a second score equal or higher. The case stays as material for a later `opening-hours-v2`.
-- [ ] 6.5 The owner creates the `prod` parameters with new values and deploys `prod`.
-  - Verify: `?admin` and a save work in `prod`, and the `prod` key is rejected by `dev`.
+- 6.5 Moved on 2026-11-14 to task 1.1 of `finish-mvp-rollout` (owner's choice): `prod` does not exist yet, and its first deploy, after this change is merged, carries the editing routes. That task now creates the `prod` parameters and runs these checks.
 
 ## Workflow follow-up
 

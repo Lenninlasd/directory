@@ -80,5 +80,5 @@ Documentation checked on 2026-11-11:
 1. Install the two packages after the owner's approval and record them in `docs/dependencies.md`.
 2. Create the two `dev` parameters with the documented `aws ssm put-parameter --type SecureString` commands, then deploy `dev`.
 3. Run the checks of tasks 6.1 to 6.3 and the eval in `dev`.
-4. Create the two `prod` parameters, with different values, and deploy `prod`.
+4. Create the two `prod` parameters, with different values, and deploy `prod`. This is task 1.1 of `finish-mvp-rollout`, which creates `prod` after this change is merged.
 5. Rollback: redeploy the previous backend and frontend. The parameters can stay, since the old Lambda ignores them, and the stored hours keep their format.
