@@ -45,7 +45,7 @@ A form response with the authorization checked, followed by the confirmation mes
 
 #### Scenario: A confirmed request
 - **WHEN** a response with the number `3001234567` is followed by the confirmation message from `+57 300 123 4567`
-- **THEN** the administrator may load the business with the number `573001234567` through a reviewed data migration
+- **THEN** the administrator may load the business through a reviewed data migration without its number, and then save `573001234567` as authorized in admin mode
 
 #### Scenario: No confirmation
 - **WHEN** no confirmation arrives from the number of a response, or it arrives from another number

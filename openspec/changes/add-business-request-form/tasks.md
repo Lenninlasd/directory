@@ -7,7 +7,7 @@ Each task writes its tests first and confirms they fail for the right reason. Ea
 - [ ] 1.1 Create the form (owner-contact spec, "Add a business form" and "Form authorization"; design D-1, D-2).
   - First check that `openspec/specs/owner-contact/spec.md` exists, so `add-number-authorization` is archived.
   - After the owner approves Google Forms in chat, add it to the services table of `docs/dependencies.md`, with the date.
-  - Write `docs/add-business-form.md`: how to create the form from the spec, and how to process each response (match the number, keep the response and the chat, write the data migration).
+  - Write `docs/add-business-form.md`: how to create the form from the spec, and how to process each response (match the number, keep the response and the chat, write the data migration without the number, then save the number as authorized in admin mode).
   - The owner creates the form from the checklist and gives its address.
   - Verify: the form rejects `300123456` and `6001234567`, accepts `3001234567`, cannot be sent without the checkbox, and its confirmation link opens WhatsApp with the confirmation text.
 - [ ] 1.2 Add the floating button (owner-contact spec, "Add a business button"; design D-3, D-4).

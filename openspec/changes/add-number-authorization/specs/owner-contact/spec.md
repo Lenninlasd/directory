@@ -9,13 +9,21 @@ How the directory's administrator gets and proves an owner's authorization to pu
 ### Requirement: Number authorization
 A WhatsApp number of a natural person SHALL be published only after that person authorizes it in a way this spec defines, and after the administrator keeps the evidence outside the repository. One way is replying "Sí, autorizo" from that number to the administrator's invitation, which names the data to publish and links the policy page. Silence or a reply from another number SHALL NOT count.
 
+#### Scenario: A number before its authorization
+- **WHEN** the administrator has a person's number that is not authorized yet
+- **THEN** it may be stored as unauthorized through the admin routes of the business-editing spec, only to ask for the authorization, and only the admin can see it
+
 #### Scenario: An authorized number
 - **WHEN** the owner replies "Sí, autorizo" from `+57 300 123 4567` to the invitation
-- **THEN** the administrator saves the exported chat outside the repository, and may then load `573001234567` through a reviewed data migration
+- **THEN** the administrator saves the exported chat outside the repository, and then marks `573001234567` as authorized in admin mode
 
 #### Scenario: No valid authorization
-- **WHEN** the owner does not reply, refuses, or replies from another number
-- **THEN** the number is not published, and the business may still be published without it
+- **WHEN** the owner does not reply, or replies from another number
+- **THEN** the number stays unauthorized and is not published, and the business may still be published without it
+
+#### Scenario: A refusal
+- **WHEN** the owner refuses
+- **THEN** the administrator removes the stored number
 
 #### Scenario: A company number
 - **WHEN** the number belongs to a company with a tax id (NIT)
@@ -26,7 +34,7 @@ A request to correct or remove a business SHALL be accepted only when it comes f
 
 #### Scenario: A removal from the published number
 - **WHEN** the owner asks for a removal from the business's published number
-- **THEN** the administrator deactivates the business through a data migration deployed within 15 business days
+- **THEN** within 15 business days the administrator deactivates the business through a deployed data migration, or removes only the number in admin mode if that is what the owner asks
 
 #### Scenario: A request from another number
 - **WHEN** the request comes from a number that is not the published one
@@ -60,7 +68,7 @@ The system SHALL serve a page at `/politica-de-datos` with the data processing p
 | Heading | "Responsable" |
 | Text | "{nombre}, administrador del Directorio de Alameda del Río. Barranquilla, Colombia. Correo: {correo}. WhatsApp: {whatsapp}." |
 | Heading | "Qué datos tratamos" |
-| Text | "Publicamos el nombre, la categoría, la ubicación general, si tiene local físico, el horario, la página web y el número de WhatsApp de cada negocio. Si el número es de una persona, solo lo publicamos con su autorización. No recogemos datos de quienes visitan el directorio." |
+| Text | "Publicamos el nombre, la categoría, la ubicación general, si tiene local físico, el horario, la página web y el número de WhatsApp de cada negocio. Si el número es de una persona, solo lo publicamos con su autorización. Mientras se la pedimos, lo guardamos sin publicarlo, y lo borramos si no la da. No recogemos datos de quienes visitan el directorio." |
 | Heading | "Para qué los usamos" |
 | Text | "Para mostrar los negocios del sector en este directorio, que es público en internet, y para que los vecinos los encuentren y les escriban por WhatsApp. No los usamos para nada más." |
 | Heading | "Tus derechos" |
