@@ -1,6 +1,6 @@
 # Proposal: Import the Google Maps businesses
 
-> **Status: draft for direction review.** At the owner's request (2026-11-21), the spec deltas and `tasks.md` are written only after the owner approves the direction. Sections marked **Owner decision** must be settled first.
+> **Status: draft for direction review.** At the owner's request (2026-11-21), the spec deltas and `tasks.md` are written only after the owner approves the direction. Owner decisions B, C, and D were settled in chat on 2026-11-21. A is still open (see "Owner decisions").
 
 ## Why
 
@@ -9,7 +9,7 @@ The directory still lists only the invented `dev` rows. The Google Maps pipeline
 ## What Changes
 
 - **Three new public API fields** on `GET /businesses`: `mapsUrl`, `description`, and `instagramUrl`. Each has a validity rule and is `null` when missing or invalid, like `websiteUrl`. Adding fields does not break the current frontend, which ignores fields it does not know.
-- **Detail dialog** (recommended, see Owner decision B): a "Ver en Google Maps" link in the "Ubicación" row, the description below the store type badge, and an "Instagram" row after "Página web". The tile does not change.
+- **Detail dialog** (Owner decision B): a "Ver en Google Maps" link in the "Ubicación" row, the description below the store type badge, and an "Instagram" row after "Página web". The tile does not change.
 - **Twelve private fields** are stored as columns (`googlePlaceId`, `latitude`, `longitude`, `coordinatesSource`, `sourceType`, `sourceCategory`, `activityScore`, `activityAsOf`, `lastVerifiedAt`, `consentedAt`, `consentChannel`, `adminNotes`). They are never returned by the API, and a contract test checks the exact field list.
 - **A new way to load businesses**, which replaces committed data migrations: a local import command, run like `backend/scripts/migrate.ts`, reads `businesses.json` from outside the repository and writes it through the RDS Data API with the developer's credentials. No business values are ever committed. See conflict 1.
 - **Import rules:**
@@ -18,7 +18,7 @@ The directory still lists only the invented `dev` rows. The Google Maps pipeline
   - A business missing from a newer file is deactivated, never deleted.
   - Rows without a place id, such as the `dev` seed, are never touched.
   - Opening hours changed in admin mode are kept, not overwritten.
-- **Publication rules become binding.** The rules this change depends on move from `docs/ideas/business-sourcing.md`, which is not binding, into a spec. The import enforces them a second time, after the pipeline: a WhatsApp number only with recorded consent, and the home location rule of Owner decision C.
+- **Publication rules become binding.** The rules this change depends on move from `docs/ideas/business-sourcing.md`, which is not binding, into a spec. The import enforces the consent rule a second time, after the pipeline: a WhatsApp number only with recorded consent. Home addresses are kept out by the pipeline (Owner decision C).
 - **Deliberate exclusions (directory spec):**
   - The "Extended business attributes" row is narrowed: description and Instagram leave it. Exact address, coordinates, logo, images, and the rest stay excluded.
   - The "Maps, directions" row is clarified: a link to the business's own Google Maps listing is allowed, while embedded maps and directions stay excluded.
@@ -44,7 +44,7 @@ With A, the requirement becomes: business rows are added, changed, or deactivate
 
 Its task 2.1 plans "one data migration" with the real businesses, which conflicts with option A.
 
-**Recommendation: amend `finish-mvp-rollout` and make it depend on this change**, following the precedent of its design D-3:
+**Decided (Owner decision D, 2026-11-21): amend `finish-mvp-rollout` and make it depend on this change**, following the precedent of its design D-3:
 
 - Rewrite task 2.1: import the file reviewed in `dev` into `prod` with this change's command, after the owner's review in `dev`.
 - Tasks 1.1 and 2.1 start only after this change is merged and archived. That way the single `prod` deploy already has the new columns, and `skip_specs: true` stays valid, because the infrastructure spec will then describe the import.
@@ -82,14 +82,24 @@ Discarded:
 | 2. Tower or complex only | For example "Torre 5, conjunto", with no apartment, house, or "interno" number | Still required: it still points to an identifiable household, but the risk is lower and minimization is met | Narrows the rule to "never an apartment, house, or interno number" | Refuses a number after those words. A home location also needs recorded consent |
 | 3. Leave them out | Nothing, until each owner authorizes | Not needed while they are out | None | Refuses any home-like location (today's plan) |
 
-**Recommendation: option 2 with each owner's authorization, and option 3 for any of the three until theirs is recorded.** It is one WhatsApp message per owner. The pipeline already has the fields (`consented_at`, `consent_channel` in the decisions file). The same message can confirm the exact location text and whether they receive customers at home, because a "no" means `hasPhysicalStore: false` ("Solo domicilios"). If one of them already agreed in a chat, recording it in the decisions file is all that is missing.
+**The complex name only** (the owner asked about it on 2026-11-21) lowers the risk further, but the authorization is still needed:
 
-## Owner decisions needed before the deltas and tasks
+- Personal data is any information that can be associated with a determined or determinable natural person (Law 1581 art. 3). "This business is in conjunto X", said of a business run from a home, says where its owner lives.
+- The business name, its Instagram profile, and above all the "Ver en Google Maps" link, which opens a listing with the full address, make that person determinable.
+- Nothing makes the complex name public data. A lawyer could accept it as minimal, but this project has no such opinion.
 
-- **A. Loading path.** Confirm option A of conflict 1.
-- **B. Interface scope.** Show the three new fields in the detail dialog in this change (recommended), or return them from the API now and add the dialog rows in a later change.
-- **C. Home-based businesses.** Choose option 1, 2, or 3 of conflict 3.
-- **D. `finish-mvp-rollout`.** Confirm "amend and depend" from conflict 2.
+**Decided (Owner decision C, revised 2026-11-21): the pipeline removes the address, and the three businesses stay.**
+
+- In the pipeline's decisions file, the owner sets their location to "Ventas desde casa, Alameda del Río" and `has_physical_store` to `no`. Their badge then reads "Solo domicilios", and they leave "Visítalos en su tienda".
+- Their `mapsUrl` stays. It opens their own Google listing, which copies nothing (the `link` level of the policy).
+- The directory never receives a home address, so this change adds no home location rule (design D-9). The policy "publishing home addresses: rejected" stays as it is.
+
+## Owner decisions
+
+- **A. Loading path.** Open: confirm option A of conflict 1.
+- **B. Interface scope.** Decided 2026-11-21: the three new fields are shown in the detail dialog in this change.
+- **C. Home-based businesses.** Decided 2026-11-21, revised the same day: the pipeline removes the address, and the businesses stay (conflict 3).
+- **D. `finish-mvp-rollout`.** Decided 2026-11-21: amend it and make it depend on this change (conflict 2).
 
 ## Out of scope
 
@@ -99,6 +109,7 @@ Discarded:
 - The Google rating, which comes later, fetched live from the Places API with the place id and never stored.
 - Requiring `lastVerifiedAt`. It is only recorded, and the owner decides what reaches `prod` by reviewing `dev`.
 - New category icons and colors. The categories that keep Google's name use the existing fallback (tag, teal).
+- Publishing a home address or any part of one, such as the tower, the apartment, or the complex name. The pipeline keeps it out (Owner decision C).
 - Editing the new fields in admin mode, and deleting businesses.
 - Running the pipeline from this repository, or sharing code with it.
 - The data processing policy page and the "¿Es tu negocio?" removal link from the ideas document. They are recommended as their own change before `prod` publishes any personal data (design, "Risks").
@@ -107,14 +118,14 @@ Discarded:
 
 ### New Capabilities
 
-- `business-import`: loading businesses from the pipeline's handoff file. Covers the file contract, the validation and publication rules applied at import (consent, home location, private fields), the upsert key, deactivation, the dry run, the `dev` before `prod` review, and keeping hours edited in admin mode.
+- `business-import`: loading businesses from the pipeline's handoff file. Covers the file contract, the validation and publication rules applied at import (consent, private fields), the upsert key, deactivation, the dry run, the `dev` before `prod` review, and keeping hours edited in admin mode.
 
 ### Modified Capabilities
 
 - `directory`:
   - "Business list API": eleven fields.
   - New validity requirements for the Maps link, the Instagram link, and the description.
-  - "Business detail dialog" and "Detail dialog hours and website rows": the new rows, depending on Owner decision B.
+  - "Business detail dialog" and "Detail dialog hours and website rows": the new rows (Owner decision B).
   - "Interface text": the new Spanish texts.
   - "Public access without an account": "contact information" becomes "public information", since a description is not contact data.
   - "Deliberate exclusions": the two rows above.
@@ -131,7 +142,7 @@ Discarded:
   - Repository SQL.
   - `backend/scripts/import-businesses.ts`.
   - The public `SELECT` adds only the three public columns.
-- **Frontend:** the `Business` type, the dialog rows, and `strings.ts` (if Owner decision B is "in this change").
+- **Frontend:** the `Business` type, the dialog rows, and `strings.ts`.
 - **Documentation:** the import procedure in `infra/README.md`, covering the dry run, the `dev` review, and the `prod` promotion.
 - **Other changes:** `finish-mvp-rollout` is amended (conflict 2).
 - **No new packages and no AWS changes.** Hashing and file reading use `node:crypto` and `node:fs`, and the Lambda role does not change.
