@@ -22,6 +22,7 @@
   - The engine is Aurora PostgreSQL `17.11` (`infra/template.yaml`). The design relies on `INSERT … ON CONFLICT` and on a `UNIQUE` nullable column, where several `NULL`s do not conflict. Both are standard PostgreSQL. They are checked against the Aurora PostgreSQL 17 documentation when the migrations are written (AGENTS.md, "Architecture rules").
 - **Documentation checked:**
   - 2026-11-22, task 1.1: PostgreSQL 17 manual, `ALTER TABLE`. One statement may hold several `ADD COLUMN` actions separated by commas, a column without a default is `NULL` and needs no table rewrite, and `NULL` is an allowed column constraint. "Amazon Aurora PostgreSQL updates" lists Aurora PostgreSQL 17.11 as compatible with PostgreSQL 17.11, with no limitation found on `ADD COLUMN`.
+  - 2026-11-22, task 1.2: PostgreSQL 17 manual. `ADD COLUMN` accepts `UNIQUE` and `CHECK ( expression )` as column constraints (`ALTER TABLE`). By default two `NULL`s are not equal under a unique constraint, so several rows may have no place id (section 5.5.3). `INSERT … ON CONFLICT (google_place_id)` infers the unique index on exactly that column as its arbiter, and `DO UPDATE SET` reads the proposed row as `excluded` (`INSERT`). Aurora PostgreSQL 17.11 is compatible with PostgreSQL 17.11 (see task 1.1).
 
 ## Goals / Non-Goals
 

@@ -15,7 +15,7 @@ These tasks start only after the owner approves the whole change in chat and the
   - Check `ALTER TABLE … ADD COLUMN` against the Aurora PostgreSQL 17 documentation first, and record the version checked in design.md.
   - Tests first, in `backend/test/migrations/runMigrations.test.ts`: the file adds exactly those three nullable columns. The existing test that every file holds one statement covers it too.
   - Verify: the tests pass. The previous backend ignores the columns (infrastructure spec, "Database migrations").
-- [ ] 1.2 Add `backend/migrations/004_add_business_private_fields.sql`: one `ALTER TABLE businesses` that adds the private columns of design D-7, all nullable.
+- [x] 1.2 Add `backend/migrations/004_add_business_private_fields.sql`: one `ALTER TABLE businesses` that adds the private columns of design D-7, all nullable.
   - The columns: `google_place_id` (`TEXT UNIQUE`), `latitude`, `longitude`, `coordinates_source`, `source_type`, `source_category`, `activity_score`, `activity_as_of`, `last_verified_at`, `consented_at`, `consent_channel`, `admin_notes`, and `imported_opening_hours` (`JSONB`).
   - `CHECK` constraints for the `source_type` and `consent_channel` values, the `activity_score` range, and the coordinate ranges.
   - Check `UNIQUE` with several `NULL`s and `INSERT … ON CONFLICT (column)` against the Aurora PostgreSQL 17 documentation, and record it in design.md.

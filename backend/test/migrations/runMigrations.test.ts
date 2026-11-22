@@ -198,6 +198,30 @@ describe('migration files in backend/migrations', () => {
       'ADD COLUMN instagram_url TEXT NULL',
     ]);
   });
+
+  it('004_add_business_private_fields.sql adds the nullable private columns with their constraints (import-businesses design D-7)', () => {
+    const sql = readFileSync(join(directory, '004_add_business_private_fields.sql'), 'utf8');
+    expect(sql).toMatch(/^ALTER TABLE businesses\b/m);
+    const columns = sql
+      .split('\n')
+      .filter((line) => line.trimStart().startsWith('ADD COLUMN'))
+      .map((line) => line.trim().replace(/[,;]$/, ''));
+    expect(columns).toEqual([
+      'ADD COLUMN google_place_id TEXT NULL UNIQUE',
+      'ADD COLUMN latitude DOUBLE PRECISION NULL CHECK (latitude BETWEEN -90 AND 90)',
+      'ADD COLUMN longitude DOUBLE PRECISION NULL CHECK (longitude BETWEEN -180 AND 180)',
+      'ADD COLUMN coordinates_source TEXT NULL',
+      "ADD COLUMN source_type TEXT NULL CHECK (source_type IN ('storefront', 'company', 'link', 'owner_published', 'private_group'))",
+      'ADD COLUMN source_category TEXT NULL',
+      'ADD COLUMN activity_score INTEGER NULL CHECK (activity_score BETWEEN 0 AND 100)',
+      'ADD COLUMN activity_as_of DATE NULL',
+      'ADD COLUMN last_verified_at DATE NULL',
+      'ADD COLUMN consented_at DATE NULL',
+      "ADD COLUMN consent_channel TEXT NULL CHECK (consent_channel IN ('whatsapp', 'in_person', 'phone_call', 'email'))",
+      'ADD COLUMN admin_notes TEXT NULL',
+      'ADD COLUMN imported_opening_hours JSONB NULL',
+    ]);
+  });
 });
 
 describe('dev seed in backend/seeds', () => {
