@@ -1,5 +1,4 @@
 schema: spec-driven
 created: 2026-11-21
-# Draft for direction review (owner's request, 2026-11-21): proposal and design only.
-# Spec deltas and tasks are written after the owner approves the direction. Not approved.
-# Owner decisions B, C (address removed in the pipeline), and D settled in chat on 2026-11-21; A is still open.
+# Owner decisions A to C on the direction were settled in chat on 2026-11-21 (proposal, "Owner decisions").
+# The whole change (proposal, specs, design, tasks) waits for the owner's approval. Not approved yet.
