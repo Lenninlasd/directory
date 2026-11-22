@@ -40,8 +40,10 @@ These tasks start only after the owner approves the whole change in chat and the
     - The test "returns exactly the eight API fields (AC-2.4)" now expects the eleven fields of "Business list API". The spec changed, and the test stays as strict as before.
   - Verify: the tests pass, including the `GET /businesses` tests in `backend/test/handlers/`.
 - [ ] 2.3 Add invented cases for the three fields to `backend/seeds/dev_businesses.sql`, which stays one statement with fixed ids.
-  - The cases: a valid Maps link and an invalid one (`http`, another host), a valid Instagram link and an invalid one (a post path), a description with surrounding spaces, one with exactly 300 characters, one with markup, and missing values. List the cases in the file's comment, as the earlier changes did.
-  - Verify: `pnpm -r test` passes, and the seed still holds one statement (the seed test, if any, or `countStatements`). Apply it in `dev` in task 5.1.
+  - Every link stays on `example.com`, so `dev` never links to a real site and the seed test of `runMigrations.test.ts` stays unchanged.
+  - The cases: a Maps link and an Instagram link on another host (for example `https://example.com/maps/panaderia`), both returned as `null`, a description with surrounding spaces, one with exactly 300 characters, one with markup, and missing values. List the cases in the file's comment, as the earlier changes did.
+  - Valid Maps and Instagram links are covered by the tests of 2.1 and 3.1 to 3.2, and checked in `dev` with the imported businesses (tasks 5.2 and 5.3).
+  - Verify: `pnpm -r test` passes, including "dev seed in backend/seeds" in `backend/test/migrations/runMigrations.test.ts`. Apply it in `dev` in task 5.1.
 
 ## 3. Detail dialog
 
@@ -140,10 +142,6 @@ These tasks start only after the owner approves the whole change in chat and the
 
 ## Workflow follow-up
 
-- Right after the owner approves this change, amend `finish-mvp-rollout` with `/opsx:update` (proposal, conflict 2):
-  - Task 2.1 imports into `prod` the file reviewed in `dev`.
-  - Tasks 1.1 and 2.1 wait until this change is archived.
-  - A design decision D-4 explains why.
-  - The owner's approval of that revision is recorded there as `x-revision-approved`.
+- Right after the owner approves this change, amend `finish-mvp-rollout` with `/opsx:update` as proposal conflict 2 describes, with a new design decision there (D-4) that explains why.
 - The import into `prod` is done in `finish-mvp-rollout`, task 2.1, not here.
 - Archive this change when the owner says so, as the last commit of the same pull request (`[import-google-maps-businesses] Archive change`), then run `pnpm spec:validate`.

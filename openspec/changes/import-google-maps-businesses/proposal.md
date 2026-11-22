@@ -10,7 +10,7 @@ The directory still lists only the invented `dev` rows. The Google Maps pipeline
 
 - **Three new public API fields** on `GET /businesses`: `mapsUrl`, `description`, and `instagramUrl`. Each has a validity rule and is `null` when missing or invalid, like `websiteUrl`. Adding fields does not break the current frontend, which ignores fields it does not know.
 - **Detail dialog** (Owner decision B): a "Ver en Google Maps" link in the "Ubicación" row, an "Instagram" row after "Página web", and the description below the rows. The tile does not change.
-- **Twelve private fields** are stored as columns (`googlePlaceId`, `latitude`, `longitude`, `coordinatesSource`, `sourceType`, `sourceCategory`, `activityScore`, `activityAsOf`, `lastVerifiedAt`, `consentedAt`, `consentChannel`, `adminNotes`). They are never returned by the API, and a contract test checks the exact field list.
+- **Twelve private fields** are stored as columns (`googlePlaceId`, `latitude`, `longitude`, `coordinatesSource`, `sourceType`, `sourceCategory`, `activityScore`, `activityAsOf`, `lastVerifiedAt`, `consentedAt`, `consentChannel`, `adminNotes`). A thirteenth column, `importedOpeningHours`, is used only by the import (design D-8). None is returned by the API, and a contract test checks the exact field list.
 - **A new way to load businesses**, which replaces committed data migrations: a local import command, run like `backend/scripts/migrate.ts`, reads `businesses.json` from outside the repository and writes it through the RDS Data API with the developer's credentials. No business values are ever committed. See conflict 1.
 - **Import rules:**
   - The whole file is validated before anything is written, and one invalid record refuses the whole file.
@@ -18,10 +18,12 @@ The directory still lists only the invented `dev` rows. The Google Maps pipeline
   - A business missing from a newer file is deactivated, never deleted.
   - Rows without a place id, such as the `dev` seed, are never touched.
   - Opening hours changed in admin mode are kept, not overwritten.
-- **Publication rules become binding.** The consent and private-field rules the import depends on are written as requirements in the new `business-import` spec. The import enforces the consent rule a second time, after the pipeline: a WhatsApp number only with recorded consent.
+- **Consent rule, checked twice.** A WhatsApp number, or a `private_group` source, needs recorded consent. The pipeline already checks it, and the import checks it again (business-import spec, "Consent rules").
 - **Deliberate exclusions (directory spec):**
-  - The "Extended business attributes" row is narrowed: description and Instagram leave it. Exact address, coordinates, logo, images, and the rest stay excluded.
-  - The "Maps, directions" row is clarified: a link to the business's own Google Maps listing is allowed, while embedded maps and directions stay excluded.
+  - "Extended business attributes": description and Instagram leave it, products and prices join it, and it notes that coordinates are stored but never shown.
+  - "Maps, directions": a link to the business's own Google Maps listing is allowed. Embedded maps and directions stay excluded.
+  - Search: searching the description is added to the excluded searches.
+  - "Managing businesses": business data is loaded with the import command, not with data migrations.
 
 ## Conflicts and how this change resolves them
 
@@ -38,7 +40,7 @@ The infrastructure spec says every business row is loaded through a data migrati
 | E. An S3 upload that triggers an import Lambda | New AWS resources and permissions to load about 50 rows. |
 | F. Encrypted data files committed (for example with sops) | A new tool and key management, and encrypted personal data kept forever in a public repository. |
 
-With A, the requirement becomes: business rows are added, changed, or deactivated only by the import command (or, for opening hours, by the editing routes). The data is reviewed in `dev` before `prod`. Data migrations no longer carry business rows, and the `dev` seed stays as it is.
+With A, "Business data loading" is rewritten (infrastructure delta): only the import command loads business rows, reviewed in `dev` before `prod`. The `dev` seed stays as it is.
 
 ### 2. Relation to `finish-mvp-rollout`
 
@@ -46,7 +48,7 @@ Its task 2.1 plans "one data migration" with the real businesses, which conflict
 
 **Decided (Owner decision C, 2026-11-21): amend `finish-mvp-rollout` and make it depend on this change**, following the precedent of its design D-3:
 
-- Rewrite task 2.1: import the file reviewed in `dev` into `prod` with this change's command, after the owner's review in `dev`.
+- Rewrite task 2.1: import into `prod`, with this change's command, the file the owner reviewed in `dev`.
 - Tasks 1.1 and 2.1 start only after this change is merged and archived. That way the single `prod` deploy already has the new columns, and `skip_specs: true` stays valid, because the infrastructure spec will then describe the import.
 - The amendment is made with `/opsx:update` on `finish-mvp-rollout` once this change is approved, and is recorded there as a new `x-revision-approved`.
 
@@ -63,10 +65,9 @@ Discarded:
 
 ## Out of scope
 
-- Products and prices, delivery, payment methods, ratings and reviews, and images (owner's decision). Photos are never stored or linked.
+- Products and prices, delivery, payment methods, ratings and reviews, and images (owner's decision). Photos are never stored or linked. A Google rating may come later, read live from the Places API and never stored.
 - Showing coordinates or a map, or using coordinates for anything. They are only stored.
 - Searching the description. Search stays on name and category.
-- The Google rating, which comes later, fetched live from the Places API with the place id and never stored.
 - Requiring `lastVerifiedAt`. It is only recorded, and the owner decides what reaches `prod` by reviewing `dev`.
 - New category icons and colors. The categories that keep Google's name use the existing fallback (tag, teal).
 - Editing the new fields in admin mode, and deleting businesses.
@@ -87,7 +88,7 @@ Discarded:
   - "Business detail dialog" and "Detail dialog hours and website rows": the new rows (Owner decision B).
   - "Interface text": the new Spanish texts.
   - "Public access without an account": "contact information" becomes "public information", since a description is not contact data.
-  - "Deliberate exclusions": the two rows above.
+  - "Deliberate exclusions": the four rows above.
 - `infrastructure`: "Business data loading" is rewritten for the import command and the `dev` review. Data migrations no longer carry business rows.
 
 `business-editing` does not change: the import detects edited hours by itself (design D-8).
@@ -97,7 +98,7 @@ Discarded:
 - **Database:** new nullable columns in `businesses` through versioned schema migrations, compatible with the deployed backend, plus a small `business_imports` table that records each import's file hash and counts, never business values.
 - **Backend:**
   - Pure validators for the new fields and the import file.
-  - A pure import planner that compares the stored rows with the file and decides what to insert, update, deactivate, and keep.
+  - A pure import planner that compares the stored rows with the file and decides what to add, change, deactivate, reactivate, and leave unchanged, and which edited hours to keep.
   - Repository SQL.
   - `backend/scripts/import-businesses.ts`.
   - The public `SELECT` adds only the three public columns.
