@@ -18,7 +18,7 @@ The directory still lists only the invented `dev` rows. The Google Maps pipeline
   - A business missing from a newer file is deactivated, never deleted.
   - Rows without a place id, such as the `dev` seed, are never touched.
   - Opening hours changed in admin mode are kept, not overwritten.
-- **Publication rules become binding.** The rules this change depends on move from `docs/ideas/business-sourcing.md`, which is not binding, into a spec. The import enforces the consent rule a second time, after the pipeline: a WhatsApp number only with recorded consent.
+- **Publication rules become binding.** The consent and private-field rules the import depends on are written as requirements in the new `business-import` spec. The import enforces the consent rule a second time, after the pipeline: a WhatsApp number only with recorded consent.
 - **Deliberate exclusions (directory spec):**
   - The "Extended business attributes" row is narrowed: description and Instagram leave it. Exact address, coordinates, logo, images, and the rest stay excluded.
   - The "Maps, directions" row is clarified: a link to the business's own Google Maps listing is allowed, while embedded maps and directions stay excluded.
@@ -64,14 +64,14 @@ Discarded:
 ## Out of scope
 
 - Products and prices, delivery, payment methods, ratings and reviews, and images (owner's decision). Photos are never stored or linked.
-- Showing coordinates or a map, or using coordinates for anything. They are only stored, pending the owner's review of Google's terms.
+- Showing coordinates or a map, or using coordinates for anything. They are only stored.
 - Searching the description. Search stays on name and category.
 - The Google rating, which comes later, fetched live from the Places API with the place id and never stored.
 - Requiring `lastVerifiedAt`. It is only recorded, and the owner decides what reaches `prod` by reviewing `dev`.
 - New category icons and colors. The categories that keep Google's name use the existing fallback (tag, teal).
 - Editing the new fields in admin mode, and deleting businesses.
 - Running the pipeline from this repository, or sharing code with it.
-- The data processing policy page and the "¿Es tu negocio?" removal link from the ideas document. They are recommended as their own change before `prod` publishes any personal data (design, "Risks").
+- The data processing policy page and the "¿Es tu negocio?" removal link. They are recommended as their own change before `prod` publishes any personal data (design, "Risks").
 
 ## Capabilities
 

@@ -54,8 +54,6 @@
 
 ## Risks / Trade-offs
 
-- **Google's terms cover more than coordinates.** `docs/ideas/business-sourcing.md` lists "copying data from Google Maps" and "bulk copying from Google Maps" as rejected because of Google's terms. This import loads a bulk extraction of Google Maps data (through Outscraper).
-  → The owner's planned review of Google's terms should cover every imported field (names, categories, hours, the descriptions drawn from photos), not only the coordinates, and happen before the `prod` import. If the review says to remove something, one import without it removes it everywhere (D-4).
 - **The place id is not secret.** It is inside every public `mapsUrl` (`query_place_id`). For place ids, "private" means "not an API field". That is acceptable, because a place id is Google's public identifier.
 - **Hours edited in `dev` do not travel to `prod`.** D-2 imports the file, not the `dev` rows.
   → The `prod` dry run lists the businesses whose hours were edited in `dev`, and the owner repeats those edits in `prod` admin mode. A later pipeline change could make hours editable in the decisions file.
@@ -80,5 +78,5 @@
 
 ## Open Questions
 
-- Where the evidence of each authorization is kept (the ideas document asks the same). It concerns the decisions file and the owner's records, not this repository.
+- Where the evidence of each authorization is kept It concerns the decisions file and the owner's records, not this repository.
 - Whether the categories that keep Google's name deserve their own icon and color, in a later change.
