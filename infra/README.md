@@ -502,3 +502,23 @@ DEV_KEY_PARAMETER="arn:aws:ssm:us-east-1:$ACCOUNT:parameter/alameda/dev/admin-ke
 | `aws iam simulate-principal-policy --policy-source-arn "$ROLE_ARN" --action-names kms:Decrypt --resource-arns "$SSM_KEY_ARN" --context-entries "ContextKeyName=kms:ViaService,ContextKeyValues=ssm.us-east-1.amazonaws.com,ContextKeyType=string" "ContextKeyName=kms:EncryptionContext:PARAMETER_ARN,ContextKeyValues=$DEV_KEY_PARAMETER,ContextKeyType=string" --query "EvaluationResults[].EvalDecision"` | `allowed` (SSM decrypting a `dev` parameter) | |
 | The same without the `kms:ViaService` entry (KMS called directly) | `implicitDeny` | |
 | The same with `kms:ViaService` but `PARAMETER_ARN` set to the `prod` admin key ARN | `implicitDeny` | |
+
+### Imported businesses in `dev` (import-businesses, tasks 5.1 to 5.3)
+
+Results are recorded with counts only, never business names or values (infrastructure spec, "Business data loading").
+
+```
+API_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+FRONTEND_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='FrontendUrl'].OutputValue" --output text)
+```
+
+#### Deploy, migrations, and seed (task 5.1)
+
+| Check | Expected | Result |
+|---|---|---|
+| `infra/deploy.sh dev` | Lambda updated, migrations `003` to `005` applied, frontend uploaded | Passed (2026-11-22) on the second run. The first run updated the Lambda, then stopped at the migrations on the paused cluster (`resuming after being auto-paused`), as documented |
+| `node backend/scripts/migrate.ts dev --seed` | Applies `003_add_business_public_fields.sql`, `004_add_business_private_fields.sql`, `005_create_business_imports.sql`, then `Seeded dev_businesses.sql` | Passed (2026-11-22) |
+| `curl -s "$API_URL/businesses"` | `200`; every business has exactly the eleven fields of "Business list API" | Passed (2026-11-22): 8 active seed businesses, eleven fields each; the inactive seed row is absent |
+| The same response, private fields | No `googlePlaceId`, coordinates, source, score, dates, consent, notes, or imported hours | Passed (2026-11-22) |
+| The same response, seed cases of task 2.3 | Row 1: `mapsUrl` `null` (another host), description trimmed. Row 5: `instagramUrl` `null` (another host). Row 6: a 300-character description. Row 8: the description with its markup as text. Other rows: the three fields `null` | Passed (2026-11-22) |
+| `curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL"`, and its JavaScript bundle | `200`, and the bundle contains "Ver en Google Maps" | Passed (2026-11-22) |

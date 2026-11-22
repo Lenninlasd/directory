@@ -117,7 +117,7 @@ These tasks start only after the owner approves the whole change in chat and the
 
 ## 5. Rollout in `dev`
 
-- [ ] 5.1 Deploy `dev` with `infra/deploy.sh dev`, then `node backend/scripts/migrate.ts dev --seed`.
+- [x] 5.1 Deploy `dev` with `infra/deploy.sh dev`, then `node backend/scripts/migrate.ts dev --seed`.
   - Verify:
     - Migrations `003` to `005` are applied.
     - `curl "$API_URL/businesses"` returns the eleven fields for every business, and each seed case of task 2.3 returns its value or `null` as the directory spec says.
