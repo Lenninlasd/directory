@@ -129,7 +129,6 @@ These tasks start only after the owner approves the whole change in chat and the
     - `GET /businesses` returns the imported businesses plus the active seed rows.
     - A second `--apply` reports every business as unchanged.
     - After one business's hours are edited in admin mode, a dry run lists that business as having edited hours.
-    - The `prod` dry run reports that the file matches the last `dev` import.
   - Record the results with counts only, never names or values.
 - [ ] 5.3 Check the dialog in `dev` on a 320 px wide screen and on desktop.
   - Verify:
