@@ -7,6 +7,7 @@ export type QueryRecords = (sql: string) => Promise<Record<string, unknown>[]>;
 // `created_at` is formatted in SQL as ISO 8601 UTC with milliseconds, so the result
 // does not depend on how the Data API serializes timestamps (plan 001, R-2 and R-6).
 // `opening_hours` is cast to text for the same reason: the Data API documents text, not JSONB (design D-3).
+// The column list stays explicit, so the private columns of import-businesses design D-7 are never read.
 const FIND_ACTIVE_BUSINESSES_SQL = `
 SELECT
   id::text AS id,
@@ -17,7 +18,10 @@ SELECT
   whatsapp_number AS whatsapp_number,
   to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at,
   website_url AS website_url,
-  opening_hours::text AS opening_hours
+  opening_hours::text AS opening_hours,
+  maps_url AS maps_url,
+  description AS description,
+  instagram_url AS instagram_url
 FROM businesses
 WHERE is_active = true
 `;
@@ -61,6 +65,9 @@ function toBusinessRow(record: Record<string, unknown>): BusinessRow {
     createdAt: readDate(record, 'created_at'),
     websiteUrl: readNullableString(record, 'website_url'),
     openingHours: readNullableString(record, 'opening_hours'),
+    mapsUrl: readNullableString(record, 'maps_url'),
+    description: readNullableString(record, 'description'),
+    instagramUrl: readNullableString(record, 'instagram_url'),
   };
 }
 

@@ -32,14 +32,14 @@ These tasks start only after the owner approves the whole change in chat and the
   - Tests first, in `backend/test/domain/`: every scenario of "Maps link validity", "Instagram link validity", and "Description validity" in the directory spec.
   - Also test the edges: a 30-character handle and a 31-character one, 300 and 301 characters, a description that is only line breaks, and `null`.
   - Verify: the tests pass, and the modules import nothing from Express or Lambda.
-- [ ] 2.2 Return the three fields from `GET /businesses`.
+- [x] 2.2 Return the three fields from `GET /businesses`.
   - `businessRepository.ts` selects `maps_url`, `description`, and `instagram_url`, and still lists its columns explicitly. `BusinessRow` and `Business` in `domain/business.ts` get the fields, and `businessService.ts` applies the validators of 2.1.
   - Tests first:
     - The repository test checks that the query selects the three columns and no private column (`google_place_id`, `latitude`, `consented_at`, `admin_notes`, and the rest of design D-7).
     - The service tests cover each validity case.
     - The test "returns exactly the eight API fields (AC-2.4)" now expects the eleven fields of "Business list API". The spec changed, and the test stays as strict as before.
   - Verify: the tests pass, including the `GET /businesses` tests in `backend/test/handlers/`.
-- [ ] 2.3 Add invented cases for the three fields to `backend/seeds/dev_businesses.sql`, which stays one statement with fixed ids.
+- [x] 2.3 Add invented cases for the three fields to `backend/seeds/dev_businesses.sql`, which stays one statement with fixed ids.
   - Every link stays on `example.com`, so `dev` never links to a real site and the seed test of `runMigrations.test.ts` stays unchanged.
   - The cases: a Maps link and an Instagram link on another host (for example `https://example.com/maps/panaderia`), both returned as `null`, a description with surrounding spaces, one with exactly 300 characters, one with markup, and missing values. List the cases in the file's comment, as the earlier changes did.
   - Valid Maps and Instagram links are covered by the tests of 2.1 and 3.1 to 3.2, and checked in `dev` with the imported businesses (tasks 5.2 and 5.3).

@@ -14,6 +14,10 @@ export interface BusinessRow {
   websiteUrl: string | null;
   /** Raw JSON text of the `opening_hours` column; validated by the service (design D-3). */
   openingHours: string | null;
+  /** Raw values as stored by the import; validated by the service (import-businesses design D-6). */
+  mapsUrl: string | null;
+  description: string | null;
+  instagramUrl: string | null;
 }
 
 /** A business as returned by `GET /businesses` (plan 001 section 3). */
@@ -29,4 +33,10 @@ export interface Business {
   websiteUrl: string | null;
   /** Ranges sorted by day and opening time, or `[]` when missing or invalid. */
   openingHours: OpeningHoursRange[];
+  /** A Google Maps link in standard form, or `null` when missing or invalid. */
+  mapsUrl: string | null;
+  /** Plain text of 1 to 300 characters, trimmed, or `null` when missing or invalid. */
+  description: string | null;
+  /** An Instagram profile link, or `null` when missing or invalid. */
+  instagramUrl: string | null;
 }

@@ -12,6 +12,9 @@ function row(overrides: Partial<BusinessRow> & Pick<BusinessRow, 'id'>): Busines
     createdAt: new Date('2026-10-01T12:00:00Z'),
     websiteUrl: null,
     openingHours: null,
+    mapsUrl: null,
+    description: null,
+    instagramUrl: null,
     ...overrides,
   };
 }
@@ -112,7 +115,60 @@ describe('listActiveBusinesses', () => {
     ]);
   });
 
-  it('returns exactly the eight API fields (AC-2.4)', async () => {
+  it('returns a validated Maps link, or null when it is invalid or missing (directory spec, "Maps link validity")', async () => {
+    const rows = [
+      row({ id: 'a', name: 'A', mapsUrl: 'https://www.google.com/maps/search/?api=1&query=A&query_place_id=EXAMPLE_PLACE_ID' }),
+      row({ id: 'b', name: 'B', mapsUrl: 'http://www.google.com/maps/' }),
+      row({ id: 'c', name: 'C', mapsUrl: 'https://example.com/maps/' }),
+      row({ id: 'd', name: 'D', mapsUrl: 'https://www.google.com/search?q=panaderia' }),
+      row({ id: 'e', name: 'E', mapsUrl: null }),
+    ];
+
+    const result = await listActiveBusinesses(findRowsReturning(rows));
+
+    expect(result.map((business) => business.mapsUrl)).toEqual([
+      'https://www.google.com/maps/search/?api=1&query=A&query_place_id=EXAMPLE_PLACE_ID',
+      null,
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it('returns a validated Instagram link, or null when it is invalid or missing (directory spec, "Instagram link validity")', async () => {
+    const rows = [
+      row({ id: 'a', name: 'A', instagramUrl: 'https://www.instagram.com/example.panaderia/' }),
+      row({ id: 'b', name: 'B', instagramUrl: 'http://www.instagram.com/example/' }),
+      row({ id: 'c', name: 'C', instagramUrl: 'https://www.instagram.com/p/abc123/' }),
+      row({ id: 'd', name: 'D', instagramUrl: `https://www.instagram.com/${'a'.repeat(31)}/` }),
+      row({ id: 'e', name: 'E', instagramUrl: null }),
+    ];
+
+    const result = await listActiveBusinesses(findRowsReturning(rows));
+
+    expect(result.map((business) => business.instagramUrl)).toEqual([
+      'https://www.instagram.com/example.panaderia/',
+      null,
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it('returns a trimmed description, or null when it is empty, too long, or missing (directory spec, "Description validity")', async () => {
+    const rows = [
+      row({ id: 'a', name: 'A', description: '  Pan artesanal y tortas por encargo. ' }),
+      row({ id: 'b', name: 'B', description: '   ' }),
+      row({ id: 'c', name: 'C', description: 'a'.repeat(301) }),
+      row({ id: 'd', name: 'D', description: null }),
+    ];
+
+    const result = await listActiveBusinesses(findRowsReturning(rows));
+
+    expect(result.map((business) => business.description)).toEqual(['Pan artesanal y tortas por encargo.', null, null, null]);
+  });
+
+  it('returns exactly the eleven API fields (AC-2.4)', async () => {
     const result = await listActiveBusinesses(findRowsReturning([row({ id: 'a' })]));
 
     expect(result).toEqual([
@@ -125,11 +181,24 @@ describe('listActiveBusinesses', () => {
         whatsappNumber: '573001234567',
         websiteUrl: null,
         openingHours: [],
+        mapsUrl: null,
+        description: null,
+        instagramUrl: null,
       },
     ]);
-    expect(Object.keys(result[0] ?? {}).sort()).toEqual(
-      ['category', 'hasPhysicalStore', 'id', 'locationSummary', 'name', 'openingHours', 'websiteUrl', 'whatsappNumber'],
-    );
+    expect(Object.keys(result[0] ?? {}).sort()).toEqual([
+      'category',
+      'description',
+      'hasPhysicalStore',
+      'id',
+      'instagramUrl',
+      'locationSummary',
+      'mapsUrl',
+      'name',
+      'openingHours',
+      'websiteUrl',
+      'whatsappNumber',
+    ]);
   });
 
   it('does not modify the rows it receives', async () => {

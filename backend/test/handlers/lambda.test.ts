@@ -66,6 +66,9 @@ function row(overrides: Partial<BusinessRow> & Pick<BusinessRow, 'id'>): Busines
     createdAt: new Date('2026-10-01T12:00:00Z'),
     websiteUrl: null,
     openingHours: null,
+    mapsUrl: null,
+    description: null,
+    instagramUrl: null,
     ...overrides,
   };
 }
@@ -91,6 +94,9 @@ describe('GET /businesses handler', () => {
           createdAt: new Date('2026-10-01T00:00:00Z'),
           websiteUrl: 'https://example.com/panaderia',
           openingHours: '[{"dayOfWeek": 1, "opens": "07:00", "closes": "19:00"}]',
+          mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Panader%C3%ADa&query_place_id=EXAMPLE_PLACE_ID',
+          description: '  Pan artesanal y tortas por encargo. ',
+          instagramUrl: 'https://www.instagram.com/example.panaderia/',
         }),
       ],
       logError: () => {},
@@ -112,6 +118,9 @@ describe('GET /businesses handler', () => {
           whatsappNumber: '573001234567',
           websiteUrl: 'https://example.com/panaderia',
           openingHours: [{ dayOfWeek: 1, opens: '07:00', closes: '19:00' }],
+          mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Panader%C3%ADa&query_place_id=EXAMPLE_PLACE_ID',
+          description: 'Pan artesanal y tortas por encargo.',
+          instagramUrl: 'https://www.instagram.com/example.panaderia/',
         },
         {
           id: '7c1d0f35-2b8e-4e57-a1a4-5f0e3b9c6d22',
@@ -122,6 +131,9 @@ describe('GET /businesses handler', () => {
           whatsappNumber: null,
           websiteUrl: null,
           openingHours: [],
+          mapsUrl: null,
+          description: null,
+          instagramUrl: null,
         },
       ],
     });
