@@ -1,6 +1,6 @@
 # Design: Import the pipeline's businesses
 
-> **Status: waiting for the owner's approval of the whole change**, together with `proposal.md`, the spec deltas, and `tasks.md`. All three Owner decisions were settled on 2026-11-21.
+> **Status: approved by the owner in chat on 2026-11-22**, together with `proposal.md`, the spec deltas, and `tasks.md`.
 
 ## Context
 

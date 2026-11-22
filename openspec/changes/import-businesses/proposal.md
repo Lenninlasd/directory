@@ -1,6 +1,6 @@
 # Proposal: Import the pipeline's businesses
 
-> **Status: waiting for the owner's approval of the whole change.** The owner settled the direction (Owner decisions A to C) in chat on 2026-11-21, and the spec deltas and `tasks.md` follow it. Nothing is approved until the owner says so in chat and it is recorded in `.openspec.yaml`.
+> **Status: approved by the owner in chat on 2026-11-22** (`.openspec.yaml`). The direction was settled on 2026-11-21 (Owner decisions A to C).
 
 ## Why
 
