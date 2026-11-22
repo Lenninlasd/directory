@@ -45,6 +45,9 @@ const shop: Business = {
   whatsappNumber: null,
   websiteUrl: null,
   openingHours: mondayToSaturday,
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
 
 const bakery: Business = { ...shop, id: 'bakery', name: 'Panadería Doña Rosa', openingHours: [] };

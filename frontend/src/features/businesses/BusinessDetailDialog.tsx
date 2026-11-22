@@ -5,6 +5,7 @@ import { AdminKeyDialog } from './AdminKeyDialog.tsx';
 import { getAdminKey, setAdminKey } from './adminKey.ts';
 import { CategoryCover } from './CategoryCover.tsx';
 import { CloseIcon, ExternalLinkIcon, MagicPencilIcon } from './icons.tsx';
+import { instagramLinkText } from './instagram.ts';
 import { formatOpeningHours } from './openingHours.ts';
 import { OpeningHoursEditor } from './OpeningHoursEditor.tsx';
 import { StoreTypeBadge } from './StoreTypeBadge.tsx';
@@ -131,6 +132,20 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
                 <div>
                   <dt className="font-medium text-ink">{strings.locationLabel}</dt>
                   <dd className="break-words text-ink-muted">{business.locationSummary}</dd>
+                  {/* Below the location it belongs to (directory spec, "Maps link"; import-businesses design D-10). */}
+                  {business.mapsUrl !== null && (
+                    <dd className="mt-1">
+                      <a
+                        href={business.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                      >
+                        {strings.mapsLinkText}
+                        <ExternalLinkIcon className="size-4 shrink-0" />
+                      </a>
+                    </dd>
+                  )}
                 </div>
                 {/* In admin mode the row always shows, so hours can be added (directory spec, "No hours in admin mode"). */}
                 {(business.openingHours.length > 0 || adminMode) && (
@@ -196,7 +211,29 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
                     </dd>
                   </div>
                 )}
+                {/* Last of the rows (directory spec, "Detail dialog hours and website rows"). */}
+                {business.instagramUrl !== null && (
+                  <div>
+                    <dt className="font-medium text-ink">{strings.instagramLabel}</dt>
+                    <dd>
+                      <a
+                        href={business.instagramUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex max-w-full items-center gap-1 font-medium break-all text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                      >
+                        {instagramLinkText(business.instagramUrl)}
+                        <ExternalLinkIcon className="size-4 shrink-0" />
+                      </a>
+                    </dd>
+                  </div>
+                )}
               </dl>
+              {/* Below the rows, so "Ubicación" stays visible on a 320 px screen (import-businesses design D-10).
+                  React renders it as text, so markup is never interpreted (directory spec, "Business description"). */}
+              {business.description !== null && (
+                <p className="text-sm break-words whitespace-pre-line text-ink">{business.description}</p>
+              )}
             </div>
           </div>
           <div className="flex border-t border-border p-4">

@@ -20,6 +20,9 @@ const businesses: Business[] = [
     whatsappNumber: '573001234567',
     websiteUrl: null,
     openingHours: [],
+    mapsUrl: null,
+    description: null,
+    instagramUrl: null,
   },
 ];
 

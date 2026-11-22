@@ -14,6 +14,9 @@ function business(id: string, name: string): Business {
     whatsappNumber: null,
     websiteUrl: null,
     openingHours: [],
+    mapsUrl: null,
+    description: null,
+    instagramUrl: null,
   };
 }
 

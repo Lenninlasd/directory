@@ -11,6 +11,9 @@ const businesses: Business[] = [
     whatsappNumber: '573001234567',
     websiteUrl: null,
     openingHours: [],
+    mapsUrl: null,
+    description: null,
+    instagramUrl: null,
   },
   {
     id: '7c1d0f35-2b8e-4e57-a1a4-5f0e3b9c6d22',
@@ -21,6 +24,9 @@ const businesses: Business[] = [
     whatsappNumber: null,
     websiteUrl: null,
     openingHours: [],
+    mapsUrl: null,
+    description: null,
+    instagramUrl: null,
   },
 ];
 

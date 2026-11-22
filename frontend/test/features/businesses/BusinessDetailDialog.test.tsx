@@ -22,6 +22,9 @@ const cafe: Business = {
   whatsappNumber: '573001111111',
   websiteUrl: null,
   openingHours: [],
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
 
 const desserts: Business = {
@@ -33,6 +36,9 @@ const desserts: Business = {
   whatsappNumber: null,
   websiteUrl: null,
   openingHours: [],
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
 
 // Directory spec, "Detail dialog hours and website rows": a business with both, and one with a website only.
@@ -45,6 +51,9 @@ const bakery: Business = {
   whatsappNumber: null,
   websiteUrl: 'https://example.com/panaderia/',
   openingHours: [1, 2, 3, 4, 5].map((dayOfWeek) => ({ dayOfWeek, opens: '08:00', closes: '18:00' })),
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
 
 const tutoring: Business = {
@@ -56,7 +65,31 @@ const tutoring: Business = {
   whatsappNumber: null,
   websiteUrl: 'https://example.com/tutorias',
   openingHours: [],
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
+
+// Directory spec, "Maps link": a business with a link to its Google Maps listing and no WhatsApp,
+// so the Maps link is the only link in the dialog.
+const pharmacy: Business = {
+  ...desserts,
+  id: 'pharmacy',
+  name: 'Droguería La Alameda',
+  locationSummary: 'Local 4, Centro Comercial Alameda',
+  mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Droguer%C3%ADa&query_place_id=EXAMPLE_PLACE_ID',
+};
+
+// Directory spec, "Instagram link": after "Página web" when there is one, otherwise after "Ubicación".
+const instagramUrl = 'https://www.instagram.com/example.panaderia/';
+const bakeryOnInstagram: Business = { ...bakery, id: 'bakery-instagram', name: 'Panadería con Instagram', instagramUrl };
+const dessertsOnInstagram: Business = { ...desserts, id: 'desserts-instagram', name: 'Postres con Instagram', instagramUrl };
+
+// Directory spec, "Business description": a paragraph below the rows, in full and as plain text.
+const description =
+  'Pan artesanal, tortas por encargo y café recién hecho. Pedidos con un día de anticipación para cumpleaños y reuniones del conjunto.';
+const bakeryWithDescription: Business = { ...bakery, id: 'bakery-description', name: 'Panadería con descripción', description };
+const bakeryWithMarkup: Business = { ...bakery, id: 'bakery-markup', name: 'Panadería con marcas', description: '<b>Pan</b> artesanal' };
 
 async function renderDirectory(queryClient: QueryClient = createQueryClient(), businesses: Business[] = [cafe, desserts]) {
   fetchBusinessesMock.mockResolvedValue(businesses);
@@ -197,6 +230,129 @@ describe('BusinessDetailDialog: opening hours and website rows', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+});
+
+describe('BusinessDetailDialog: Maps link', () => {
+  it('shows "Ver en Google Maps" below the location summary, in the "Ubicación" row', async () => {
+    await renderDirectory(createQueryClient(), [pharmacy]);
+
+    openTile(pharmacy);
+
+    expect(openDialog()?.textContent).toContain('UbicaciónLocal 4, Centro Comercial AlamedaVer en Google Maps');
+  });
+
+  it('links to the listing in a new tab, with the text as its name and a hidden icon', async () => {
+    await renderDirectory(createQueryClient(), [pharmacy]);
+
+    openTile(pharmacy);
+
+    const link = within(screen.getByRole('dialog', { name: pharmacy.name })).getByRole('link');
+    expect(link).toHaveAccessibleName('Ver en Google Maps');
+    expect(link).toHaveTextContent('Ver en Google Maps');
+    expect(link).toHaveAttribute('href', pharmacy.mapsUrl);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('shows no link and no text in its place without a Maps link', async () => {
+    await renderDirectory();
+
+    openTile(desserts);
+
+    const dialog = screen.getByRole('dialog', { name: desserts.name });
+    expect(within(dialog).queryByRole('link')).not.toBeInTheDocument();
+    expect(within(dialog).queryByText('Ver en Google Maps')).not.toBeInTheDocument();
+  });
+});
+
+describe('BusinessDetailDialog: Instagram row', () => {
+  it('shows "Instagram" after "Página web", with "@" and the handle as the link text', async () => {
+    await renderDirectory(createQueryClient(), [bakeryOnInstagram]);
+
+    openTile(bakeryOnInstagram);
+
+    expect(openDialog()?.textContent).toBe(
+      [
+        'Panadería',
+        'Panadería con Instagram',
+        'En tienda',
+        'Ubicación',
+        'Local 12',
+        'Horario',
+        'Lunes a viernes · 8:00 a. m. – 6:00 p. m.',
+        'Sábado y domingo · Cerrado',
+        'Página web',
+        'example.com/panaderia',
+        'Instagram',
+        '@example.panaderia',
+        'Este negocio no tiene WhatsApp registrado',
+      ].join(''),
+    );
+  });
+
+  it('shows the row right after "Ubicación" without hours and without a website', async () => {
+    await renderDirectory(createQueryClient(), [dessertsOnInstagram]);
+
+    openTile(dessertsOnInstagram);
+
+    expect(openDialog()?.textContent).toContain('UbicaciónTorre 3Instagram@example.panaderia');
+  });
+
+  it('links to the profile in a new tab, with the handle as its name and a hidden icon', async () => {
+    await renderDirectory(createQueryClient(), [dessertsOnInstagram]);
+
+    openTile(dessertsOnInstagram);
+
+    const link = within(screen.getByRole('dialog', { name: dessertsOnInstagram.name })).getByRole('link');
+    expect(link).toHaveAccessibleName('@example.panaderia');
+    expect(link).toHaveAttribute('href', instagramUrl);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('shows no row and no text in its place without an Instagram link', async () => {
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    const dialog = screen.getByRole('dialog', { name: bakery.name });
+    expect(within(dialog).queryByText('Instagram')).not.toBeInTheDocument();
+    expect(openDialog()?.textContent).toContain('example.com/panaderiaEste negocio no tiene WhatsApp registrado');
+  });
+});
+
+describe('BusinessDetailDialog: description', () => {
+  it('shows the description in full in a paragraph right after the rows', async () => {
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+
+    openTile(bakeryWithDescription);
+
+    const paragraph = openDialog()?.querySelector('dl')?.nextElementSibling;
+    expect(paragraph?.tagName).toBe('P');
+    expect(paragraph).toHaveTextContent(description);
+    expect(paragraph?.className).not.toMatch(/truncate|line-clamp|text-ellipsis/);
+    expect(openDialog()?.textContent).toContain(`example.com/panaderia${description}Este negocio no tiene WhatsApp registrado`);
+  });
+
+  it('shows no paragraph and no text in its place without a description', async () => {
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    expect(openDialog()?.querySelector('dl')?.nextElementSibling).toBeNull();
+  });
+
+  it('shows markup as text, never as elements', async () => {
+    await renderDirectory(createQueryClient(), [bakeryWithMarkup]);
+
+    openTile(bakeryWithMarkup);
+
+    const dialog = screen.getByRole('dialog', { name: bakeryWithMarkup.name });
+    expect(within(dialog).getByText('<b>Pan</b> artesanal')).toBeInTheDocument();
+    expect(dialog.querySelector('b')).toBeNull();
   });
 });
 

@@ -42,6 +42,10 @@ describe('strings', () => {
     });
   });
 
+  it('has the exact texts of the Maps link and the Instagram row (directory spec, "Interface text")', () => {
+    expect(strings).toMatchObject({ mapsLinkText: 'Ver en Google Maps', instagramLabel: 'Instagram' });
+  });
+
   it('has the exact texts of the editing interface (business-editing spec, "Editing interface text")', () => {
     expect(strings).toMatchObject({
       editOpeningHours: 'Editar con IA',

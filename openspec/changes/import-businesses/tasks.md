@@ -47,7 +47,7 @@ These tasks start only after the owner approves the whole change in chat and the
 
 ## 3. Detail dialog
 
-- [ ] 3.1 Add the Maps link to the "Ubicación" row of `BusinessDetailDialog.tsx` (directory spec, "Maps link").
+- [x] 3.1 Add the Maps link to the "Ubicación" row of `BusinessDetailDialog.tsx` (directory spec, "Maps link").
   - `Business` in `frontend/src/api/businesses.ts` gets `mapsUrl`, `description`, and `instagramUrl`, and every test fixture gets `null` for them.
   - Add `mapsLinkText: 'Ver en Google Maps'` to `strings.ts`.
   - Tests first, in `frontend/test/features/businesses/BusinessDetailDialog.test.tsx` and `frontend/test/strings.test.ts`:
@@ -57,7 +57,7 @@ These tasks start only after the owner approves the whole change in chat and the
     - There is no link and no text when `mapsUrl` is `null`.
     - The exact wording.
   - Verify: the tests pass, and the existing dialog tests pass unchanged.
-- [ ] 3.2 Add the "Instagram" row after "Página web" (directory spec, "Detail dialog hours and website rows" and "Instagram link").
+- [x] 3.2 Add the "Instagram" row after "Página web" (directory spec, "Detail dialog hours and website rows" and "Instagram link").
   - A pure helper turns the link into `@handle`, and `strings.ts` gets `instagramLabel: 'Instagram'`.
   - Tests first:
     - The link text "@example.panaderia".
@@ -65,7 +65,7 @@ These tasks start only after the owner approves the whole change in chat and the
     - A new tab with `rel="noopener noreferrer"`, and the icon hidden from assistive technology.
     - No row when `instagramUrl` is `null`.
   - Verify: the tests pass.
-- [ ] 3.3 Add the description below the rows box (directory spec, "Business description"; design D-10).
+- [x] 3.3 Add the description below the rows box (directory spec, "Business description"; design D-10).
   - Tests first:
     - A description is shown in full below the rows.
     - There is no paragraph when the description is `null`.
