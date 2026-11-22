@@ -1,4 +1,4 @@
 schema: spec-driven
 created: 2026-11-21
 # Owner decisions A to C on the direction were settled in chat on 2026-11-21 (proposal, "Owner decisions").
-# The whole change (proposal, specs, design, tasks) waits for the owner's approval. Not approved yet.
+x-approved: "2026-11-22, by the project owner in chat"
