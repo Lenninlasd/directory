@@ -188,6 +188,16 @@ describe('migration files in backend/migrations', () => {
     expect(sql).toMatch(/ADD COLUMN website_url TEXT NULL/);
     expect(sql).toMatch(/ADD COLUMN opening_hours JSONB NULL/);
   });
+
+  it('003_add_business_public_fields.sql adds exactly the three nullable public columns (import-businesses design D-6)', () => {
+    const sql = readFileSync(join(directory, '003_add_business_public_fields.sql'), 'utf8');
+    expect(sql).toMatch(/^ALTER TABLE businesses\b/m);
+    expect(sql.match(/ADD COLUMN \w+ [^,;]+/g)).toEqual([
+      'ADD COLUMN maps_url TEXT NULL',
+      'ADD COLUMN description TEXT NULL',
+      'ADD COLUMN instagram_url TEXT NULL',
+    ]);
+  });
 });
 
 describe('dev seed in backend/seeds', () => {

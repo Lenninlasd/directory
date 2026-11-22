@@ -19,7 +19,9 @@
   - A transaction runs for at most 1 hour, and is rolled back if no call uses it for 3 minutes (`BeginTransaction`).
   - `sql` is at most 65,536 characters, and a response at most 1 MB (`ExecuteStatement`).
   - AWS warns that retrying a call after an SDK timeout can insert twice.
-  - The engine is Aurora PostgreSQL `17.11` (`infra/template.yaml`). The design relies on `INSERT … ON CONFLICT` and on a `UNIQUE` nullable column, where several `NULL`s do not conflict. Both are standard PostgreSQL. They are checked against the Aurora PostgreSQL 17 documentation when the migrations are written (AGENTS.md, "Architecture rules"), not yet.
+  - The engine is Aurora PostgreSQL `17.11` (`infra/template.yaml`). The design relies on `INSERT … ON CONFLICT` and on a `UNIQUE` nullable column, where several `NULL`s do not conflict. Both are standard PostgreSQL. They are checked against the Aurora PostgreSQL 17 documentation when the migrations are written (AGENTS.md, "Architecture rules").
+- **Documentation checked:**
+  - 2026-11-22, task 1.1: PostgreSQL 17 manual, `ALTER TABLE`. One statement may hold several `ADD COLUMN` actions separated by commas, a column without a default is `NULL` and needs no table rewrite, and `NULL` is an allowed column constraint. "Amazon Aurora PostgreSQL updates" lists Aurora PostgreSQL 17.11 as compatible with PostgreSQL 17.11, with no limitation found on `ADD COLUMN`.
 
 ## Goals / Non-Goals
 

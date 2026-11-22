@@ -11,7 +11,7 @@ These tasks start only after the owner approves the whole change in chat and the
 
 ## 1. Database
 
-- [ ] 1.1 Add `backend/migrations/003_add_business_public_fields.sql`: one `ALTER TABLE businesses` that adds `maps_url`, `description`, and `instagram_url` as nullable `TEXT` (design D-6).
+- [x] 1.1 Add `backend/migrations/003_add_business_public_fields.sql`: one `ALTER TABLE businesses` that adds `maps_url`, `description`, and `instagram_url` as nullable `TEXT` (design D-6).
   - Check `ALTER TABLE … ADD COLUMN` against the Aurora PostgreSQL 17 documentation first, and record the version checked in design.md.
   - Tests first, in `backend/test/migrations/runMigrations.test.ts`: the file adds exactly those three nullable columns. The existing test that every file holds one statement covers it too.
   - Verify: the tests pass. The previous backend ignores the columns (infrastructure spec, "Database migrations").
