@@ -222,6 +222,31 @@ describe('migration files in backend/migrations', () => {
       'ADD COLUMN imported_opening_hours JSONB NULL',
     ]);
   });
+
+  // business-import spec, "Import record": the record holds no business values.
+  it('005_create_business_imports.sql creates the import record table (import-businesses design D-2)', () => {
+    const sql = readFileSync(join(directory, '005_create_business_imports.sql'), 'utf8');
+    expect(sql).toMatch(/^CREATE TABLE business_imports \(/m);
+    const columns = sql
+      .split('\n')
+      .slice(sql.split('\n').findIndex((line) => line.startsWith('CREATE TABLE')) + 1)
+      .filter((line) => /^\s+\w/.test(line))
+      .map((line) => line.trim().replace(/,$/, ''));
+    expect(columns).toEqual([
+      'id UUID PRIMARY KEY DEFAULT gen_random_uuid()',
+      "file_sha256 TEXT NOT NULL CHECK (file_sha256 ~ '^[0-9a-f]{64}$')",
+      'generated_at DATE NOT NULL',
+      'added_count INTEGER NOT NULL',
+      'changed_count INTEGER NOT NULL',
+      'deactivated_count INTEGER NOT NULL',
+      'reactivated_count INTEGER NOT NULL',
+      'unchanged_count INTEGER NOT NULL',
+      'applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    ]);
+    // The only text column accepts nothing but a SHA-256 in hex, so it cannot hold a name or a note.
+    const textColumns = columns.filter((column) => / TEXT /.test(column));
+    expect(textColumns).toEqual([expect.stringContaining("CHECK (file_sha256 ~ '^[0-9a-f]{64}$')")]);
+  });
 });
 
 describe('dev seed in backend/seeds', () => {

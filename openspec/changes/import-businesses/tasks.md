@@ -21,7 +21,7 @@ These tasks start only after the owner approves the whole change in chat and the
   - Check `UNIQUE` with several `NULL`s and `INSERT … ON CONFLICT (column)` against the Aurora PostgreSQL 17 documentation, and record it in design.md.
   - Tests first, in the same test file: every column is there and nullable, `google_place_id` is unique, and each `CHECK` is present.
   - Verify: the tests pass.
-- [ ] 1.3 Add `backend/migrations/005_create_business_imports.sql`: one `CREATE TABLE business_imports` (business-import spec, "Import record"; design D-2).
+- [x] 1.3 Add `backend/migrations/005_create_business_imports.sql`: one `CREATE TABLE business_imports` (business-import spec, "Import record"; design D-2).
   - The columns: an id, `file_sha256`, `generated_at` (`DATE`), one count column per plan group, and `applied_at`, which defaults to the current time.
   - Tests first, in the same test file: the table and its columns. No column can hold a business value.
   - Verify: the tests pass.
