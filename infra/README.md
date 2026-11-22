@@ -136,15 +136,65 @@ node backend/scripts/migrate.ts dev --seed    # also run backend/seeds/dev_busin
 
 The script reads the cluster ARN, secret ARN, and database name from the `alameda-<env>` stack with the AWS CLI, then calls the Data API with your credentials. It prints each applied file and exits with a non-zero code if a migration fails (that file is rolled back and later files are not run). `--seed` is refused for `prod`. If the `dev` cluster is paused, the first run fails with `DatabaseResumingException`; run it again after about 30 seconds.
 
-**Opening hours in data migrations.** The admin can change a business's hours in `prod` through the editing routes, so the value in the database can be newer than any migration file. Before writing a data migration that sets `opening_hours`, read the current `prod` value and start from it (infrastructure spec, "Business data loading"):
+Data migrations no longer load business rows: the import below does (infrastructure spec, "Business data loading").
+
+### Import businesses (import-businesses)
+
+Loads the businesses that the pipeline hands off (business-import spec). The file never enters this repository: never copy it here, and never paste a real business value into an issue, a pull request, or this README.
+
+**The file.** `business-pipeline` step 4 writes `output/outscraper/businesses.json` in that repository, where git ignores it. The pipeline overwrites it on every run, so keep a dated copy of each file you import in the private folder next to the decisions file, for example `businesses-2026-11-21.json`. That copy is what a rollback imports again.
+
+**1. Dry run in `dev`.** It checks the whole file, reads `dev`, and prints the plan. It writes nothing:
 
 ```
-CLUSTER_ARN=$(aws cloudformation describe-stacks --stack-name alameda-prod --query "Stacks[0].Outputs[?OutputKey=='ClusterArn'].OutputValue" --output text)
-SECRET_ARN=$(aws cloudformation describe-stacks --stack-name alameda-prod --query "Stacks[0].Outputs[?OutputKey=='SecretArn'].OutputValue" --output text)
-aws rds-data execute-statement --resource-arn "$CLUSTER_ARN" --secret-arn "$SECRET_ARN" --database alameda \
-  --sql "SELECT id, name, opening_hours FROM businesses WHERE id = CAST(:id AS uuid)" \
-  --parameters "name=id,value={stringValue=<business-id>}"
+node backend/scripts/import-businesses.ts dev <path-to>/businesses-2026-11-21.json
 ```
+
+```
+Checked <path>: 52 businesses, generated 2026-11-21, SHA-256 <hash>
+Plan for dev:
+  Added: 52
+    <one name per line>
+  Changed: 0
+  Reactivated: 0
+  Deactivated: 0
+  Unchanged: 0
+  Edited hours kept: 0
+Dry run: nothing was written. Run again with --apply to write this plan.
+```
+
+The output shows business names and counts only, never a private field.
+
+**2. Apply in `dev`.** The same command with `--apply` writes the plan and the import record in one transaction, then prints `Applied to dev.` Running it again with the same file reports every business as unchanged. Rows without a place id, such as the seed, are never touched.
+
+**3. The owner's review.** The owner checks the businesses in the `dev` directory. A correction is made in the pipeline's decisions file, never here. Then run the pipeline again, keep the new dated copy, and repeat steps 1 and 2. A business that leaves the file is deactivated, never deleted. "Edited hours kept" lists businesses whose hours were changed in admin mode after the previous import. The import keeps those hours.
+
+**4. Apply in `prod`.** `prod` accepts only the exact file last applied to `dev`, compared by SHA-256. Use the same dated copy:
+
+```
+node backend/scripts/import-businesses.ts prod <path-to>/businesses-2026-11-21.json          # dry run, asks nothing
+node backend/scripts/import-businesses.ts prod <path-to>/businesses-2026-11-21.json --apply  # asks you to type prod
+```
+
+The `prod` dry run also prints `The file matches the last import applied to dev.` and lists the businesses whose hours were edited in `dev`. Those edits do not travel, since `prod` receives the file and not the `dev` rows, so repeat them in `prod` admin mode after the import. With `--apply`, a file that differs from the last `dev` import, or a `dev` without imports, is refused before the question:
+
+```
+Refused: prod accepts only the file last applied to dev. Import this file into dev and review it first.
+```
+
+Any answer other than `prod` prints `Stopped. prod was not changed.`
+
+**What a refused file looks like.** The whole file is refused if one business breaks a rule, and nothing is written. Each problem names the position, place id, and field, never the value:
+
+```
+Business 7 (place id <place-id>), websiteUrl: must be null or a valid https website
+Business 12 (place id <place-id>), whatsappNumber: needs private.consentedAt and private.consentChannel (consent rules)
+Refused: 2 problems. Nothing was written.
+```
+
+Fix them in the pipeline and run it again.
+
+**Errors.** If the `dev` cluster is paused, the first read fails with `DatabaseResumingException`. Nothing is written before the transaction begins, so run the command again after about 30 seconds. If a write fails, the transaction rolls back and the command prints `The import failed and was rolled back. Nothing was written.` with the error name only, since a database message can quote a private value.
 
 ## Rollback (002-T9, spec AC-6.3)
 
@@ -172,6 +222,8 @@ git switch -                         # go back to your branch afterwards
 ### Database
 
 Migrations are forward-only. A bad migration is fixed by a new migration file, released like any other change. Restoring data from automated backups is not part of a release rollback.
+
+Business data is rolled back by importing the previous dated file, or a corrected one, into `dev` and then `prod` ("Import businesses" above). A business missing from that file is deactivated, not deleted.
 
 ## One-time manual setup
 

@@ -74,7 +74,7 @@ These tasks start only after the owner approves the whole change in chat and the
 
 ## 4. Import command
 
-- [ ] 4.1 Add the handoff file check in `backend/src/import/handoffFile.ts`, as a pure function that takes the file's text (business-import spec, "Handoff file", "Consent rules", and "All or nothing").
+- [x] 4.1 Add the handoff file check in `backend/src/import/handoffFile.ts`, as a pure function that takes the file's text (business-import spec, "Handoff file", "Consent rules", and "All or nothing").
   - It returns the typed businesses, or every problem as position, place id, field, and rule, never the value.
   - It reuses the existing validators (`whatsappNumber.ts`, `websiteUrl.ts`, `validateOpeningHoursForWriting`) and those of 2.1, in their strict form: an invalid value is a problem, not `null`.
   - Tests first, in `backend/test/import/handoffFile.test.ts`, with invented files:
@@ -83,7 +83,7 @@ These tasks start only after the owner approves the whole change in chat and the
     - Text that is not JSON.
     - That no problem message contains the invalid value.
   - Verify: the tests pass, and the module imports nothing from AWS, Express, or Lambda.
-- [ ] 4.2 Add the import planner in `backend/src/import/importPlan.ts`, a pure function from the stored businesses that have a place id and the checked file to the plan (design D-3, D-4, D-8).
+- [x] 4.2 Add the import planner in `backend/src/import/importPlan.ts`, a pure function from the stored businesses that have a place id and the checked file to the plan (design D-3, D-4, D-8).
   - The plan has the groups added, changed, deactivated, reactivated, and unchanged, plus the businesses whose hours were edited.
   - Tests first, in `backend/test/import/importPlan.test.ts`:
     - Every scenario of "Matching stored businesses", apart from the creation time, which is tested in 4.3.
@@ -91,7 +91,7 @@ These tasks start only after the owner approves the whole change in chat and the
     - The same file planned twice gives only unchanged businesses.
     - Hours are compared as weeks, not as text.
   - Verify: the tests pass.
-- [ ] 4.3 Add `backend/src/repositories/importRepository.ts` (design D-3, D-4, D-7, D-8).
+- [x] 4.3 Add `backend/src/repositories/importRepository.ts` (design D-3, D-4, D-7, D-8).
   - Functions to read the stored businesses that have a place id with all their fields, to upsert one business, to deactivate businesses by place id, to record an import, and to read the last import record.
   - Values go as named string parameters cast in SQL (`::jsonb`, `::date`, `::double precision`), as `dataApi.ts` sends only strings.
   - Tests first, in `backend/test/repositories/importRepository.test.ts`, with a fake `execute`:
@@ -101,7 +101,7 @@ These tasks start only after the owner approves the whole change in chat and the
     - Deactivation is an `UPDATE`, never a `DELETE`.
     - The read query has `WHERE google_place_id IS NOT NULL`.
   - Verify: the tests pass, and `businessRepository.ts` is unchanged by this task.
-- [ ] 4.4 Add the command `backend/scripts/import-businesses.ts`, with injected dependencies like `backend/scripts/migrate.ts` (business-import spec, "Import command", "Review in dev before prod", "Import record", and "Private fields stay private"; design D-1, D-2, D-5).
+- [x] 4.4 Add the command `backend/scripts/import-businesses.ts`, with injected dependencies like `backend/scripts/migrate.ts` (business-import spec, "Import command", "Review in dev before prod", "Import record", and "Private fields stay private"; design D-1, D-2, D-5).
   - Usage: `node backend/scripts/import-businesses.ts <dev|prod> <file> [--apply]`.
   - It reads the file and hashes it with `node:crypto`, checks it (4.1), reads the stored businesses, and plans (4.2).
   - It prints the plan. With `--apply` it writes everything in one `inTransaction`: the upserts, the deactivations, and the import record.
@@ -110,7 +110,7 @@ These tasks start only after the owner approves the whole change in chat and the
     - Every scenario of the four requirements: wrong arguments read nothing, a dry run writes nothing and records nothing, the `prod` hash check and the confirmation, a write failure exits non-zero.
     - The output of a dry run and of an apply contains none of the invented private values (coordinates, dates, score, consent channel, notes).
   - Verify: the tests pass, and the command needs no new package.
-- [ ] 4.5 Document the import in `infra/README.md`.
+- [x] 4.5 Document the import in `infra/README.md`.
   - Cover where the file comes from, the dry run, applying to `dev`, the owner's review, and applying to `prod` with the hash check and the confirmation.
   - Cover what a refusal looks like, `DatabaseResumingException` on a paused `dev` cluster, and keeping a dated copy of each imported file in the private folder next to the decisions file (design, "Migration Plan").
   - Verify: the commands run as written in task 5.2.
