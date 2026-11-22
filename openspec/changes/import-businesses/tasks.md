@@ -28,7 +28,7 @@ These tasks start only after the owner approves the whole change in chat and the
 
 ## 2. Public fields in the API
 
-- [ ] 2.1 Add the validators for the three new fields in `backend/src/domain/`: `mapsUrl.ts`, `instagramUrl.ts`, and `description.ts`. Each returns the valid value, or `null`.
+- [x] 2.1 Add the validators for the three new fields in `backend/src/domain/`: `mapsUrl.ts`, `instagramUrl.ts`, and `description.ts`. Each returns the valid value, or `null`.
   - Tests first, in `backend/test/domain/`: every scenario of "Maps link validity", "Instagram link validity", and "Description validity" in the directory spec.
   - Also test the edges: a 30-character handle and a 31-character one, 300 and 301 characters, a description that is only line breaks, and `null`.
   - Verify: the tests pass, and the modules import nothing from Express or Lambda.
