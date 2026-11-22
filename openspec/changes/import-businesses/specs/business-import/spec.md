@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Loads the businesses that the Google Maps pipeline hands off into the database of one environment. Their values are never committed to the public repository, their private fields never reach a visitor, and the owner reviews them in `dev` before they reach `prod`.
+Loads the businesses that the business pipeline hands off into the database of one environment. Their values are never committed to the public repository, their private fields never reach a visitor, and the owner reviews them in `dev` before they reach `prod`.
 
 ## ADDED Requirements
 

@@ -1,4 +1,4 @@
-# Tasks: Import the Google Maps businesses
+# Tasks: Import the pipeline's businesses
 
 These tasks start only after the owner approves the whole change in chat and the approval is recorded in `.openspec.yaml`.
 
@@ -144,4 +144,4 @@ These tasks start only after the owner approves the whole change in chat and the
 
 - Right after the owner approves this change, amend `finish-mvp-rollout` with `/opsx:update` as proposal conflict 2 describes, with a new design decision there (D-4) that explains why.
 - The import into `prod` is done in `finish-mvp-rollout`, task 2.1, not here.
-- Archive this change when the owner says so, as the last commit of the same pull request (`[import-google-maps-businesses] Archive change`), then run `pnpm spec:validate`.
+- Archive this change when the owner says so, as the last commit of the same pull request (`[import-businesses] Archive change`), then run `pnpm spec:validate`.

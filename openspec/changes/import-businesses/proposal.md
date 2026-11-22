@@ -1,10 +1,10 @@
-# Proposal: Import the Google Maps businesses
+# Proposal: Import the pipeline's businesses
 
 > **Status: waiting for the owner's approval of the whole change.** The owner settled the direction (Owner decisions A to C) in chat on 2026-11-21, and the spec deltas and `tasks.md` follow it. Nothing is approved until the owner says so in chat and it is recorded in `.openspec.yaml`.
 
 ## Why
 
-The directory still lists only the invented `dev` rows. The Google Maps pipeline (`business-pipeline`, step 4, "Handoff" in its `src/outscraper_extract/SPEC.md`) now produces reviewed businesses in the directory's own format: 52 today. They come with three public fields the directory lacks and twelve private fields it must store but never publish. The only way to load businesses today is a data migration committed to this public repository, which would publish those private values.
+The directory still lists only the invented `dev` rows. The business pipeline (`business-pipeline`, step 4, "Handoff" in its `src/outscraper_extract/SPEC.md`) now produces reviewed businesses in the directory's own format: 52 today. They come with three public fields the directory lacks and twelve private fields it must store but never publish. The only way to load businesses today is a data migration committed to this public repository, which would publish those private values.
 
 ## What Changes
 
