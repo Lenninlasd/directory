@@ -19,7 +19,7 @@ import {
  * Usage: node backend/scripts/migrate.ts <dev|prod> [--seed]
  */
 
-const REGION = 'us-east-1';
+export const REGION = 'us-east-1';
 const ENVIRONMENTS = ['dev', 'prod'];
 const USAGE = 'Usage: node backend/scripts/migrate.ts <dev|prod> [--seed]';
 
@@ -66,7 +66,7 @@ export function parseStackSettings(describeStacksJson: string): StackSettings {
 }
 
 /** The error message plus the messages of its causes, for example the SQL error behind a failed migration. */
-function describeError(error: unknown): string {
+export function describeError(error: unknown): string {
   const messages: string[] = [];
   let current: unknown = error;
   while (current !== undefined) {
@@ -130,20 +130,23 @@ function readSqlFile(path: string): MigrationFile {
   return { name: path.split('/').at(-1) ?? path, sql: readFileSync(path, 'utf8') };
 }
 
+/** Reads a stack's settings with the AWS CLI and the developer's credentials. Also used by import-businesses.ts. */
+export async function readStackSettingsWithAwsCli(stackName: string): Promise<StackSettings> {
+  const { stdout } = await promisify(execFile)('aws', [
+    'cloudformation',
+    'describe-stacks',
+    '--stack-name',
+    stackName,
+    '--region',
+    REGION,
+    '--output',
+    'json',
+  ]);
+  return parseStackSettings(stdout);
+}
+
 const dependencies: MigrateDependencies = {
-  async readStackSettings(stackName) {
-    const { stdout } = await promisify(execFile)('aws', [
-      'cloudformation',
-      'describe-stacks',
-      '--stack-name',
-      stackName,
-      '--region',
-      REGION,
-      '--output',
-      'json',
-    ]);
-    return parseStackSettings(stdout);
-  },
+  readStackSettings: readStackSettingsWithAwsCli,
   createDatabase: (settings) =>
     createDataApi(
       { resourceArn: settings.clusterArn, secretArn: settings.secretArn, database: settings.databaseName },
