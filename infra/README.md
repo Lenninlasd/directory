@@ -534,3 +534,15 @@ The file stays outside the repository: `node backend/scripts/import-businesses.t
 | `curl -s "$API_URL/businesses"` | `200`, the imported businesses plus the active seed rows, eleven fields each, no private field | Passed (2026-11-22): 60 businesses (52 imported, 8 seed). The counts of Maps links, websites, Instagram links, descriptions, and businesses without hours match the file plus the seed |
 | A second `--apply` with the same file | Every business unchanged | Passed (2026-11-22): `Unchanged: 52`. It also reads the stored coordinates and scores back without error, so the Data API returns them as JSON numbers (design, "Documentation checked", task 4.3) |
 | Hours of one imported business edited in admin mode, then a dry run | The business is listed under `Edited hours kept` | Passed (2026-11-22), checked by the owner. The owner then changed the hours back to the file's, and the next dry run showed `Edited hours kept: 0`, as "The edit matches the file" says |
+
+#### Detail dialog and the owner's review (task 5.3)
+
+| Check | Expected | Result |
+|---|---|---|
+| `$FRONTEND_URL` JavaScript bundle | Contains "Ver en Google Maps", "Ver más", "Ver menos", and the three-line limit | Passed (2026-11-23) |
+| "Ver en Google Maps" on an imported business | Opens the business's listing in a new tab; the dialog stays open | Passed (2026-11-23), checked by the owner |
+| A business with Instagram and a description | The "Instagram" row after "Página web"; the description between the badge and the rows | Passed (2026-11-23), checked by the owner |
+| The seed business with a 300-character description, on a 320 px wide screen, not expanded | Three lines and "Ver más" below them; "Ubicación" and the WhatsApp area visible without scrolling (AC-8.5) | Passed (2026-11-23), checked by the owner |
+| "Ver más" / "Ver menos" and every new link, with the keyboard | Each can be reached with Tab and activated with Enter; focus stays on the button after it toggles | Passed (2026-11-23), checked by the owner |
+| Text contrast of the new texts | AA | Passed (2026-11-23), checked by the owner |
+| The owner's review of the imported businesses in `dev` | The owner says in chat whether they can go to `prod` | Approved for `prod` (2026-11-23): the 52 businesses of the file with SHA-256 `937c0de2a11e10d4e36646a521928028aa34a88b9e6020721dd4225560e59930`. `prod` is loaded in `finish-mvp-rollout`, task 2.1 |

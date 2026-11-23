@@ -141,7 +141,7 @@ These tasks start only after the owner approves the whole change in chat and the
     - A second `--apply` reports every business as unchanged.
     - After one business's hours are edited in admin mode, a dry run lists that business as having edited hours.
   - Record the results with counts only, never names or values.
-- [ ] 5.3 Check the dialog in `dev` on a 320 px wide screen and on desktop.
+- [x] 5.3 Check the dialog in `dev` on a 320 px wide screen and on desktop.
   - Verify:
     - The Maps link opens the listing in a new tab.
     - The Instagram row and the description appear where the spec says.
