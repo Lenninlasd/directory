@@ -71,6 +71,22 @@ These tasks start only after the owner approves the whole change in chat and the
     - There is no paragraph when the description is `null`.
     - `<b>Pan</b>` is shown as text, with no `b` element in the dialog.
   - Verify: the tests pass. The 320 px check is manual, in task 5.3.
+- [x] 3.4 Move the description between the badge and the rows, limited to three lines with "Ver más" / "Ver menos" (owner's revision of 2026-11-23; directory spec, "Business description" and "Interface text"; design D-10).
+  - `strings.ts` gets `showMoreDescription: 'Ver más'` and `showLessDescription: 'Ver menos'`.
+  - Tests first, in `BusinessDetailDialog.test.tsx` and `strings.test.ts`. The tests set `scrollHeight` and `clientHeight`, since jsdom does no layout:
+    - The paragraph comes after the badge and before the rows.
+    - A description that fits has no button.
+    - A longer one is limited, with "Ver más" and `aria-expanded="false"`.
+    - "Ver más" shows the full text, then reads "Ver menos" with `aria-expanded="true"`, and limits it again.
+    - Each business opens limited, even after another was expanded.
+    - No paragraph and no button when the description is `null`, and markup stays text.
+    - The exact wording.
+  - Verify: the tests pass. The 320 px check is manual, in task 5.3.
+- [x] 3.5 Put "Ver más" at the end of the third line and "Ver menos" after the last word (owner's revision of 2026-11-23; directory spec, "Business description"; design D-10).
+  - Tests first, in `BusinessDetailDialog.test.tsx`:
+    - The button is in the same block as the paragraph, and its accessible name stays "Ver más", without the "…".
+    - Expanding keeps the same button element, so focus stays on it, and the expanded paragraph is inline.
+  - Verify: the tests pass. The position over the third line is checked by hand in task 5.3.
 
 ## 4. Import command
 
@@ -123,7 +139,7 @@ These tasks start only after the owner approves the whole change in chat and the
     - `curl "$API_URL/businesses"` returns the eleven fields for every business, and each seed case of task 2.3 returns its value or `null` as the directory spec says.
     - No private field is in the response.
   - Record the results in the checks table of `infra/README.md`.
-- [ ] 5.2 Import the pipeline's file into `dev`: first the dry run, then `--apply`.
+- [x] 5.2 Import the pipeline's file into `dev`: first the dry run, then `--apply`.
   - Verify:
     - The counts printed match the file.
     - `GET /businesses` returns the imported businesses plus the active seed rows.
@@ -134,7 +150,8 @@ These tasks start only after the owner approves the whole change in chat and the
   - Verify:
     - The Maps link opens the listing in a new tab.
     - The Instagram row and the description appear where the spec says.
-    - The 300-character seed description leaves "Ubicación" and the WhatsApp area visible without scrolling (AC-8.5).
+    - The 300-character seed description, not expanded, leaves "Ubicación" and the WhatsApp area visible without scrolling (AC-8.5).
+    - "Ver más" and "Ver menos" work with the keyboard.
     - Every new link can be reached with the keyboard, and the text contrast meets AA.
   - Then the owner reviews the imported businesses in `dev` and says in chat whether they can go to `prod`.
   - Record the results.

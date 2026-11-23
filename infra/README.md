@@ -522,3 +522,15 @@ FRONTEND_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --que
 | The same response, private fields | No `googlePlaceId`, coordinates, source, score, dates, consent, notes, or imported hours | Passed (2026-11-22) |
 | The same response, seed cases of task 2.3 | Row 1: `mapsUrl` `null` (another host), description trimmed. Row 5: `instagramUrl` `null` (another host). Row 6: a 300-character description. Row 8: the description with its markup as text. Other rows: the three fields `null` | Passed (2026-11-22) |
 | `curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL"`, and its JavaScript bundle | `200`, and the bundle contains "Ver en Google Maps" | Passed (2026-11-22) |
+
+#### Import of the pipeline's file (task 5.2)
+
+The file stays outside the repository: `node backend/scripts/import-businesses.ts dev <path-to>/businesses.json [--apply]`.
+
+| Check | Expected | Result |
+|---|---|---|
+| Dry run | The counts match the file, nothing is written | Passed (2026-11-22): 52 businesses checked, plan `Added: 52`, all other groups 0 |
+| `--apply` | The same plan, then `Applied to dev.` | Passed (2026-11-22) |
+| `curl -s "$API_URL/businesses"` | `200`, the imported businesses plus the active seed rows, eleven fields each, no private field | Passed (2026-11-22): 60 businesses (52 imported, 8 seed). The counts of Maps links, websites, Instagram links, descriptions, and businesses without hours match the file plus the seed |
+| A second `--apply` with the same file | Every business unchanged | Passed (2026-11-22): `Unchanged: 52`. It also reads the stored coordinates and scores back without error, so the Data API returns them as JSON numbers (design, "Documentation checked", task 4.3) |
+| Hours of one imported business edited in admin mode, then a dry run | The business is listed under `Edited hours kept` | Passed (2026-11-22), checked by the owner. The owner then changed the hours back to the file's, and the next dry run showed `Edited hours kept: 0`, as "The edit matches the file" says |

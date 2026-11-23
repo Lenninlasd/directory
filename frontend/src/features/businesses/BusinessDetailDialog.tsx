@@ -26,6 +26,7 @@ interface BusinessDetailDialogProps {
 export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessDetailDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const descriptionId = useId();
 
   // Layout effect, so the dialog opens or closes in the same frame as its content changes.
   useLayoutEffect(() => {
@@ -49,6 +50,20 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
   // The business whose "Editar con IA" is waiting for the admin key (design D-19).
   const [keyRequestBusinessId, setKeyRequestBusinessId] = useState<string | null>(null);
   const isEditing = business !== null && editingBusinessId === business.id;
+
+  // The description shows three lines until "Ver más", kept by business id like the editing state
+  // (directory spec, "Business description"; import-businesses design D-10).
+  const [expandedDescriptionId, setExpandedDescriptionId] = useState<string | null>(null);
+  const isDescriptionExpanded = business !== null && expandedDescriptionId === business.id;
+  // Measured while limited: a line holds more characters on desktop than on a phone, so the text decides.
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+  useLayoutEffect(() => {
+    const paragraph = descriptionRef.current;
+    if (paragraph !== null && !isDescriptionExpanded) {
+      setDescriptionOverflows(paragraph.scrollHeight > paragraph.clientHeight);
+    }
+  }, [business, isDescriptionExpanded]);
 
   // When the panel closes, focus goes back to "Editar con IA", since the focused control was removed.
   const editButtonRef = useRef<HTMLButtonElement>(null);
@@ -94,6 +109,7 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
           setEditingBusinessId(null);
           setSavedBusinessId(null);
           setKeyRequestBusinessId(null);
+          setExpandedDescriptionId(null);
           onClose();
         }
       }}
@@ -127,6 +143,36 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
                 </h2>
                 <StoreTypeBadge hasPhysicalStore={business.hasPhysicalStore} className="mt-1 bg-canvas" />
               </div>
+              {/* Between the badge and the rows, limited to three lines so "Ubicación" stays in view at 320 px (AC-8.5).
+                  React renders it as text, so markup is never interpreted (directory spec, "Business description"). */}
+              {business.description !== null && (
+                // `relative` so the limited "… Ver más" can sit over the end of the third line.
+                <div className="relative text-sm text-ink">
+                  <p
+                    id={descriptionId}
+                    ref={descriptionRef}
+                    className={`break-words whitespace-pre-line ${isDescriptionExpanded ? 'inline' : 'line-clamp-3'}`}
+                  >
+                    {business.description}
+                  </p>
+                  {/* One button in both states, so keyboard focus stays on it (design D-10). The inline-text
+                      exception of WCAG 2.5.8 applies to its target size. */}
+                  {(descriptionOverflows || isDescriptionExpanded) && (
+                    <button
+                      type="button"
+                      aria-expanded={isDescriptionExpanded}
+                      aria-controls={descriptionId}
+                      onClick={() => setExpandedDescriptionId(isDescriptionExpanded ? null : business.id)}
+                      className={`font-semibold underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
+                        isDescriptionExpanded ? 'ml-1 inline' : 'absolute right-0 bottom-0 bg-surface pl-1'
+                      }`}
+                    >
+                      {!isDescriptionExpanded && <span aria-hidden="true">… </span>}
+                      {isDescriptionExpanded ? strings.showLessDescription : strings.showMoreDescription}
+                    </button>
+                  )}
+                </div>
+              )}
               {/* Rows without data are not rendered (directory spec, "Detail dialog hours and website rows"). */}
               <dl className="flex flex-col gap-3 rounded-2xl border border-border p-4 text-sm">
                 <div>
@@ -229,11 +275,6 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
                   </div>
                 )}
               </dl>
-              {/* Below the rows, so "Ubicación" stays visible on a 320 px screen (import-businesses design D-10).
-                  React renders it as text, so markup is never interpreted (directory spec, "Business description"). */}
-              {business.description !== null && (
-                <p className="text-sm break-words whitespace-pre-line text-ink">{business.description}</p>
-              )}
             </div>
           </div>
           <div className="flex border-t border-border p-4">

@@ -43,6 +43,8 @@ export const strings = {
   // Directory spec, "Interface text" (import-businesses).
   mapsLinkText: 'Ver en Google Maps',
   instagramLabel: 'Instagram',
+  showMoreDescription: 'Ver más',
+  showLessDescription: 'Ver menos',
 
   // Business-editing spec, "Editing interface text" (edit-opening-hours-with-natural-language). Admin mode only.
   editOpeningHours: 'Editar con IA',

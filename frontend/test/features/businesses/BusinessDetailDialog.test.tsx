@@ -324,28 +324,138 @@ describe('BusinessDetailDialog: Instagram row', () => {
   });
 });
 
-describe('BusinessDetailDialog: description', () => {
-  it('shows the description in full in a paragraph right after the rows', async () => {
+// jsdom does no layout, so each test says whether the limited paragraph overflows its three lines.
+function layoutDescription({ overflows }: { overflows: boolean }) {
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(60);
+  vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(overflows ? 120 : 60);
+}
+
+/** The block between the header (category, name, badge) and the rows. */
+function blockBeforeRows(): Element | null | undefined {
+  return openDialog()?.querySelector('dl')?.previousElementSibling;
+}
+
+describe('BusinessDetailDialog: description (directory spec, "Business description")', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows the description between the badge and the rows', async () => {
+    layoutDescription({ overflows: false });
     await renderDirectory(createQueryClient(), [bakeryWithDescription]);
 
     openTile(bakeryWithDescription);
 
-    const paragraph = openDialog()?.querySelector('dl')?.nextElementSibling;
-    expect(paragraph?.tagName).toBe('P');
-    expect(paragraph).toHaveTextContent(description);
-    expect(paragraph?.className).not.toMatch(/truncate|line-clamp|text-ellipsis/);
-    expect(openDialog()?.textContent).toContain(`example.com/panaderia${description}Este negocio no tiene WhatsApp registrado`);
+    expect(blockBeforeRows()).toHaveTextContent(description);
+    expect(blockBeforeRows()?.previousElementSibling?.querySelector('h2')).toHaveTextContent(bakeryWithDescription.name);
+    expect(openDialog()?.textContent).toContain(`En tienda${description}Ubicación`);
   });
 
-  it('shows no paragraph and no text in its place without a description', async () => {
+  it('shows a description that fits in three lines with no button (scenario "A short description")', async () => {
+    layoutDescription({ overflows: false });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+
+    openTile(bakeryWithDescription);
+
+    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
+    expect(within(dialog).queryByRole('button', { name: 'Ver más' })).not.toBeInTheDocument();
+  });
+
+  it('limits a longer description to three lines, with "Ver más" (scenario "A long description")', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+
+    openTile(bakeryWithDescription);
+
+    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
+    expect(within(dialog).getByText(description)).toHaveClass('line-clamp-3');
+    const button = within(dialog).getByRole('button', { name: 'Ver más' });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).toHaveAttribute('aria-controls', within(dialog).getByText(description).id);
+  });
+
+  it('shows the full text with "Ver más", then limits it again with "Ver menos" (scenario "Expanding and limiting")', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+    openTile(bakeryWithDescription);
+    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ver más' }));
+
+    expect(within(dialog).getByText(description)).not.toHaveClass('line-clamp-3');
+    const less = within(dialog).getByRole('button', { name: 'Ver menos' });
+    expect(less).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(less);
+
+    expect(within(dialog).getByText(description)).toHaveClass('line-clamp-3');
+    expect(within(dialog).getByRole('button', { name: 'Ver más' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('puts "… Ver más" in the text block, named "Ver más" without the ellipsis', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+
+    openTile(bakeryWithDescription);
+
+    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
+    const paragraph = within(dialog).getByText(description);
+    const button = within(dialog).getByRole('button', { name: 'Ver más' });
+    expect(button.parentElement).toBe(paragraph.parentElement);
+    expect(button).toHaveTextContent('… Ver más');
+    expect(button).toHaveAccessibleName('Ver más');
+  });
+
+  it('keeps the same button, and the focus on it, when expanding and limiting, with "Ver menos" after the text', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+    openTile(bakeryWithDescription);
+    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
+    const button = within(dialog).getByRole('button', { name: 'Ver más' });
+    button.focus();
+
+    fireEvent.click(button);
+
+    expect(within(dialog).getByRole('button', { name: 'Ver menos' })).toBe(button);
+    expect(button).toHaveFocus();
+    expect(button).toHaveTextContent(/^Ver menos$/);
+    expect(within(dialog).getByText(description)).toHaveClass('inline');
+
+    fireEvent.click(button);
+
+    expect(within(dialog).getByRole('button', { name: 'Ver más' })).toBe(button);
+    expect(button).toHaveFocus();
+  });
+
+  it('opens every business limited again, even after one was expanded (scenario "Another business")', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription, bakeryWithMarkup]);
+    openTile(bakeryWithDescription);
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Ver más' }));
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cerrar' }));
+    openTile(bakeryWithMarkup);
+
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Ver más' })).toBeInTheDocument();
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cerrar' }));
+    openTile(bakeryWithDescription);
+
+    expect(within(screen.getByRole('dialog')).getByText(description)).toHaveClass('line-clamp-3');
+  });
+
+  it('shows no paragraph and no button without a description (scenario "A business without a description")', async () => {
+    layoutDescription({ overflows: true });
     await renderDirectory(createQueryClient(), [bakery]);
 
     openTile(bakery);
 
-    expect(openDialog()?.querySelector('dl')?.nextElementSibling).toBeNull();
+    expect(blockBeforeRows()?.querySelector('h2')).toHaveTextContent(bakery.name);
+    expect(within(screen.getByRole('dialog')).queryByRole('button', { name: 'Ver más' })).not.toBeInTheDocument();
   });
 
   it('shows markup as text, never as elements', async () => {
+    layoutDescription({ overflows: false });
     await renderDirectory(createQueryClient(), [bakeryWithMarkup]);
 
     openTile(bakeryWithMarkup);
