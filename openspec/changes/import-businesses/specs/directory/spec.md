@@ -39,11 +39,11 @@ The API SHALL expose `GET /businesses`, with no parameters and no authentication
 - **AND** the details are written only to the logs
 
 ### Requirement: Business detail dialog
-When the user opens a tile, the system SHALL display a modal dialog with a short cover in the category color and icon, the full business name as its title, the category, the store type badge, a "Ubicación" row with the full location summary and its "Maps link", the rows of "Detail dialog hours and website rows", and the "Business description". It SHALL NOT display any other business attribute. In admin mode it SHALL also display the controls of the business-editing spec.
+When the user opens a tile, the system SHALL display a modal dialog with a short cover in the category color and icon, the full business name as its title, the category, the store type badge, the "Business description", a "Ubicación" row with the full location summary and its "Maps link", and the rows of "Detail dialog hours and website rows". It SHALL NOT display any other business attribute. In admin mode it SHALL also display the controls of the business-editing spec.
 
 #### Scenario: Dialog content (003 AC-8.1, 003 AC-8.3)
 - **WHEN** the user opens a tile
-- **THEN** the dialog shows the cover, name, category, badge, and full location of that business, plus its Maps link, hours, website, Instagram, and description when it has them, and nothing else about it
+- **THEN** the dialog shows the cover, name, category, badge, and full location of that business, plus its description, Maps link, hours, website, and Instagram when it has them, and nothing else about it
 
 #### Scenario: Admin mode controls
 - **WHEN** the dialog is open in admin mode
@@ -144,6 +144,7 @@ All interface text SHALL be in Spanish, with the exact wording of the table in t
 | Dialog opening hours row label | "Horario" |
 | Dialog website row label | "Página web" |
 | Dialog Instagram row label | "Instagram" |
+| Description expand button | "Ver más" / "Ver menos" |
 | Day names, Monday to Sunday | "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" |
 | A day without hours | "Cerrado" |
 | Dialog WhatsApp button | "Escribir por WhatsApp" |
@@ -238,18 +239,30 @@ The "Instagram" row SHALL show a link whose text is `@` followed by the handle, 
 - **THEN** the profile opens in a new tab, and the directory stays open with the dialog where the user left it
 
 ### Requirement: Business description
-While a business has a description, the detail dialog SHALL show it in full as plain text, in a paragraph below the rows, wrapping onto as many lines as it needs. Markup in a description SHALL be shown as text, never interpreted.
+While a business has a description, the detail dialog SHALL show it as plain text in a paragraph between the store type badge and the rows, limited to three lines. When the text needs more than three lines, a "Ver más" button below it SHALL show the full text, and its text SHALL then read "Ver menos", which limits it to three lines again. Markup in a description SHALL be shown as text, never interpreted.
 
-#### Scenario: A business with a description
-- **WHEN** the dialog opens for a business whose `description` is not `null`
-- **THEN** the description is shown in full below the rows, never cut with an ellipsis
+#### Scenario: A short description
+- **WHEN** the dialog opens for a business whose description fits in three lines
+- **THEN** the description is shown in full between the badge and the rows, with no button
+
+#### Scenario: A long description
+- **WHEN** the dialog opens for a business whose description needs more than three lines
+- **THEN** the dialog shows its first three lines, ending in an ellipsis, and below them a "Ver más" button whose `aria-expanded` is `false`
+
+#### Scenario: Expanding and limiting the description
+- **WHEN** the user activates "Ver más"
+- **THEN** the full description is shown, the button reads "Ver menos" and its `aria-expanded` is `true`, and keyboard focus stays on it, and activating it again limits the description to three lines
+
+#### Scenario: Another business
+- **WHEN** the user expands a description, closes the dialog, and opens another business or the same one again
+- **THEN** its description is limited to three lines again
 
 #### Scenario: A business without a description
 - **WHEN** `description` is `null`
-- **THEN** the dialog shows no paragraph and no text in its place
+- **THEN** the dialog shows no paragraph, no button, and no text in their place
 
 #### Scenario: The longest description on a 320 px wide screen
-- **WHEN** the dialog opens on a 320 px wide screen for a business with a 300-character description
+- **WHEN** the dialog opens on a 320 px wide screen for a business with a 300-character description, not expanded
 - **THEN** the location row and the WhatsApp button are still visible without scrolling, as in "Business detail dialog"
 
 #### Scenario: Markup in a description

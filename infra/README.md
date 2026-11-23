@@ -136,15 +136,65 @@ node backend/scripts/migrate.ts dev --seed    # also run backend/seeds/dev_busin
 
 The script reads the cluster ARN, secret ARN, and database name from the `alameda-<env>` stack with the AWS CLI, then calls the Data API with your credentials. It prints each applied file and exits with a non-zero code if a migration fails (that file is rolled back and later files are not run). `--seed` is refused for `prod`. If the `dev` cluster is paused, the first run fails with `DatabaseResumingException`; run it again after about 30 seconds.
 
-**Opening hours in data migrations.** The admin can change a business's hours in `prod` through the editing routes, so the value in the database can be newer than any migration file. Before writing a data migration that sets `opening_hours`, read the current `prod` value and start from it (infrastructure spec, "Business data loading"):
+Data migrations no longer load business rows: the import below does (infrastructure spec, "Business data loading").
+
+### Import businesses (import-businesses)
+
+Loads the businesses that the pipeline hands off (business-import spec). The file never enters this repository: never copy it here, and never paste a real business value into an issue, a pull request, or this README.
+
+**The file.** `business-pipeline` step 4 writes `output/outscraper/businesses.json` in that repository, where git ignores it. The pipeline overwrites it on every run, so keep a dated copy of each file you import in the private folder next to the decisions file, for example `businesses-2026-11-21.json`. That copy is what a rollback imports again.
+
+**1. Dry run in `dev`.** It checks the whole file, reads `dev`, and prints the plan. It writes nothing:
 
 ```
-CLUSTER_ARN=$(aws cloudformation describe-stacks --stack-name alameda-prod --query "Stacks[0].Outputs[?OutputKey=='ClusterArn'].OutputValue" --output text)
-SECRET_ARN=$(aws cloudformation describe-stacks --stack-name alameda-prod --query "Stacks[0].Outputs[?OutputKey=='SecretArn'].OutputValue" --output text)
-aws rds-data execute-statement --resource-arn "$CLUSTER_ARN" --secret-arn "$SECRET_ARN" --database alameda \
-  --sql "SELECT id, name, opening_hours FROM businesses WHERE id = CAST(:id AS uuid)" \
-  --parameters "name=id,value={stringValue=<business-id>}"
+node backend/scripts/import-businesses.ts dev <path-to>/businesses-2026-11-21.json
 ```
+
+```
+Checked <path>: 52 businesses, generated 2026-11-21, SHA-256 <hash>
+Plan for dev:
+  Added: 52
+    <one name per line>
+  Changed: 0
+  Reactivated: 0
+  Deactivated: 0
+  Unchanged: 0
+  Edited hours kept: 0
+Dry run: nothing was written. Run again with --apply to write this plan.
+```
+
+The output shows business names and counts only, never a private field.
+
+**2. Apply in `dev`.** The same command with `--apply` writes the plan and the import record in one transaction, then prints `Applied to dev.` Running it again with the same file reports every business as unchanged. Rows without a place id, such as the seed, are never touched.
+
+**3. The owner's review.** The owner checks the businesses in the `dev` directory. A correction is made in the pipeline's decisions file, never here. Then run the pipeline again, keep the new dated copy, and repeat steps 1 and 2. A business that leaves the file is deactivated, never deleted. "Edited hours kept" lists businesses whose hours were changed in admin mode after the previous import. The import keeps those hours.
+
+**4. Apply in `prod`.** `prod` accepts only the exact file last applied to `dev`, compared by SHA-256. Use the same dated copy:
+
+```
+node backend/scripts/import-businesses.ts prod <path-to>/businesses-2026-11-21.json          # dry run, asks nothing
+node backend/scripts/import-businesses.ts prod <path-to>/businesses-2026-11-21.json --apply  # asks you to type prod
+```
+
+The `prod` dry run also prints `The file matches the last import applied to dev.` and lists the businesses whose hours were edited in `dev`. Those edits do not travel, since `prod` receives the file and not the `dev` rows, so repeat them in `prod` admin mode after the import. With `--apply`, a file that differs from the last `dev` import, or a `dev` without imports, is refused before the question:
+
+```
+Refused: prod accepts only the file last applied to dev. Import this file into dev and review it first.
+```
+
+Any answer other than `prod` prints `Stopped. prod was not changed.`
+
+**What a refused file looks like.** The whole file is refused if one business breaks a rule, and nothing is written. Each problem names the position, place id, and field, never the value:
+
+```
+Business 7 (place id <place-id>), websiteUrl: must be null or a valid https website
+Business 12 (place id <place-id>), whatsappNumber: needs private.consentedAt and private.consentChannel (consent rules)
+Refused: 2 problems. Nothing was written.
+```
+
+Fix them in the pipeline and run it again.
+
+**Errors.** If the `dev` cluster is paused, the first read fails with `DatabaseResumingException`. Nothing is written before the transaction begins, so run the command again after about 30 seconds. If a write fails, the transaction rolls back and the command prints `The import failed and was rolled back. Nothing was written.` with the error name only, since a database message can quote a private value.
 
 ## Rollback (002-T9, spec AC-6.3)
 
@@ -172,6 +222,8 @@ git switch -                         # go back to your branch afterwards
 ### Database
 
 Migrations are forward-only. A bad migration is fixed by a new migration file, released like any other change. Restoring data from automated backups is not part of a release rollback.
+
+Business data is rolled back by importing the previous dated file, or a corrected one, into `dev` and then `prod` ("Import businesses" above). A business missing from that file is deactivated, not deleted.
 
 ## One-time manual setup
 
@@ -450,3 +502,47 @@ DEV_KEY_PARAMETER="arn:aws:ssm:us-east-1:$ACCOUNT:parameter/alameda/dev/admin-ke
 | `aws iam simulate-principal-policy --policy-source-arn "$ROLE_ARN" --action-names kms:Decrypt --resource-arns "$SSM_KEY_ARN" --context-entries "ContextKeyName=kms:ViaService,ContextKeyValues=ssm.us-east-1.amazonaws.com,ContextKeyType=string" "ContextKeyName=kms:EncryptionContext:PARAMETER_ARN,ContextKeyValues=$DEV_KEY_PARAMETER,ContextKeyType=string" --query "EvaluationResults[].EvalDecision"` | `allowed` (SSM decrypting a `dev` parameter) | |
 | The same without the `kms:ViaService` entry (KMS called directly) | `implicitDeny` | |
 | The same with `kms:ViaService` but `PARAMETER_ARN` set to the `prod` admin key ARN | `implicitDeny` | |
+
+### Imported businesses in `dev` (import-businesses, tasks 5.1 to 5.3)
+
+Results are recorded with counts only, never business names or values (infrastructure spec, "Business data loading").
+
+```
+API_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+FRONTEND_URL=$(aws cloudformation describe-stacks --stack-name alameda-dev --query "Stacks[0].Outputs[?OutputKey=='FrontendUrl'].OutputValue" --output text)
+```
+
+#### Deploy, migrations, and seed (task 5.1)
+
+| Check | Expected | Result |
+|---|---|---|
+| `infra/deploy.sh dev` | Lambda updated, migrations `003` to `005` applied, frontend uploaded | Passed (2026-11-22) on the second run. The first run updated the Lambda, then stopped at the migrations on the paused cluster (`resuming after being auto-paused`), as documented |
+| `node backend/scripts/migrate.ts dev --seed` | Applies `003_add_business_public_fields.sql`, `004_add_business_private_fields.sql`, `005_create_business_imports.sql`, then `Seeded dev_businesses.sql` | Passed (2026-11-22) |
+| `curl -s "$API_URL/businesses"` | `200`; every business has exactly the eleven fields of "Business list API" | Passed (2026-11-22): 8 active seed businesses, eleven fields each; the inactive seed row is absent |
+| The same response, private fields | No `googlePlaceId`, coordinates, source, score, dates, consent, notes, or imported hours | Passed (2026-11-22) |
+| The same response, seed cases of task 2.3 | Row 1: `mapsUrl` `null` (another host), description trimmed. Row 5: `instagramUrl` `null` (another host). Row 6: a 300-character description. Row 8: the description with its markup as text. Other rows: the three fields `null` | Passed (2026-11-22) |
+| `curl -s -o /dev/null -w "%{http_code}" "$FRONTEND_URL"`, and its JavaScript bundle | `200`, and the bundle contains "Ver en Google Maps" | Passed (2026-11-22) |
+
+#### Import of the pipeline's file (task 5.2)
+
+The file stays outside the repository: `node backend/scripts/import-businesses.ts dev <path-to>/businesses.json [--apply]`.
+
+| Check | Expected | Result |
+|---|---|---|
+| Dry run | The counts match the file, nothing is written | Passed (2026-11-22): 52 businesses checked, plan `Added: 52`, all other groups 0 |
+| `--apply` | The same plan, then `Applied to dev.` | Passed (2026-11-22) |
+| `curl -s "$API_URL/businesses"` | `200`, the imported businesses plus the active seed rows, eleven fields each, no private field | Passed (2026-11-22): 60 businesses (52 imported, 8 seed). The counts of Maps links, websites, Instagram links, descriptions, and businesses without hours match the file plus the seed |
+| A second `--apply` with the same file | Every business unchanged | Passed (2026-11-22): `Unchanged: 52`. It also reads the stored coordinates and scores back without error, so the Data API returns them as JSON numbers (design, "Documentation checked", task 4.3) |
+| Hours of one imported business edited in admin mode, then a dry run | The business is listed under `Edited hours kept` | Passed (2026-11-22), checked by the owner. The owner then changed the hours back to the file's, and the next dry run showed `Edited hours kept: 0`, as "The edit matches the file" says |
+
+#### Detail dialog and the owner's review (task 5.3)
+
+| Check | Expected | Result |
+|---|---|---|
+| `$FRONTEND_URL` JavaScript bundle | Contains "Ver en Google Maps", "Ver más", "Ver menos", and the three-line limit | Passed (2026-11-23) |
+| "Ver en Google Maps" on an imported business | Opens the business's listing in a new tab; the dialog stays open | Passed (2026-11-23), checked by the owner |
+| A business with Instagram and a description | The "Instagram" row after "Página web"; the description between the badge and the rows | Passed (2026-11-23), checked by the owner |
+| The seed business with a 300-character description, on a 320 px wide screen, not expanded | Three lines and "Ver más" below them; "Ubicación" and the WhatsApp area visible without scrolling (AC-8.5) | Passed (2026-11-23), checked by the owner |
+| "Ver más" / "Ver menos" and every new link, with the keyboard | Each can be reached with Tab and activated with Enter; focus stays on the button after it toggles | Passed (2026-11-23), checked by the owner |
+| Text contrast of the new texts | AA | Passed (2026-11-23), checked by the owner |
+| The owner's review of the imported businesses in `dev` | The owner says in chat whether they can go to `prod` | Approved for `prod` (2026-11-23): the 52 businesses of the file with SHA-256 `937c0de2a11e10d4e36646a521928028aa34a88b9e6020721dd4225560e59930`. `prod` is loaded in `finish-mvp-rollout`, task 2.1 |

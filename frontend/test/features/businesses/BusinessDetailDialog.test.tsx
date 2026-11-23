@@ -22,6 +22,9 @@ const cafe: Business = {
   whatsappNumber: '573001111111',
   websiteUrl: null,
   openingHours: [],
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
 
 const desserts: Business = {
@@ -33,6 +36,9 @@ const desserts: Business = {
   whatsappNumber: null,
   websiteUrl: null,
   openingHours: [],
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
 
 // Directory spec, "Detail dialog hours and website rows": a business with both, and one with a website only.
@@ -45,6 +51,9 @@ const bakery: Business = {
   whatsappNumber: null,
   websiteUrl: 'https://example.com/panaderia/',
   openingHours: [1, 2, 3, 4, 5].map((dayOfWeek) => ({ dayOfWeek, opens: '08:00', closes: '18:00' })),
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
 
 const tutoring: Business = {
@@ -56,7 +65,31 @@ const tutoring: Business = {
   whatsappNumber: null,
   websiteUrl: 'https://example.com/tutorias',
   openingHours: [],
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
+
+// Directory spec, "Maps link": a business with a link to its Google Maps listing and no WhatsApp,
+// so the Maps link is the only link in the dialog.
+const pharmacy: Business = {
+  ...desserts,
+  id: 'pharmacy',
+  name: 'Droguería La Alameda',
+  locationSummary: 'Local 4, Centro Comercial Alameda',
+  mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Droguer%C3%ADa&query_place_id=EXAMPLE_PLACE_ID',
+};
+
+// Directory spec, "Instagram link": after "Página web" when there is one, otherwise after "Ubicación".
+const instagramUrl = 'https://www.instagram.com/example.panaderia/';
+const bakeryOnInstagram: Business = { ...bakery, id: 'bakery-instagram', name: 'Panadería con Instagram', instagramUrl };
+const dessertsOnInstagram: Business = { ...desserts, id: 'desserts-instagram', name: 'Postres con Instagram', instagramUrl };
+
+// Directory spec, "Business description": a paragraph below the rows, in full and as plain text.
+const description =
+  'Pan artesanal, tortas por encargo y café recién hecho. Pedidos con un día de anticipación para cumpleaños y reuniones del conjunto.';
+const bakeryWithDescription: Business = { ...bakery, id: 'bakery-description', name: 'Panadería con descripción', description };
+const bakeryWithMarkup: Business = { ...bakery, id: 'bakery-markup', name: 'Panadería con marcas', description: '<b>Pan</b> artesanal' };
 
 async function renderDirectory(queryClient: QueryClient = createQueryClient(), businesses: Business[] = [cafe, desserts]) {
   fetchBusinessesMock.mockResolvedValue(businesses);
@@ -197,6 +230,224 @@ describe('BusinessDetailDialog: opening hours and website rows', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+});
+
+describe('BusinessDetailDialog: Maps link', () => {
+  it('shows "Ver en Google Maps" below the location summary, in the "Ubicación" row', async () => {
+    await renderDirectory(createQueryClient(), [pharmacy]);
+
+    openTile(pharmacy);
+
+    expect(openDialog()?.textContent).toContain('UbicaciónLocal 4, Centro Comercial AlamedaVer en Google Maps');
+  });
+
+  it('links to the listing in a new tab, with the text as its name and a hidden icon', async () => {
+    await renderDirectory(createQueryClient(), [pharmacy]);
+
+    openTile(pharmacy);
+
+    const link = within(screen.getByRole('dialog', { name: pharmacy.name })).getByRole('link');
+    expect(link).toHaveAccessibleName('Ver en Google Maps');
+    expect(link).toHaveTextContent('Ver en Google Maps');
+    expect(link).toHaveAttribute('href', pharmacy.mapsUrl);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('shows no link and no text in its place without a Maps link', async () => {
+    await renderDirectory();
+
+    openTile(desserts);
+
+    const dialog = screen.getByRole('dialog', { name: desserts.name });
+    expect(within(dialog).queryByRole('link')).not.toBeInTheDocument();
+    expect(within(dialog).queryByText('Ver en Google Maps')).not.toBeInTheDocument();
+  });
+});
+
+describe('BusinessDetailDialog: Instagram row', () => {
+  it('shows "Instagram" after "Página web", with "@" and the handle as the link text', async () => {
+    await renderDirectory(createQueryClient(), [bakeryOnInstagram]);
+
+    openTile(bakeryOnInstagram);
+
+    expect(openDialog()?.textContent).toBe(
+      [
+        'Panadería',
+        'Panadería con Instagram',
+        'En tienda',
+        'Ubicación',
+        'Local 12',
+        'Horario',
+        'Lunes a viernes · 8:00 a. m. – 6:00 p. m.',
+        'Sábado y domingo · Cerrado',
+        'Página web',
+        'example.com/panaderia',
+        'Instagram',
+        '@example.panaderia',
+        'Este negocio no tiene WhatsApp registrado',
+      ].join(''),
+    );
+  });
+
+  it('shows the row right after "Ubicación" without hours and without a website', async () => {
+    await renderDirectory(createQueryClient(), [dessertsOnInstagram]);
+
+    openTile(dessertsOnInstagram);
+
+    expect(openDialog()?.textContent).toContain('UbicaciónTorre 3Instagram@example.panaderia');
+  });
+
+  it('links to the profile in a new tab, with the handle as its name and a hidden icon', async () => {
+    await renderDirectory(createQueryClient(), [dessertsOnInstagram]);
+
+    openTile(dessertsOnInstagram);
+
+    const link = within(screen.getByRole('dialog', { name: dessertsOnInstagram.name })).getByRole('link');
+    expect(link).toHaveAccessibleName('@example.panaderia');
+    expect(link).toHaveAttribute('href', instagramUrl);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('shows no row and no text in its place without an Instagram link', async () => {
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    const dialog = screen.getByRole('dialog', { name: bakery.name });
+    expect(within(dialog).queryByText('Instagram')).not.toBeInTheDocument();
+    expect(openDialog()?.textContent).toContain('example.com/panaderiaEste negocio no tiene WhatsApp registrado');
+  });
+});
+
+// jsdom does no layout, so each test says whether the limited paragraph overflows its three lines.
+function layoutDescription({ overflows }: { overflows: boolean }) {
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(60);
+  vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(overflows ? 120 : 60);
+}
+
+/** The block between the header (category, name, badge) and the rows. */
+function blockBeforeRows(): Element | null | undefined {
+  return openDialog()?.querySelector('dl')?.previousElementSibling;
+}
+
+describe('BusinessDetailDialog: description (directory spec, "Business description")', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows the description between the badge and the rows', async () => {
+    layoutDescription({ overflows: false });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+
+    openTile(bakeryWithDescription);
+
+    expect(blockBeforeRows()).toHaveTextContent(description);
+    expect(blockBeforeRows()?.previousElementSibling?.querySelector('h2')).toHaveTextContent(bakeryWithDescription.name);
+    expect(openDialog()?.textContent).toContain(`En tienda${description}Ubicación`);
+  });
+
+  it('shows a description that fits in three lines with no button (scenario "A short description")', async () => {
+    layoutDescription({ overflows: false });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+
+    openTile(bakeryWithDescription);
+
+    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
+    expect(within(dialog).queryByRole('button', { name: 'Ver más' })).not.toBeInTheDocument();
+  });
+
+  it('limits a longer description to three lines, with "Ver más" (scenario "A long description")', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+
+    openTile(bakeryWithDescription);
+
+    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
+    expect(within(dialog).getByText(description)).toHaveClass('line-clamp-3');
+    const button = within(dialog).getByRole('button', { name: 'Ver más' });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).toHaveAttribute('aria-controls', within(dialog).getByText(description).id);
+  });
+
+  it('shows the full text with "Ver más", then limits it again with "Ver menos" (scenario "Expanding and limiting")', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+    openTile(bakeryWithDescription);
+    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ver más' }));
+
+    expect(within(dialog).getByText(description)).not.toHaveClass('line-clamp-3');
+    const less = within(dialog).getByRole('button', { name: 'Ver menos' });
+    expect(less).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(less);
+
+    expect(within(dialog).getByText(description)).toHaveClass('line-clamp-3');
+    expect(within(dialog).getByRole('button', { name: 'Ver más' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('keeps the same button, and the focus on it, when expanding and limiting', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
+    openTile(bakeryWithDescription);
+    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
+    const button = within(dialog).getByRole('button', { name: 'Ver más' });
+    button.focus();
+
+    fireEvent.click(button);
+
+    expect(within(dialog).getByRole('button', { name: 'Ver menos' })).toBe(button);
+    expect(button).toHaveFocus();
+    expect(button).toHaveTextContent(/^Ver menos$/);
+
+    fireEvent.click(button);
+
+    expect(within(dialog).getByRole('button', { name: 'Ver más' })).toBe(button);
+    expect(button).toHaveFocus();
+  });
+
+  it('opens every business limited again, even after one was expanded (scenario "Another business")', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakeryWithDescription, bakeryWithMarkup]);
+    openTile(bakeryWithDescription);
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Ver más' }));
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cerrar' }));
+    openTile(bakeryWithMarkup);
+
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Ver más' })).toBeInTheDocument();
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cerrar' }));
+    openTile(bakeryWithDescription);
+
+    expect(within(screen.getByRole('dialog')).getByText(description)).toHaveClass('line-clamp-3');
+  });
+
+  it('shows no paragraph and no button without a description (scenario "A business without a description")', async () => {
+    layoutDescription({ overflows: true });
+    await renderDirectory(createQueryClient(), [bakery]);
+
+    openTile(bakery);
+
+    expect(blockBeforeRows()?.querySelector('h2')).toHaveTextContent(bakery.name);
+    expect(within(screen.getByRole('dialog')).queryByRole('button', { name: 'Ver más' })).not.toBeInTheDocument();
+  });
+
+  it('shows markup as text, never as elements', async () => {
+    layoutDescription({ overflows: false });
+    await renderDirectory(createQueryClient(), [bakeryWithMarkup]);
+
+    openTile(bakeryWithMarkup);
+
+    const dialog = screen.getByRole('dialog', { name: bakeryWithMarkup.name });
+    expect(within(dialog).getByText('<b>Pan</b> artesanal')).toBeInTheDocument();
+    expect(dialog.querySelector('b')).toBeNull();
   });
 });
 

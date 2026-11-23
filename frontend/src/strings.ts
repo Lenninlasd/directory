@@ -40,6 +40,12 @@ export const strings = {
   /** Joins the first and last day of a group: "Lunes a viernes". */
   through: 'a',
 
+  // Directory spec, "Interface text" (import-businesses).
+  mapsLinkText: 'Ver en Google Maps',
+  instagramLabel: 'Instagram',
+  showMoreDescription: 'Ver más',
+  showLessDescription: 'Ver menos',
+
   // Business-editing spec, "Editing interface text" (edit-opening-hours-with-natural-language). Admin mode only.
   editOpeningHours: 'Editar con IA',
   noOpeningHours: 'Sin horario registrado',

@@ -9,7 +9,7 @@ The directory still lists only the invented `dev` rows. The business pipeline (`
 ## What Changes
 
 - **Three new public API fields** on `GET /businesses`: `mapsUrl`, `description`, and `instagramUrl`. Each has a validity rule and is `null` when missing or invalid, like `websiteUrl`. Adding fields does not break the current frontend, which ignores fields it does not know.
-- **Detail dialog** (Owner decision B): a "Ver en Google Maps" link in the "Ubicación" row, an "Instagram" row after "Página web", and the description below the rows. The tile does not change.
+- **Detail dialog** (Owner decision B): a "Ver en Google Maps" link in the "Ubicación" row, an "Instagram" row after "Página web", and the description between the badge and the rows, limited to three lines with "Ver más" (revised 2026-11-23). The tile does not change.
 - **Twelve private fields** are stored as columns (`googlePlaceId`, `latitude`, `longitude`, `coordinatesSource`, `sourceType`, `sourceCategory`, `activityScore`, `activityAsOf`, `lastVerifiedAt`, `consentedAt`, `consentChannel`, `adminNotes`). A thirteenth column, `importedOpeningHours`, is used only by the import (design D-8). None is returned by the API, and a contract test checks the exact field list.
 - **A new way to load businesses**, which replaces committed data migrations: a local import command, run like `backend/scripts/migrate.ts`, reads `businesses.json` from outside the repository and writes it through the RDS Data API with the developer's credentials. No business values are ever committed. See conflict 1.
 - **Import rules:**

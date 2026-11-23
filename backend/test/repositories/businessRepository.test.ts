@@ -31,6 +31,9 @@ const sampleRecord = {
   created_at: '2026-10-01T12:30:45.123Z',
   website_url: 'https://example.com/panaderia',
   opening_hours: '[{"dayOfWeek": 1, "opens": "07:00", "closes": "19:00"}]',
+  maps_url: 'https://www.google.com/maps/search/?api=1&query=Panader%C3%ADa&query_place_id=EXAMPLE_PLACE_ID',
+  description: 'Pan artesanal y tortas por encargo.',
+  instagram_url: 'https://www.instagram.com/example.panaderia/',
 };
 
 describe('findActiveBusinessRows', () => {
@@ -51,14 +54,43 @@ describe('findActiveBusinessRows', () => {
     expect(aliases.sort()).toEqual([
       'category',
       'created_at',
+      'description',
       'has_physical_store',
       'id',
+      'instagram_url',
       'location_summary',
+      'maps_url',
       'name',
       'opening_hours',
       'website_url',
       'whatsapp_number',
     ]);
+  });
+
+  // business-import spec, "Private fields stay private": the public query never reads them.
+  it('reads no private column (import-businesses design D-7)', async () => {
+    const { query, calls } = fakeQuery([]);
+
+    await findActiveBusinessRows(query);
+
+    const sql = calls[0]?.sql ?? '';
+    for (const column of [
+      'google_place_id',
+      'latitude',
+      'longitude',
+      'coordinates_source',
+      'source_type',
+      'source_category',
+      'activity_score',
+      'activity_as_of',
+      'last_verified_at',
+      'consented_at',
+      'consent_channel',
+      'admin_notes',
+      'imported_opening_hours',
+    ]) {
+      expect(sql).not.toContain(column);
+    }
   });
 
   it('sends the same constant SQL on every call', async () => {
@@ -87,8 +119,21 @@ describe('findActiveBusinessRows', () => {
         createdAt: new Date('2026-10-01T12:30:45.123Z'),
         websiteUrl: 'https://example.com/panaderia',
         openingHours: '[{"dayOfWeek": 1, "opens": "07:00", "closes": "19:00"}]',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Panader%C3%ADa&query_place_id=EXAMPLE_PLACE_ID',
+        description: 'Pan artesanal y tortas por encargo.',
+        instagramUrl: 'https://www.instagram.com/example.panaderia/',
       },
     ]);
+  });
+
+  it('keeps a NULL Maps link, description, and Instagram link as null', async () => {
+    const { query } = fakeQuery([{ ...sampleRecord, maps_url: null, description: null, instagram_url: null }]);
+
+    const rows = await findActiveBusinessRows(query);
+
+    expect(rows[0]?.mapsUrl).toBeNull();
+    expect(rows[0]?.description).toBeNull();
+    expect(rows[0]?.instagramUrl).toBeNull();
   });
 
   it('keeps a NULL WhatsApp number as null', async () => {

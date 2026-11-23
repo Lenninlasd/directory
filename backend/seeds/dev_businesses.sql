@@ -6,33 +6,49 @@
 --   Websites: https (1, 5, 8), uppercase host and trailing slash (6), http, returned as null (2), missing (others).
 --   Hours: typical week with Sunday closed (1), two ranges a day (2), closes before it opens, returned as [] (4),
 --   missing (5, 9), the same every day (6), two days with a close at midnight (7), weekdays only (8).
-INSERT INTO businesses (id, name, category, location_summary, has_physical_store, whatsapp_number, is_active, created_at, website_url, opening_hours)
+-- Maps links, Instagram links, and descriptions (import-businesses, task 2.3). Links stay on example.com,
+-- so dev never links to a real site: valid links come only with the imported businesses.
+--   Maps link on another host, returned as null (1). Instagram link on another host, returned as null (5).
+--   Descriptions: surrounding spaces, returned trimmed (1), exactly 300 characters (6), markup shown as text (8),
+--   missing (others). Row 6 also has the longest name and location, for the 320 px dialog check.
+INSERT INTO businesses (id, name, category, location_summary, has_physical_store, whatsapp_number, is_active, created_at, website_url, opening_hours, maps_url, description, instagram_url)
 VALUES
   ('00000000-0000-4000-8000-000000000001', 'Panadería Doña Rosa', 'Panadería', 'Calle 98 con Carrera 52, frente al parque', TRUE, '+57 300 123 4567', TRUE, '2026-10-01T10:00:00Z',
     'https://example.com/panaderia',
-    '[{"dayOfWeek":1,"opens":"06:00","closes":"19:00"},{"dayOfWeek":2,"opens":"06:00","closes":"19:00"},{"dayOfWeek":3,"opens":"06:00","closes":"19:00"},{"dayOfWeek":4,"opens":"06:00","closes":"19:00"},{"dayOfWeek":5,"opens":"06:00","closes":"19:00"},{"dayOfWeek":6,"opens":"06:00","closes":"14:00"}]'),
+    '[{"dayOfWeek":1,"opens":"06:00","closes":"19:00"},{"dayOfWeek":2,"opens":"06:00","closes":"19:00"},{"dayOfWeek":3,"opens":"06:00","closes":"19:00"},{"dayOfWeek":4,"opens":"06:00","closes":"19:00"},{"dayOfWeek":5,"opens":"06:00","closes":"19:00"},{"dayOfWeek":6,"opens":"06:00","closes":"14:00"}]',
+    'https://example.com/maps/panaderia', '  Pan artesanal, tortas por encargo y café recién hecho.  ', NULL),
   ('00000000-0000-4000-8000-000000000002', 'Ferretería El Tornillo', 'Ferretería', 'Local 3, Centro Comercial Alameda', TRUE, '+57 (300) 555-0101', TRUE, '2026-10-05T09:30:00Z',
     'http://example.com/ferreteria',
-    '[{"dayOfWeek":1,"opens":"14:00","closes":"18:00"},{"dayOfWeek":1,"opens":"08:00","closes":"12:00"},{"dayOfWeek":2,"opens":"08:00","closes":"12:00"},{"dayOfWeek":2,"opens":"14:00","closes":"18:00"},{"dayOfWeek":3,"opens":"08:00","closes":"12:00"},{"dayOfWeek":3,"opens":"14:00","closes":"18:00"},{"dayOfWeek":4,"opens":"08:00","closes":"12:00"},{"dayOfWeek":4,"opens":"14:00","closes":"18:00"},{"dayOfWeek":5,"opens":"08:00","closes":"12:00"},{"dayOfWeek":5,"opens":"14:00","closes":"18:00"},{"dayOfWeek":6,"opens":"08:00","closes":"13:00"}]'),
+    '[{"dayOfWeek":1,"opens":"14:00","closes":"18:00"},{"dayOfWeek":1,"opens":"08:00","closes":"12:00"},{"dayOfWeek":2,"opens":"08:00","closes":"12:00"},{"dayOfWeek":2,"opens":"14:00","closes":"18:00"},{"dayOfWeek":3,"opens":"08:00","closes":"12:00"},{"dayOfWeek":3,"opens":"14:00","closes":"18:00"},{"dayOfWeek":4,"opens":"08:00","closes":"12:00"},{"dayOfWeek":4,"opens":"14:00","closes":"18:00"},{"dayOfWeek":5,"opens":"08:00","closes":"12:00"},{"dayOfWeek":5,"opens":"14:00","closes":"18:00"},{"dayOfWeek":6,"opens":"08:00","closes":"13:00"}]',
+    NULL, NULL, NULL),
   ('00000000-0000-4000-8000-000000000003', 'Lavandería Burbujas', 'Lavandería', 'Carrera 51 #96-20', TRUE, '573004445566', FALSE, '2026-10-10T08:00:00Z',
-    NULL, NULL),
+    NULL, NULL,
+    NULL, NULL, NULL),
   ('00000000-0000-4000-8000-000000000004', 'Uñas y Estilo Caro', 'Belleza', 'Servicio a domicilio en el conjunto', FALSE, '0300 123', TRUE, '2026-10-03T14:00:00Z',
     NULL,
-    '[{"dayOfWeek":2,"opens":"09:00","closes":"17:00"},{"dayOfWeek":3,"opens":"18:00","closes":"09:00"}]'),
+    '[{"dayOfWeek":2,"opens":"09:00","closes":"17:00"},{"dayOfWeek":3,"opens":"18:00","closes":"09:00"}]',
+    NULL, NULL, NULL),
   ('00000000-0000-4000-8000-000000000005', 'Tutorías de Matemáticas', 'Educación', 'Clases a domicilio en Alameda del Río', FALSE, NULL, TRUE, '2026-10-02T16:00:00Z',
     'https://example.com/tutorias',
-    NULL),
+    NULL,
+    NULL, NULL, 'https://example.com/instagram/tutorias/'),
   ('00000000-0000-4000-8000-000000000006', 'Distribuidora de Productos Naturales, Orgánicos y Artesanales de la Costa Caribe Hermanos Rodríguez Pertuz', 'Alimentos', 'Bodega en la Carrera 52 entre Calles 96 y 98, al lado de la estación de servicio, con entregas a domicilio en todas las torres del conjunto', TRUE, '573107778899', TRUE, '2026-09-20T12:00:00Z',
     'https://EXAMPLE.com/productos-naturales/',
-    '[{"dayOfWeek":1,"opens":"07:00","closes":"21:00"},{"dayOfWeek":2,"opens":"07:00","closes":"21:00"},{"dayOfWeek":3,"opens":"07:00","closes":"21:00"},{"dayOfWeek":4,"opens":"07:00","closes":"21:00"},{"dayOfWeek":5,"opens":"07:00","closes":"21:00"},{"dayOfWeek":6,"opens":"07:00","closes":"21:00"},{"dayOfWeek":7,"opens":"07:00","closes":"21:00"}]'),
+    '[{"dayOfWeek":1,"opens":"07:00","closes":"21:00"},{"dayOfWeek":2,"opens":"07:00","closes":"21:00"},{"dayOfWeek":3,"opens":"07:00","closes":"21:00"},{"dayOfWeek":4,"opens":"07:00","closes":"21:00"},{"dayOfWeek":5,"opens":"07:00","closes":"21:00"},{"dayOfWeek":6,"opens":"07:00","closes":"21:00"},{"dayOfWeek":7,"opens":"07:00","closes":"21:00"}]',
+    NULL,
+    'Productos naturales, orgánicos y artesanales de la Costa Caribe: miel de abejas, panela, café de origen, aceite de coco, granola, frutos secos y jabones hechos a mano. Pedidos al por mayor y al detal, con entregas en todas las torres del conjunto de lunes a domingo y atención de la familia De Ávila.',
+    NULL),
   ('00000000-0000-4000-8000-000000000007', 'Arepas La Mona', 'Comida', 'Puesto en la entrada del conjunto', TRUE, '573001239876', TRUE, '2026-10-04T15:00:00Z',
     NULL,
-    '[{"dayOfWeek":6,"opens":"11:00","closes":"12:00"},{"dayOfWeek":6,"opens":"16:00","closes":"24:00"},{"dayOfWeek":7,"opens":"11:00","closes":"12:00"},{"dayOfWeek":7,"opens":"16:00","closes":"24:00"}]'),
+    '[{"dayOfWeek":6,"opens":"11:00","closes":"12:00"},{"dayOfWeek":6,"opens":"16:00","closes":"24:00"},{"dayOfWeek":7,"opens":"11:00","closes":"12:00"},{"dayOfWeek":7,"opens":"16:00","closes":"24:00"}]',
+    NULL, NULL, NULL),
   ('00000000-0000-4000-8000-000000000008', 'Café del Río', 'Cafetería', 'Torre 2, primer piso', TRUE, '573015550202', TRUE, '2026-10-04T15:00:00Z',
     'https://example.com/cafe-del-rio',
-    '[{"dayOfWeek":1,"opens":"07:00","closes":"18:00"},{"dayOfWeek":2,"opens":"07:00","closes":"18:00"},{"dayOfWeek":3,"opens":"07:00","closes":"18:00"},{"dayOfWeek":4,"opens":"07:00","closes":"18:00"},{"dayOfWeek":5,"opens":"07:00","closes":"18:00"}]'),
+    '[{"dayOfWeek":1,"opens":"07:00","closes":"18:00"},{"dayOfWeek":2,"opens":"07:00","closes":"18:00"},{"dayOfWeek":3,"opens":"07:00","closes":"18:00"},{"dayOfWeek":4,"opens":"07:00","closes":"18:00"},{"dayOfWeek":5,"opens":"07:00","closes":"18:00"}]',
+    NULL, '<b>Café</b> de origen y postres <i>caseros</i>.', NULL),
   ('00000000-0000-4000-8000-000000000009', 'cafe del rio', 'Cafetería', 'Pedidos por WhatsApp, entrega en portería', FALSE, '573015550303', TRUE, '2026-10-04T15:00:00Z',
-    NULL, NULL)
+    NULL, NULL,
+    NULL, NULL, NULL)
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   category = EXCLUDED.category,
@@ -42,4 +58,7 @@ ON CONFLICT (id) DO UPDATE SET
   is_active = EXCLUDED.is_active,
   created_at = EXCLUDED.created_at,
   website_url = EXCLUDED.website_url,
-  opening_hours = EXCLUDED.opening_hours;
+  opening_hours = EXCLUDED.opening_hours,
+  maps_url = EXCLUDED.maps_url,
+  description = EXCLUDED.description,
+  instagram_url = EXCLUDED.instagram_url;

@@ -5,6 +5,7 @@ import { AdminKeyDialog } from './AdminKeyDialog.tsx';
 import { getAdminKey, setAdminKey } from './adminKey.ts';
 import { CategoryCover } from './CategoryCover.tsx';
 import { CloseIcon, ExternalLinkIcon, MagicPencilIcon } from './icons.tsx';
+import { instagramLinkText } from './instagram.ts';
 import { formatOpeningHours } from './openingHours.ts';
 import { OpeningHoursEditor } from './OpeningHoursEditor.tsx';
 import { StoreTypeBadge } from './StoreTypeBadge.tsx';
@@ -25,6 +26,7 @@ interface BusinessDetailDialogProps {
 export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessDetailDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const descriptionId = useId();
 
   // Layout effect, so the dialog opens or closes in the same frame as its content changes.
   useLayoutEffect(() => {
@@ -48,6 +50,20 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
   // The business whose "Editar con IA" is waiting for the admin key (design D-19).
   const [keyRequestBusinessId, setKeyRequestBusinessId] = useState<string | null>(null);
   const isEditing = business !== null && editingBusinessId === business.id;
+
+  // The description shows three lines until "Ver más", kept by business id like the editing state
+  // (directory spec, "Business description"; import-businesses design D-10).
+  const [expandedDescriptionId, setExpandedDescriptionId] = useState<string | null>(null);
+  const isDescriptionExpanded = business !== null && expandedDescriptionId === business.id;
+  // Measured while limited: a line holds more characters on desktop than on a phone, so the text decides.
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+  useLayoutEffect(() => {
+    const paragraph = descriptionRef.current;
+    if (paragraph !== null && !isDescriptionExpanded) {
+      setDescriptionOverflows(paragraph.scrollHeight > paragraph.clientHeight);
+    }
+  }, [business, isDescriptionExpanded]);
 
   // When the panel closes, focus goes back to "Editar con IA", since the focused control was removed.
   const editButtonRef = useRef<HTMLButtonElement>(null);
@@ -93,6 +109,7 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
           setEditingBusinessId(null);
           setSavedBusinessId(null);
           setKeyRequestBusinessId(null);
+          setExpandedDescriptionId(null);
           onClose();
         }
       }}
@@ -126,11 +143,50 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
                 </h2>
                 <StoreTypeBadge hasPhysicalStore={business.hasPhysicalStore} className="mt-1 bg-canvas" />
               </div>
+              {/* Between the badge and the rows, limited to three lines so "Ubicación" stays in view at 320 px (AC-8.5).
+                  React renders it as text, so markup is never interpreted (directory spec, "Business description"). */}
+              {business.description !== null && (
+                <div className="flex flex-col items-start gap-1">
+                  <p
+                    id={descriptionId}
+                    ref={descriptionRef}
+                    className={`text-sm break-words whitespace-pre-line text-ink ${isDescriptionExpanded ? '' : 'line-clamp-3'}`}
+                  >
+                    {business.description}
+                  </p>
+                  {/* One button in both states, so keyboard focus stays on it (design D-10). */}
+                  {(descriptionOverflows || isDescriptionExpanded) && (
+                    <button
+                      type="button"
+                      aria-expanded={isDescriptionExpanded}
+                      aria-controls={descriptionId}
+                      onClick={() => setExpandedDescriptionId(isDescriptionExpanded ? null : business.id)}
+                      className="min-h-8 text-sm font-semibold text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                    >
+                      {isDescriptionExpanded ? strings.showLessDescription : strings.showMoreDescription}
+                    </button>
+                  )}
+                </div>
+              )}
               {/* Rows without data are not rendered (directory spec, "Detail dialog hours and website rows"). */}
               <dl className="flex flex-col gap-3 rounded-2xl border border-border p-4 text-sm">
                 <div>
                   <dt className="font-medium text-ink">{strings.locationLabel}</dt>
                   <dd className="break-words text-ink-muted">{business.locationSummary}</dd>
+                  {/* Below the location it belongs to (directory spec, "Maps link"; import-businesses design D-10). */}
+                  {business.mapsUrl !== null && (
+                    <dd className="mt-1">
+                      <a
+                        href={business.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                      >
+                        {strings.mapsLinkText}
+                        <ExternalLinkIcon className="size-4 shrink-0" />
+                      </a>
+                    </dd>
+                  )}
                 </div>
                 {/* In admin mode the row always shows, so hours can be added (directory spec, "No hours in admin mode"). */}
                 {(business.openingHours.length > 0 || adminMode) && (
@@ -191,6 +247,23 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
                         className="inline-flex max-w-full items-center gap-1 font-medium break-all text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                       >
                         {websiteLinkText(business.websiteUrl)}
+                        <ExternalLinkIcon className="size-4 shrink-0" />
+                      </a>
+                    </dd>
+                  </div>
+                )}
+                {/* Last of the rows (directory spec, "Detail dialog hours and website rows"). */}
+                {business.instagramUrl !== null && (
+                  <div>
+                    <dt className="font-medium text-ink">{strings.instagramLabel}</dt>
+                    <dd>
+                      <a
+                        href={business.instagramUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex max-w-full items-center gap-1 font-medium break-all text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                      >
+                        {instagramLinkText(business.instagramUrl)}
                         <ExternalLinkIcon className="size-4 shrink-0" />
                       </a>
                     </dd>

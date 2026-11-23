@@ -21,6 +21,12 @@ export interface Business {
   websiteUrl: string | null;
   /** Ranges sorted by day and opening time, or `[]` when missing or invalid. */
   openingHours: OpeningHoursRange[];
+  /** A Google Maps link, or `null` when missing or invalid (directory spec, "Maps link validity"). */
+  mapsUrl: string | null;
+  /** Plain text, trimmed, or `null` when missing or invalid (directory spec, "Description validity"). */
+  description: string | null;
+  /** An Instagram profile link, or `null` when missing or invalid (directory spec, "Instagram link validity"). */
+  instagramUrl: string | null;
 }
 
 interface BusinessesResponse {

@@ -20,6 +20,9 @@ const businesses: Business[] = [
     whatsappNumber: '573001234567',
     websiteUrl: null,
     openingHours: [],
+    mapsUrl: null,
+    description: null,
+    instagramUrl: null,
   },
   {
     id: '7c1d0f35-2b8e-4e57-a1a4-5f0e3b9c6d22',
@@ -30,15 +33,18 @@ const businesses: Business[] = [
     whatsappNumber: null,
     websiteUrl: null,
     openingHours: [],
+    mapsUrl: null,
+    description: null,
+    instagramUrl: null,
   },
 ];
 
 // Spec 003 data: categories with spelling variants, stores, and delivery-only businesses.
 const neighborhood: Business[] = [
-  { id: 'cafe', name: 'Café del Río', category: 'Cafetería', locationSummary: 'Torre 1', hasPhysicalStore: true, whatsappNumber: '573001111111', websiteUrl: null, openingHours: [] },
-  { id: 'bakery', name: 'La Esquina', category: 'Panadería', locationSummary: 'Torre 2', hasPhysicalStore: true, whatsappNumber: null, websiteUrl: null, openingHours: [] },
-  { id: 'desserts', name: 'Dulces de Ana', category: 'Postres', locationSummary: 'Torre 3', hasPhysicalStore: false, whatsappNumber: null, websiteUrl: null, openingHours: [] },
-  { id: 'coffee', name: 'Tinto Express', category: 'cafeteria', locationSummary: 'Torre 4', hasPhysicalStore: false, whatsappNumber: null, websiteUrl: null, openingHours: [] },
+  { id: 'cafe', name: 'Café del Río', category: 'Cafetería', locationSummary: 'Torre 1', hasPhysicalStore: true, whatsappNumber: '573001111111', websiteUrl: null, openingHours: [], mapsUrl: null, description: null, instagramUrl: null },
+  { id: 'bakery', name: 'La Esquina', category: 'Panadería', locationSummary: 'Torre 2', hasPhysicalStore: true, whatsappNumber: null, websiteUrl: null, openingHours: [], mapsUrl: null, description: null, instagramUrl: null },
+  { id: 'desserts', name: 'Dulces de Ana', category: 'Postres', locationSummary: 'Torre 3', hasPhysicalStore: false, whatsappNumber: null, websiteUrl: null, openingHours: [], mapsUrl: null, description: null, instagramUrl: null },
+  { id: 'coffee', name: 'Tinto Express', category: 'cafeteria', locationSummary: 'Torre 4', hasPhysicalStore: false, whatsappNumber: null, websiteUrl: null, openingHours: [], mapsUrl: null, description: null, instagramUrl: null },
 ];
 
 const errorMessage = 'No pudimos cargar los negocios. Inténtalo de nuevo.';

@@ -1,4 +1,7 @@
 import type { Business, BusinessRow } from '../domain/business.ts';
+import { normalizeDescription } from '../domain/description.ts';
+import { normalizeInstagramUrl } from '../domain/instagramUrl.ts';
+import { normalizeMapsUrl } from '../domain/mapsUrl.ts';
 import { normalizeOpeningHours } from '../domain/openingHours.ts';
 import { normalizeWebsiteUrl } from '../domain/websiteUrl.ts';
 import { normalizeWhatsappNumber } from '../domain/whatsappNumber.ts';
@@ -30,6 +33,9 @@ function toBusiness(row: BusinessRow): Business {
     whatsappNumber: normalizeWhatsappNumber(row.whatsappNumber),
     websiteUrl: normalizeWebsiteUrl(row.websiteUrl),
     openingHours: normalizeOpeningHours(row.openingHours),
+    mapsUrl: normalizeMapsUrl(row.mapsUrl),
+    description: normalizeDescription(row.description),
+    instagramUrl: normalizeInstagramUrl(row.instagramUrl),
   };
 }
 

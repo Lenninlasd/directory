@@ -15,6 +15,9 @@ const bakery: Business = {
   whatsappNumber: '573001234567',
   websiteUrl: null,
   openingHours: [],
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
 
 const desserts: Business = {
@@ -26,6 +29,9 @@ const desserts: Business = {
   whatsappNumber: null,
   websiteUrl: null,
   openingHours: [],
+  mapsUrl: null,
+  description: null,
+  instagramUrl: null,
 };
 
 describe('BusinessTile', () => {

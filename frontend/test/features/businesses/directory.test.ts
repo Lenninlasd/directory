@@ -18,6 +18,9 @@ function business(overrides: Partial<Business> & Pick<Business, 'id'>): Business
     whatsappNumber: null,
     websiteUrl: null,
     openingHours: [],
+    mapsUrl: null,
+    description: null,
+    instagramUrl: null,
     ...overrides,
   };
 }
