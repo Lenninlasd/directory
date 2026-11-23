@@ -392,21 +392,7 @@ describe('BusinessDetailDialog: description (directory spec, "Business descripti
     expect(within(dialog).getByRole('button', { name: 'Ver más' })).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('puts "… Ver más" in the text block, named "Ver más" without the ellipsis', async () => {
-    layoutDescription({ overflows: true });
-    await renderDirectory(createQueryClient(), [bakeryWithDescription]);
-
-    openTile(bakeryWithDescription);
-
-    const dialog = screen.getByRole('dialog', { name: bakeryWithDescription.name });
-    const paragraph = within(dialog).getByText(description);
-    const button = within(dialog).getByRole('button', { name: 'Ver más' });
-    expect(button.parentElement).toBe(paragraph.parentElement);
-    expect(button).toHaveTextContent('… Ver más');
-    expect(button).toHaveAccessibleName('Ver más');
-  });
-
-  it('keeps the same button, and the focus on it, when expanding and limiting, with "Ver menos" after the text', async () => {
+  it('keeps the same button, and the focus on it, when expanding and limiting', async () => {
     layoutDescription({ overflows: true });
     await renderDirectory(createQueryClient(), [bakeryWithDescription]);
     openTile(bakeryWithDescription);
@@ -419,7 +405,6 @@ describe('BusinessDetailDialog: description (directory spec, "Business descripti
     expect(within(dialog).getByRole('button', { name: 'Ver menos' })).toBe(button);
     expect(button).toHaveFocus();
     expect(button).toHaveTextContent(/^Ver menos$/);
-    expect(within(dialog).getByText(description)).toHaveClass('inline');
 
     fireEvent.click(button);
 

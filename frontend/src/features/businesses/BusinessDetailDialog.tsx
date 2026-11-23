@@ -146,28 +146,23 @@ export function BusinessDetailDialog({ business, onClose, adminMode }: BusinessD
               {/* Between the badge and the rows, limited to three lines so "Ubicación" stays in view at 320 px (AC-8.5).
                   React renders it as text, so markup is never interpreted (directory spec, "Business description"). */}
               {business.description !== null && (
-                // `relative` so the limited "… Ver más" can sit over the end of the third line.
-                <div className="relative text-sm text-ink">
+                <div className="flex flex-col items-start gap-1">
                   <p
                     id={descriptionId}
                     ref={descriptionRef}
-                    className={`break-words whitespace-pre-line ${isDescriptionExpanded ? 'inline' : 'line-clamp-3'}`}
+                    className={`text-sm break-words whitespace-pre-line text-ink ${isDescriptionExpanded ? '' : 'line-clamp-3'}`}
                   >
                     {business.description}
                   </p>
-                  {/* One button in both states, so keyboard focus stays on it (design D-10). The inline-text
-                      exception of WCAG 2.5.8 applies to its target size. */}
+                  {/* One button in both states, so keyboard focus stays on it (design D-10). */}
                   {(descriptionOverflows || isDescriptionExpanded) && (
                     <button
                       type="button"
                       aria-expanded={isDescriptionExpanded}
                       aria-controls={descriptionId}
                       onClick={() => setExpandedDescriptionId(isDescriptionExpanded ? null : business.id)}
-                      className={`font-semibold underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                        isDescriptionExpanded ? 'ml-1 inline' : 'absolute right-0 bottom-0 bg-surface pl-1'
-                      }`}
+                      className="min-h-8 text-sm font-semibold text-ink underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                     >
-                      {!isDescriptionExpanded && <span aria-hidden="true">… </span>}
                       {isDescriptionExpanded ? strings.showLessDescription : strings.showMoreDescription}
                     </button>
                   )}

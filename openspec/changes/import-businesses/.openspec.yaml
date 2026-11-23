@@ -3,5 +3,5 @@ created: 2026-11-21
 # Owner decisions A to C on the direction were settled in chat on 2026-11-21 (proposal, "Owner decisions").
 x-approved: "2026-11-22, by the project owner in chat"
 # Revision of 2026-11-23: the description moves between the badge and the rows, limited to three lines
-# with "Ver más" / "Ver menos" (design D-10, task 3.4), then the button moves into the text (task 3.5).
+# with "Ver más" / "Ver menos" below it (design D-10, task 3.4). A version with the button inside the text was tried and dropped.
 x-revision-approved: "2026-11-23, by the project owner in chat"

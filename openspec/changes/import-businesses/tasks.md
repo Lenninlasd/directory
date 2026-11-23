@@ -82,11 +82,6 @@ These tasks start only after the owner approves the whole change in chat and the
     - No paragraph and no button when the description is `null`, and markup stays text.
     - The exact wording.
   - Verify: the tests pass. The 320 px check is manual, in task 5.3.
-- [x] 3.5 Put "Ver más" at the end of the third line and "Ver menos" after the last word (owner's revision of 2026-11-23; directory spec, "Business description"; design D-10).
-  - Tests first, in `BusinessDetailDialog.test.tsx`:
-    - The button is in the same block as the paragraph, and its accessible name stays "Ver más", without the "…".
-    - Expanding keeps the same button element, so focus stays on it, and the expanded paragraph is inline.
-  - Verify: the tests pass. The position over the third line is checked by hand in task 5.3.
 
 ## 4. Import command
 

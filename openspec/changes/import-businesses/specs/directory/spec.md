@@ -239,7 +239,7 @@ The "Instagram" row SHALL show a link whose text is `@` followed by the handle, 
 - **THEN** the profile opens in a new tab, and the directory stays open with the dialog where the user left it
 
 ### Requirement: Business description
-While a business has a description, the detail dialog SHALL show it as plain text in a paragraph between the store type badge and the rows, limited to three lines. When the text needs more than three lines, a "Ver más" button at the end of the third line, over the cut text, SHALL show the full text. Its text SHALL then read "Ver menos", right after the last word, and limit it to three lines again. Markup in a description SHALL be shown as text, never interpreted.
+While a business has a description, the detail dialog SHALL show it as plain text in a paragraph between the store type badge and the rows, limited to three lines. When the text needs more than three lines, a "Ver más" button below it SHALL show the full text, and its text SHALL then read "Ver menos", which limits it to three lines again. Markup in a description SHALL be shown as text, never interpreted.
 
 #### Scenario: A short description
 - **WHEN** the dialog opens for a business whose description fits in three lines
@@ -247,11 +247,11 @@ While a business has a description, the detail dialog SHALL show it as plain tex
 
 #### Scenario: A long description
 - **WHEN** the dialog opens for a business whose description needs more than three lines
-- **THEN** the dialog shows its first three lines and, at the end of the third, "… Ver más" over the cut text: a button named "Ver más" whose `aria-expanded` is `false`
+- **THEN** the dialog shows its first three lines, ending in an ellipsis, and below them a "Ver más" button whose `aria-expanded` is `false`
 
 #### Scenario: Expanding and limiting the description
 - **WHEN** the user activates "Ver más"
-- **THEN** the full description is shown with "Ver menos" right after its last word, the button's `aria-expanded` is `true` and keyboard focus stays on it, and activating it again limits the description to three lines
+- **THEN** the full description is shown, the button reads "Ver menos" and its `aria-expanded` is `true`, and keyboard focus stays on it, and activating it again limits the description to three lines
 
 #### Scenario: Another business
 - **WHEN** the user expands a description, closes the dialog, and opens another business or the same one again
