@@ -3,12 +3,20 @@ import type { PlaygroundBusiness } from '../mockData.ts';
 import { CardsView } from './CardsView.tsx';
 import { CompactView } from './CompactView.tsx';
 import { DeliveryView } from './DeliveryView.tsx';
+import { StoreView } from './StoreView.tsx';
 
 export interface ViewProps {
   businesses: PlaygroundBusiness[];
 }
 
-type View = { id: string; label: string; description: string; component: ComponentType<ViewProps> };
+type View = {
+  id: string;
+  label: string;
+  description: string;
+  component: ComponentType<ViewProps>;
+  /** Does not use the businesses, so it works without the dev API. */
+  standalone?: boolean;
+};
 
 // Register new views here; the first one is the default.
 export const views: [View, ...View[]] = [
@@ -19,5 +27,12 @@ export const views: [View, ...View[]] = [
     label: 'App de domicilios',
     description: 'Buscador, categorías y carrusel',
     component: DeliveryView,
+  },
+  {
+    id: 'store',
+    label: 'Tienda',
+    description: 'Revisar un menú, catálogo y cambios por mensaje',
+    component: StoreView,
+    standalone: true,
   },
 ];

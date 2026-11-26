@@ -25,8 +25,6 @@ export function Playground() {
   const [viewId, setViewId] = useState(readViewId);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mockDataEnabled, setMockDataEnabled] = useState(readMockDataEnabled);
-  const query = useBusinesses();
-
   useEffect(() => {
     const onHashChange = () => {
       setViewId(readViewId());
@@ -55,6 +53,7 @@ export function Playground() {
 
   const current = views.find((view) => view.id === viewId) ?? views[0];
   const View = current.component;
+  const query = useBusinesses(!current.standalone);
 
   return (
     <>
@@ -127,7 +126,9 @@ export function Playground() {
         </label>
       </aside>
 
-      {query.isPending ? (
+      {current.standalone ? (
+        <View businesses={[]} />
+      ) : query.isPending ? (
         <p className="p-6 text-ink-muted">{strings.loading}</p>
       ) : query.isError ? (
         <div className="p-6 text-danger">

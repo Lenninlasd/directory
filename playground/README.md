@@ -33,6 +33,19 @@ Before pushing, run `pnpm typecheck`. There is no lint, test, or build script.
 
 Rules for AI agents are in `AGENTS.md`.
 
+## Store mock-up
+
+The "Tienda" view explores the store of `docs/ideas/prompt-first-store.md`: an owner reviews an imported menu, the public catalog, and changes by message. It has no backend and no AI, and does not need the `dev` API. Edits are kept in the browser.
+
+- All of it lives in `src/store/` and `src/views/StoreView.tsx`. `src/store/types.ts` is the contract of the future API, and `src/store/api.ts` is the only file that knows the data is simulated.
+- It comes with one invented menu. Real ones are exported from the `catalog-lab` project to `src/store/data.local/`, which git ignores: this repository is public and the menus belong to their owners. From `catalog-lab`:
+
+  ```sh
+  uv run python scripts/export_front.py runs/<date> --out <this folder>/src/store/data.local
+  ```
+
+- To try it on a phone in the same Wi-Fi: `pnpm dev --host`. Everyone in that network can then see the menus.
+
 ## Add a view
 
-Create a component in `src/views/` that receives `{ businesses }` and register it in `src/views/index.ts`. The first view in the list is the default.
+Create a component in `src/views/` that receives `{ businesses }` and register it in `src/views/index.ts`. The first view in the list is the default. `standalone: true` is for a view that does not use the businesses.
